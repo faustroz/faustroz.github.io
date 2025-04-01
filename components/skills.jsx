@@ -45,9 +45,9 @@ export default function Skills() {
           <h2 className="text-3xl font-bold mb-2">Skills</h2>
           <div className="w-20 h-1 bg-primary mx-auto mb-6"></div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            I've worked with a variety of technologies in the web development
-            world. Here's a quick overview of my technical skills and areas of
-            expertise.
+            I&apos;ve worked with a variety of technologies in the web
+            development world. Here&apos;s a quick overview of my technical
+            skills and areas of expertise.
           </p>
         </motion.div>
         <div className="flex flex-wrap gap-2">
