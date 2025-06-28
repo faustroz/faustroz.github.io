@@ -7,9 +7,14 @@ export default function Hero() {
     <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
       <div className="max-w-4xl mx-auto text-center">
         <div className="mb-8">
-          <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-4xl font-bold text-gray-700 shadow-lg">
-            FD
+          <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-4xl font-bold text-gray-700 shadow-lg overflow-hidden">
+            <img
+              src="/ferdy.webp"
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
           </div>
+
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
             Ferdy Diatmika
           </h1>
