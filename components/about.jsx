@@ -32,7 +32,7 @@ export default function About() {
             About Me
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            I'm a passionate web developer with over 5 years of experience
+            I&apos;m a passionate web developer with over 5 years of experience
             creating digital solutions that make a difference. I specialize in
             building modern, scalable web applications using the latest
             technologies and best practices.

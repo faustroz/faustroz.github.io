@@ -1,5 +1,5 @@
 import { Globe, Building, BookOpen, Settings } from "lucide-react";
-import Link from "next/link"; // or 'react-router-dom' if not using Next.js
+import Link from "next/link";
 export default function Services() {
   const services = [
     {
@@ -62,7 +62,7 @@ export default function Services() {
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             I provide comprehensive web development services to help your
             business succeed online. From simple landing pages to complex web
-            applications, I've got you covered.{" "}
+            applications, I&apos;ve got you covered.{" "}
             <Link href="/pricing" className="text-blue-600 underline">
               Pricelist
             </Link>
