@@ -3,6 +3,11 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata = {
   title: "Ferdy Diatmika - Web Developer Portfolio",
   description:
@@ -10,7 +15,6 @@ export const metadata = {
   keywords:
     "web developer, frontend developer, React, Next.js, portfolio, landing pages, web design",
   authors: [{ name: "Ferdy Diatmika" }],
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   openGraph: {
     title: "Ferdy Diatmika - Web Developer Portfolio",
@@ -32,9 +36,9 @@ export default function RootLayout({ children }) {
     <html lang="en" className="scroll-smooth">
       <body className={inter.className}>
         {children}
-        <footer className="bg-gray-900 text-white py-8 px-4">
+        <footer className="bg-black text-white py-8 px-4 border-t border-neutral-900">
           <div className="max-w-6xl mx-auto text-center">
-            <p className="text-gray-400">
+            <p className="text-neutral-500 text-sm">
               © {new Date().getFullYear()} Ferdy Diatmika. All rights reserved.
             </p>
           </div>

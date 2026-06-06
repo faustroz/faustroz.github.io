@@ -15,24 +15,24 @@ export default function Hero() {
             />
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight">
             Ferdy Diatmika
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 font-medium">
             Web Developer & Digital Solutions Specialist
           </p>
-          <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-8">
+          <p className="text-sm sm:text-base md:text-lg text-gray-500 max-w-2xl mx-auto mb-8 leading-relaxed">
             Creating modern, responsive, and user-friendly web applications that
             help businesses grow and succeed in the digital world.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-          <Button asChild size="lg" className="bg-gray-900 hover:bg-gray-800">
-            <Link href="#portfolio">View My Work</Link>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 w-full max-w-md mx-auto px-4">
+          <Button asChild size="lg" className="w-full sm:w-auto bg-gray-900 hover:bg-gray-850">
+            <Link href="#about" className="w-full justify-center">Learn More</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="#contact">Get In Touch</Link>
+          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+            <Link href="mailto:ferdydiatmika171@gmail.com" className="w-full justify-center">Get In Touch</Link>
           </Button>
         </div>
 
