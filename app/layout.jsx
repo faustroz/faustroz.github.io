@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
+import FooterConditional from "@/components/FooterConditional";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,13 +37,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className="scroll-smooth">
       <body className={inter.className}>
         {children}
-        <footer className="bg-black text-white py-8 px-4 border-t border-neutral-900">
-          <div className="max-w-6xl mx-auto text-center">
-            <p className="text-neutral-500 text-sm">
-              © {new Date().getFullYear()} Ferdy Diatmika. All rights reserved.
-            </p>
-          </div>
-        </footer>
+        <FooterConditional />
       </body>
     </html>
   );
