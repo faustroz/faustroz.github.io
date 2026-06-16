@@ -11,31 +11,52 @@ const NAV_ITEMS = [
 
 export default function Navbar({ activeTab, setActiveTab, onLogout }) {
   return (
-    <nav className="pt-nav">
-      <div className="pt-nav-brand">
-        <div className="pt-nav-logo">
-          <BarChart3 size={20} />
+    <>
+      <header className="pt-mobile-header">
+        <div className="pt-mobile-header-brand">
+          <div className="pt-nav-logo">
+            <BarChart3 size={18} />
+          </div>
+          <span className="pt-nav-title">Portfolio</span>
         </div>
-        <span className="pt-nav-title">Portfolio</span>
-      </div>
+        <button
+          className="pt-mobile-logout"
+          onClick={onLogout}
+          title="Keluar"
+          aria-label="Keluar"
+        >
+          <LogOut size={18} />
+        </button>
+      </header>
 
-      <div className="pt-nav-links">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            className={`pt-nav-link ${activeTab === id ? 'active' : ''}`}
-            onClick={() => setActiveTab(id)}
-          >
-            <Icon size={16} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
+      <nav className="pt-nav" aria-label="Portfolio navigation">
+        <div className="pt-nav-brand">
+          <div className="pt-nav-logo">
+            <BarChart3 size={20} />
+          </div>
+          <span className="pt-nav-title">Portfolio</span>
+        </div>
 
-      <button className="pt-nav-logout" onClick={onLogout} title="Keluar">
-        <LogOut size={16} />
-        <span>Keluar</span>
-      </button>
-    </nav>
+        <div className="pt-nav-links">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              className={`pt-nav-link ${activeTab === id ? 'active' : ''}`}
+              onClick={() => setActiveTab(id)}
+              aria-label={label}
+              aria-current={activeTab === id ? 'page' : undefined}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+
+        <button className="pt-nav-logout" onClick={onLogout} title="Keluar">
+          <LogOut size={16} />
+          <span>Keluar</span>
+        </button>
+      </nav>
+    </>
   );
 }

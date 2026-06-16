@@ -35,26 +35,26 @@ const chartDefaults = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      labels: { color: '#94a3b8', font: { family: 'JetBrains Mono, monospace', size: 12 } },
+      labels: { color: '#d4d4d8', font: { family: 'IBM Plex Mono, monospace', size: 12 } },
     },
     tooltip: {
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
+      backgroundColor: '#18181b',
+      borderColor: '#3f3f46',
       borderWidth: 1,
-      titleColor: '#f1f5f9',
-      bodyColor: '#94a3b8',
+      titleColor: '#f5f5f5',
+      bodyColor: '#d4d4d8',
     },
   },
   scales: {
     x: {
-      grid: { color: '#1e293b' },
-      ticks: { color: '#64748b', font: { family: 'JetBrains Mono, monospace', size: 11 } },
+      grid: { color: '#27272a' },
+      ticks: { color: '#a1a1aa', font: { family: 'IBM Plex Mono, monospace', size: 11 } },
     },
     y: {
-      grid: { color: '#1e293b' },
+      grid: { color: '#27272a' },
       ticks: {
-        color: '#64748b',
-        font: { family: 'JetBrains Mono, monospace', size: 11 },
+        color: '#a1a1aa',
+        font: { family: 'IBM Plex Mono, monospace', size: 11 },
         callback: (v) => `${(v / 1e6).toFixed(1)}M`,
       },
     },
@@ -75,8 +75,8 @@ export function PortfolioChart({ priceHistory }) {
       {
         label: 'Nilai Portofolio (IDR)',
         data: filtered.map((h) => h.value),
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.08)',
+        borderColor: '#f5f5f5',
+        backgroundColor: 'rgba(245,245,245,0.08)',
         fill: true,
         tension: 0.4,
         pointRadius: filtered.length > 20 ? 0 : 4,
@@ -165,7 +165,7 @@ export function AllocationChart({ summary }) {
 
   const labels = entries.map(([cat]) => cat);
   const values = entries.map(([, { value }]) => value);
-  const colors = labels.map((l) => CATEGORY_COLORS[l] || '#6b7280');
+  const colors = labels.map((l) => CATEGORY_COLORS[l] || '#71717a');
 
   const data = {
     labels,
@@ -188,8 +188,8 @@ export function AllocationChart({ summary }) {
       legend: {
         position: 'right',
         labels: {
-          color: '#94a3b8',
-          font: { family: 'JetBrains Mono, monospace', size: 12 },
+          color: '#d4d4d8',
+          font: { family: 'IBM Plex Mono, monospace', size: 12 },
           padding: 16,
           generateLabels: (chart) => {
             const ds = chart.data.datasets[0];
@@ -209,11 +209,11 @@ export function AllocationChart({ summary }) {
         },
       },
       tooltip: {
-        backgroundColor: '#1e293b',
-        borderColor: '#334155',
+        backgroundColor: '#18181b',
+        borderColor: '#3f3f46',
         borderWidth: 1,
-        titleColor: '#f1f5f9',
-        bodyColor: '#94a3b8',
+        titleColor: '#f5f5f5',
+        bodyColor: '#d4d4d8',
         callbacks: {
           label: (ctx) => {
             const val = ctx.raw;
@@ -266,9 +266,9 @@ export function PLChart({ summary }) {
         label: 'P/L (%)',
         data: plValues,
         backgroundColor: plValues.map((v) =>
-          v >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(244,63,94,0.7)'
+          v >= 0 ? 'rgba(245,245,245,0.72)' : 'rgba(156,163,175,0.72)'
         ),
-        borderColor: plValues.map((v) => (v >= 0 ? '#10b981' : '#f43f5e')),
+        borderColor: plValues.map((v) => (v >= 0 ? '#f5f5f5' : '#9ca3af')),
         borderWidth: 1,
         borderRadius: 4,
       },
@@ -282,11 +282,11 @@ export function PLChart({ summary }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1e293b',
-        borderColor: '#334155',
+        backgroundColor: '#18181b',
+        borderColor: '#3f3f46',
         borderWidth: 1,
-        titleColor: '#f1f5f9',
-        bodyColor: '#94a3b8',
+        titleColor: '#f5f5f5',
+        bodyColor: '#d4d4d8',
         callbacks: {
           label: (ctx) => {
             const asset = sorted[ctx.dataIndex];
@@ -300,18 +300,18 @@ export function PLChart({ summary }) {
     },
     scales: {
       x: {
-        grid: { color: '#1e293b' },
+        grid: { color: '#27272a' },
         ticks: {
-          color: '#64748b',
-          font: { family: 'JetBrains Mono, monospace', size: 11 },
+          color: '#a1a1aa',
+          font: { family: 'IBM Plex Mono, monospace', size: 11 },
           callback: (v) => `${v}%`,
         },
       },
       y: {
         grid: { color: 'transparent' },
         ticks: {
-          color: '#94a3b8',
-          font: { family: 'JetBrains Mono, monospace', size: 12 },
+          color: '#d4d4d8',
+          font: { family: 'IBM Plex Mono, monospace', size: 12 },
         },
       },
     },
