@@ -250,7 +250,15 @@ export default function Dashboard({ summary, priceHistory, onRefresh, lastUpdate
                           {a.category}
                         </span>
                       </td>
-                      <td className="mono">{formatIDR(a.currentPrice)}</td>
+                      <td className="mono">
+                        {formatIDR(a.currentPrice)}
+                        {a.category === 'Saham US' && a.priceUSD > 0 && (
+                          <>
+                            <br />
+                            <small>${a.priceUSD.toFixed(2)}</small>
+                          </>
+                        )}
+                      </td>
                       <td className="mono">{formatIDR(a.currentValue)}</td>
                       <td className={`mono ${a.pl >= 0 ? 'positive' : 'negative'}`}>
                         {formatIDR(a.pl)}

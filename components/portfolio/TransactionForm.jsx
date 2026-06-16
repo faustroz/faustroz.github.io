@@ -209,6 +209,11 @@ export default function TransactionForm({ initialAsset, editTx, onSave, onClose 
                 onChange={(e) => set('buyPrice', e.target.value)}
               />
               {errors.buyPrice && <span className="pt-error">{errors.buyPrice}</span>}
+              {form.category === 'Saham US' && (
+                <span className="pt-hint">
+                  Masukkan harga beli dalam IDR per unit. Harga pasar US akan dikonversi otomatis ke IDR.
+                </span>
+              )}
             </div>
 
             {/* Biaya Broker */}

@@ -73,6 +73,12 @@ function AssetRow({ asset, onAddTx, onViewHistory, onManualUpdate }) {
             <span className="pt-stat-label">Harga</span>
             <span className="pt-stat-val mono">
               {asset.currentPrice > 0 ? formatIDR(asset.currentPrice) : '—'}
+              {asset.category === 'Saham US' && asset.priceUSD > 0 && (
+                <>
+                  <br />
+                  <small>${asset.priceUSD.toFixed(2)}</small>
+                </>
+              )}
             </span>
           </div>
           <div className="pt-stat">
