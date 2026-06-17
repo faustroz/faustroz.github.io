@@ -53,7 +53,23 @@ function AssetRow({ asset, onAddTx, onViewHistory, onManualUpdate }) {
       <div className="pt-asset-row-main">
         <div className="pt-asset-identity">
           <div className="pt-asset-avatar" style={{ borderColor: color }}>
-            {asset.ticker.charAt(0)}
+            {asset.category === 'Crypto' && asset.coinGeckoId ? (
+              <img
+                src={`https://coin-images.coingecko.com/coins/images/${asset.coinGeckoId}/small/current.png`}
+                alt={asset.ticker}
+                className="pt-asset-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span
+              className="pt-asset-letter"
+              style={{ display: asset.category === 'Crypto' && asset.coinGeckoId ? 'none' : 'flex' }}
+            >
+              {asset.ticker.charAt(0)}
+            </span>
           </div>
           <div>
             <div className="pt-asset-ticker-lg">{asset.ticker}</div>
@@ -69,30 +85,34 @@ function AssetRow({ asset, onAddTx, onViewHistory, onManualUpdate }) {
             <span className="pt-stat-label">Units</span>
             <span className="pt-stat-val mono">{formatNumber(asset.position.totalUnits)}</span>
           </div>
-          <div className="pt-stat">
-            <span className="pt-stat-label">Harga</span>
-            <span className="pt-stat-val mono">
-              {asset.currentPrice > 0 ? formatIDR(asset.currentPrice) : '—'}
-              {asset.category === 'Saham US' && asset.priceUSD > 0 && (
-                <>
-                  <br />
-                  <small>${asset.priceUSD.toFixed(2)}</small>
-                </>
-              )}
-            </span>
-          </div>
+          {!isManual && (
+            <div className="pt-stat">
+              <span className="pt-stat-label">Harga</span>
+              <span className="pt-stat-val mono">
+                {asset.currentPrice > 0 ? formatIDR(asset.currentPrice) : '—'}
+                {asset.category === 'Saham US' && asset.priceUSD > 0 && (
+                  <>
+                    <br />
+                    <small>${asset.priceUSD.toFixed(2)}</small>
+                  </>
+                )}
+              </span>
+            </div>
+          )}
           <div className="pt-stat">
             <span className="pt-stat-label">Nilai</span>
             <span className="pt-stat-val mono">{formatIDR(asset.currentValue)}</span>
           </div>
-          <div className="pt-stat">
-            <span className="pt-stat-label">P/L</span>
-            <span className={`pt-stat-val mono ${isProfit ? 'positive' : 'negative'}`}>
-              {formatIDR(asset.pl)}
-              <br />
-              <small>{formatPercent(asset.plPercent)}</small>
-            </span>
-          </div>
+          {!isManual && (
+            <div className="pt-stat">
+              <span className="pt-stat-label">P/L</span>
+              <span className={`pt-stat-val mono ${isProfit ? 'positive' : 'negative'}`}>
+                {formatIDR(asset.pl)}
+                <br />
+                <small>{formatPercent(asset.plPercent)}</small>
+              </span>
+            </div>
+          )}
           {!isManual && (
             <div className="pt-stat">
               <span className="pt-stat-label">24H</span>

@@ -75,8 +75,8 @@ export function PortfolioChart({ priceHistory }) {
       {
         label: 'Nilai Portofolio (IDR)',
         data: filtered.map((h) => h.value),
-        borderColor: '#f5f5f5',
-        backgroundColor: 'rgba(245,245,245,0.08)',
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.1)',
         fill: true,
         tension: 0.4,
         pointRadius: filtered.length > 20 ? 0 : 4,
@@ -185,29 +185,7 @@ export function AllocationChart({ summary }) {
     maintainAspectRatio: false,
     cutout: '65%',
     plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          color: '#d4d4d8',
-          font: { family: 'IBM Plex Mono, monospace', size: 12 },
-          padding: 16,
-          generateLabels: (chart) => {
-            const ds = chart.data.datasets[0];
-            return chart.data.labels.map((label, i) => {
-              const val = ds.data[i];
-              const pct = totalValue > 0 ? ((val / totalValue) * 100).toFixed(1) : 0;
-              return {
-                text: `${label}  ${pct}%`,
-                fillStyle: ds.backgroundColor[i],
-                strokeStyle: ds.borderColor[i],
-                lineWidth: 1,
-                hidden: false,
-                index: i,
-              };
-            });
-          },
-        },
-      },
+      legend: { display: false },
       tooltip: {
         backgroundColor: '#18181b',
         borderColor: '#3f3f46',
@@ -217,7 +195,7 @@ export function AllocationChart({ summary }) {
         callbacks: {
           label: (ctx) => {
             const val = ctx.raw;
-            const pct = totalValue > 0 ? ((val / totalValue) * 100).toFixed(1) : 0;
+            const pct = totalValue > 0 ? ((val / totalValue) * 100).toFixed(1) : '0.0';
             return ` ${formatIDR(val)} (${pct}%)`;
           },
         },
@@ -232,6 +210,18 @@ export function AllocationChart({ summary }) {
       </div>
       <div className="pt-chart-wrap doughnut">
         <Doughnut data={data} options={options} />
+      </div>
+      <div className="pt-allocation-legend">
+        {labels.map((label, i) => {
+          const pct = totalValue > 0 ? ((values[i] / totalValue) * 100).toFixed(1) : '0.0';
+          return (
+            <div className="pt-al-item" key={label}>
+              <span className="pt-al-dot" style={{ background: colors[i] }} />
+              <span className="pt-al-label">{label}</span>
+              <span className="pt-al-val">{pct}%</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -266,9 +256,9 @@ export function PLChart({ summary }) {
         label: 'P/L (%)',
         data: plValues,
         backgroundColor: plValues.map((v) =>
-          v >= 0 ? 'rgba(245,245,245,0.72)' : 'rgba(156,163,175,0.72)'
+          v >= 0 ? 'rgba(34,197,94,0.72)' : 'rgba(239,68,68,0.72)'
         ),
-        borderColor: plValues.map((v) => (v >= 0 ? '#f5f5f5' : '#9ca3af')),
+        borderColor: plValues.map((v) => (v >= 0 ? '#22c55e' : '#ef4444')),
         borderWidth: 1,
         borderRadius: 4,
       },
