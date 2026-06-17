@@ -16,22 +16,36 @@ function ConfirmDelete({ onConfirm, onCancel }) {
 function TxRow({ tx, onEdit, onDelete }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const isBuy = tx.type === 'buy';
-  const total = parseFloat(tx.units) * parseFloat(tx.buyPrice) + parseFloat(tx.brokerFee || 0);
+  const isReksaDana = tx.category === "Reksa Dana";
+  const total = isReksaDana
+    ? parseFloat(tx.hargaAset || 0)
+    : parseFloat(tx.units) * parseFloat(tx.buyPrice) +
+      parseFloat(tx.brokerFee || 0);
 
   return (
-    <tr className={`pt-tx-row ${isBuy ? 'buy' : 'sell'}`}>
+    <tr className={`pt-tx-row ${isBuy ? "buy" : "sell"}`}>
       <td>
-        <span className={`pt-tx-type-badge ${isBuy ? 'buy' : 'sell'}`}>
+        <span className={`pt-tx-type-badge ${isBuy ? "buy" : "sell"}`}>
           {isBuy ? <ArrowDownRight size={11} /> : <ArrowUpRight size={11} />}
-          {isBuy ? 'BELI' : 'JUAL'}
+          {isBuy ? "BELI" : "JUAL"}
         </span>
       </td>
       <td className="mono">{tx.date}</td>
-      <td className="mono">{formatNumber(tx.units)}</td>
-      <td className="mono">{formatIDR(parseFloat(tx.buyPrice))}</td>
-      <td className="mono">{formatIDR(parseFloat(tx.brokerFee || 0))}</td>
+      {isReksaDana ? (
+        <>
+          <td className="mono" colSpan={3}>
+            {formatIDR(parseFloat(tx.hargaAset || 0))}
+          </td>
+        </>
+      ) : (
+        <>
+          <td className="mono">{formatNumber(tx.units)}</td>
+          <td className="mono">{formatIDR(parseFloat(tx.buyPrice))}</td>
+          <td className="mono">{formatIDR(parseFloat(tx.brokerFee || 0))}</td>
+        </>
+      )}
       <td className="mono font-semibold">{formatIDR(total)}</td>
-      <td className="pt-tx-notes">{tx.notes || '—'}</td>
+      <td className="pt-tx-notes">{tx.notes || "—"}</td>
       <td>
         {confirmDel ? (
           <ConfirmDelete
@@ -40,10 +54,18 @@ function TxRow({ tx, onEdit, onDelete }) {
           />
         ) : (
           <div className="pt-tx-actions">
-            <button className="pt-icon-btn" onClick={() => onEdit(tx)} title="Edit">
+            <button
+              className="pt-btn-sm"
+              onClick={() => onEdit(tx)}
+              title="Edit"
+            >
               <Edit3 size={14} />
             </button>
-            <button className="pt-icon-btn danger" onClick={() => setConfirmDel(true)} title="Hapus">
+            <button
+              className="pt-btn-sm danger"
+              onClick={() => setConfirmDel(true)}
+              title="Hapus"
+            >
               <Trash2 size={14} />
             </button>
           </div>
@@ -72,9 +94,18 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
     });
 
   const totalBuy = transactions.filter(t => t.type === 'buy')
-    .reduce((s, t) => s + parseFloat(t.units) * parseFloat(t.buyPrice) + parseFloat(t.brokerFee || 0), 0);
+    .reduce((s, t) => {
+      if (t.category === 'Reksa Dana') return s + parseFloat(t.hargaAset || 0);
+      return s + parseFloat(t.units) * parseFloat(t.buyPrice) + parseFloat(t.brokerFee || 0);
+    }, 0);
   const totalSell = transactions.filter(t => t.type === 'sell')
-    .reduce((s, t) => s + parseFloat(t.units) * parseFloat(t.buyPrice), 0);
+    .reduce((s, t) => {
+      if (t.category === 'Reksa Dana') return s + parseFloat(t.hargaAset || 0);
+      return s + parseFloat(t.units) * parseFloat(t.buyPrice);
+    }, 0);
+
+  const allReksaDana =
+    filtered.length > 0 && filtered.every((t) => t.category === "Reksa Dana");
 
   return (
     <div className="pt-tx-page">
@@ -104,13 +135,13 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
       {/* Filters */}
       <div className="pt-filter-row">
         <div className="pt-filter-cats">
-          {['all', 'buy', 'sell'].map((t) => (
+          {["all", "buy", "sell"].map((t) => (
             <button
               key={t}
-              className={`pt-filter-btn ${filterType === t ? 'active' : ''}`}
+              className={`pt-filter-btn ${filterType === t ? "active" : ""}`}
               onClick={() => setFilterType(t)}
             >
-              {t === 'all' ? 'Semua' : t === 'buy' ? 'Beli' : 'Jual'}
+              {t === "all" ? "Semua" : t === "buy" ? "Beli" : "Jual"}
             </button>
           ))}
         </div>
@@ -119,13 +150,19 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
           value={selectedTicker}
           onChange={(e) => setSelectedTicker(e.target.value)}
         >
-          {tickers.map((t) => <option key={t}>{t}</option>)}
+          {tickers.map((t) => (
+            <option key={t}>{t}</option>
+          ))}
         </select>
         <button
           className="pt-btn-sm"
-          onClick={() => setSortDir((d) => d === 'desc' ? 'asc' : 'desc')}
+          onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
         >
-          {sortDir === 'desc' ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          {sortDir === "desc" ? (
+            <ChevronDown size={14} />
+          ) : (
+            <ChevronUp size={14} />
+          )}
           Tanggal
         </button>
       </div>
@@ -146,9 +183,15 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
               <tr>
                 <th>Tipe</th>
                 <th>Tanggal</th>
-                <th>Unit</th>
-                <th>Harga</th>
-                <th>Fee</th>
+                {allReksaDana ? (
+                  <th>Harga Aset</th>
+                ) : (
+                  <>
+                    <th>Unit</th>
+                    <th>Harga</th>
+                    <th>Fee</th>
+                  </>
+                )}
                 <th>Total</th>
                 <th>Catatan</th>
                 <th>Aksi</th>
@@ -156,7 +199,12 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
             </thead>
             <tbody>
               {filtered.map((tx) => (
-                <TxRow key={tx.id} tx={tx} onEdit={onEdit} onDelete={onDelete} />
+                <TxRow
+                  key={tx.id}
+                  tx={tx}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
               ))}
             </tbody>
           </table>
