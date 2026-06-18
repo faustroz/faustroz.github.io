@@ -20,7 +20,7 @@ import {
 import { fetchAllPrices } from '@/lib/portfolio/priceService';
 import { calcPortfolioSummary } from '@/lib/portfolio/calculations';
 
-const REFRESH_INTERVAL_MS = 60 * 1000; // 60s
+const REFRESH_INTERVAL_MS = 120 * 1000; // 2 menit (sebelumnya 60s)
 
 export default function PortfolioTrackerPage() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -113,12 +113,28 @@ export default function PortfolioTrackerPage() {
     if (!loggedIn) return;
     initData();
 
-    // Auto-refresh every 60s
-    refreshTimer.current = setInterval(() => {
-      refreshPrices();
-    }, REFRESH_INTERVAL_MS);
+    const startInterval = () => {
+      clearInterval(refreshTimer.current);
+      refreshTimer.current = setInterval(() => {
+        refreshPrices();
+      }, REFRESH_INTERVAL_MS);
+    };
 
-    return () => clearInterval(refreshTimer.current);
+    startInterval();
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        clearInterval(refreshTimer.current);
+      } else {
+        startInterval();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(refreshTimer.current);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [loggedIn, initData, refreshPrices]);
 
   // ---- Transaction CRUD ----

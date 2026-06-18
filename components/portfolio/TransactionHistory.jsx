@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, Edit3, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { formatIDR, formatNumber } from '@/lib/portfolio/calculations';
+import { formatIDR, formatNumber, formatUSD } from '@/lib/portfolio/calculations';
+import { fetchUsdToIdr } from '@/lib/portfolio/priceService';
 
 function ConfirmDelete({ onConfirm, onCancel }) {
   return (
@@ -13,14 +14,20 @@ function ConfirmDelete({ onConfirm, onCancel }) {
   );
 }
 
-function TxRow({ tx, onEdit, onDelete }) {
+function TxRow({ tx, onEdit, onDelete, usdRate }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const isBuy = tx.type === 'buy';
   const isReksaDana = tx.category === "Reksa Dana";
   const total = isReksaDana
     ? parseFloat(tx.hargaAset || 0)
-    : parseFloat(tx.units) * parseFloat(tx.buyPrice) +
-      parseFloat(tx.brokerFee || 0);
+    : parseFloat(tx.units) * parseFloat(tx.buyPrice);
+
+  const displayPrice = !isReksaDana && usdRate > 0
+    ? parseFloat(tx.buyPrice) / usdRate
+    : null;
+  const displayTotal = !isReksaDana && usdRate > 0
+    ? total / usdRate
+    : null;
 
   return (
     <tr className={`pt-tx-row ${isBuy ? "buy" : "sell"}`}>
@@ -33,18 +40,17 @@ function TxRow({ tx, onEdit, onDelete }) {
       <td className="mono">{tx.date}</td>
       {isReksaDana ? (
         <>
-          <td className="mono" colSpan={3}>
-            {formatIDR(parseFloat(tx.hargaAset || 0))}
-          </td>
+            <td className="mono" colSpan={2}>
+              {formatIDR(parseFloat(tx.hargaAset || 0))}
+            </td>
         </>
       ) : (
         <>
           <td className="mono">{formatNumber(tx.units)}</td>
-          <td className="mono">{formatIDR(parseFloat(tx.buyPrice))}</td>
-          <td className="mono">{formatIDR(parseFloat(tx.brokerFee || 0))}</td>
+          <td className="mono">{!isReksaDana && usdRate > 0 ? formatUSD(displayPrice) : formatIDR(parseFloat(tx.buyPrice))}</td>
         </>
       )}
-      <td className="mono font-semibold">{formatIDR(total)}</td>
+      <td className="mono font-semibold">{!isReksaDana && usdRate > 0 ? formatUSD(displayTotal) : formatIDR(total)}</td>
       <td className="pt-tx-notes">{tx.notes || "—"}</td>
       <td>
         {confirmDel ? (
@@ -79,6 +85,9 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
   const [filterType, setFilterType] = useState('all');
   const [sortDir, setSortDir] = useState('desc');
   const [selectedTicker, setSelectedTicker] = useState('Semua');
+  const [usdRate, setUsdRate] = useState(0);
+
+  useEffect(() => { fetchUsdToIdr().then(setUsdRate); }, []);
 
   const tickers = ['Semua', ...new Set(transactions.map((t) => t.ticker))];
 
@@ -96,7 +105,7 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
   const totalBuy = transactions.filter(t => t.type === 'buy')
     .reduce((s, t) => {
       if (t.category === 'Reksa Dana') return s + parseFloat(t.hargaAset || 0);
-      return s + parseFloat(t.units) * parseFloat(t.buyPrice) + parseFloat(t.brokerFee || 0);
+      return s + parseFloat(t.units) * parseFloat(t.buyPrice);
     }, 0);
   const totalSell = transactions.filter(t => t.type === 'sell')
     .reduce((s, t) => {
@@ -189,7 +198,6 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
                   <>
                     <th>Unit</th>
                     <th>Harga</th>
-                    <th>Fee</th>
                   </>
                 )}
                 <th>Total</th>
@@ -204,6 +212,7 @@ export default function TransactionHistory({ transactions, onEdit, onDelete, onA
                   tx={tx}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  usdRate={usdRate}
                 />
               ))}
             </tbody>

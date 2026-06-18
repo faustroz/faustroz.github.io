@@ -300,6 +300,17 @@
   text-decoration: none;
 }
 
+.pt-currency-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--pt-gold);
+  color: #000;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  text-transform: uppercase;
+}
+
 /* ============================================================
    BUTTONS
    ============================================================ */
@@ -727,6 +738,7 @@
 .pt-kpi-card.loss::before { background: linear-gradient(90deg, var(--pt-loss), transparent); }
 .pt-kpi-card.best::before { background: linear-gradient(90deg, var(--pt-profit), transparent); }
 .pt-kpi-card.worst::before { background: linear-gradient(90deg, var(--pt-loss), transparent); }
+.pt-kpi-card.modal::before { background: linear-gradient(90deg, var(--pt-blue), transparent); }
 
 .pt-kpi-header {
   display: flex;

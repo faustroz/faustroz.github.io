@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import {
-  TrendingUp, TrendingDown, Wallet, Star, AlertTriangle, RefreshCw, Clock,
+  TrendingUp, TrendingDown, Wallet, Star, AlertTriangle, RefreshCw, Clock, PiggyBank,
 } from 'lucide-react';
 import { formatIDR, formatPercent } from '@/lib/portfolio/calculations';
 import { CATEGORY_COLORS } from '@/lib/portfolio/priceService';
@@ -81,6 +81,7 @@ export default function Dashboard({ summary, priceHistory, onRefresh, lastUpdate
 
   const {
     totalValue = 0,
+    totalCost = 0,
     totalPL = 0,
     totalPLPercent = 0,
     categoryBreakdown = {},
@@ -117,6 +118,12 @@ export default function Dashboard({ summary, priceHistory, onRefresh, lastUpdate
           value={formatIDR(totalValue)}
           icon={Wallet}
           accent="main"
+        />
+        <KpiCard
+          label="Total Modal (Biaya Perolehan)"
+          value={formatIDR(totalCost)}
+          icon={PiggyBank}
+          accent="modal"
         />
         <KpiCard
           label="Total Profit / Loss"
@@ -183,6 +190,7 @@ export default function Dashboard({ summary, priceHistory, onRefresh, lastUpdate
           ) : (
             <div className="pt-category-list">
               {Object.entries(categoryBreakdown)
+                .filter(([, { value }]) => value > 0)
                 .sort((a, b) => b[1].value - a[1].value)
                 .map(([cat, { value }]) => {
                   const pct = totalValue > 0 ? (value / totalValue) * 100 : 0;

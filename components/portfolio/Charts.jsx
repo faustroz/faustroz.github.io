@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -62,14 +62,15 @@ const chartDefaults = {
 };
 
 // ---- Portfolio Timeline Chart ----
-export function PortfolioChart({ priceHistory }) {
+export const PortfolioChart = /*#__PURE__*/ React.memo(function PortfolioChart({ priceHistory }) {
   const [range, setRange] = useState(30);
 
-  const filtered = priceHistory
-    ? priceHistory.slice(-range)
-    : [];
+  const filtered = useMemo(
+    () => (priceHistory ? priceHistory.slice(-range) : []),
+    [priceHistory, range]
+  );
 
-  const data = {
+  const data = useMemo(() => ({
     labels: filtered.map((h) => h.date),
     datasets: [
       {
@@ -84,9 +85,9 @@ export function PortfolioChart({ priceHistory }) {
         borderWidth: 2,
       },
     ],
-  };
+  }), [filtered]);
 
-  const options = {
+  const options = useMemo(() => ({
     ...chartDefaults,
     plugins: {
       ...chartDefaults.plugins,
@@ -114,7 +115,7 @@ export function PortfolioChart({ priceHistory }) {
         },
       },
     },
-  };
+  }), []);
 
   return (
     <div className="pt-card pt-chart-card">
@@ -145,29 +146,25 @@ export function PortfolioChart({ priceHistory }) {
       )}
     </div>
   );
-}
+});
 
 // ---- Allocation Doughnut Chart ----
-export function AllocationChart({ summary }) {
+export const AllocationChart = /*#__PURE__*/ React.memo(function AllocationChart({ summary }) {
   const { categoryBreakdown = {}, totalValue = 0 } = summary || {};
-  const entries = Object.entries(categoryBreakdown).filter(([, { value }]) => value > 0);
 
-  if (entries.length === 0) {
-    return (
-      <div className="pt-card pt-chart-card">
-        <div className="pt-card-header">
-          <h3 className="pt-card-title">Alokasi Aset</h3>
-        </div>
-        <div className="pt-empty pt-chart-empty">Belum ada data aset</div>
-      </div>
-    );
-  }
+  const entries = useMemo(
+    () => Object.entries(categoryBreakdown).filter(([, { value }]) => value > 0),
+    [categoryBreakdown]
+  );
 
-  const labels = entries.map(([cat]) => cat);
-  const values = entries.map(([, { value }]) => value);
-  const colors = labels.map((l) => CATEGORY_COLORS[l] || '#71717a');
+  const labels = useMemo(() => entries.map(([cat]) => cat), [entries]);
+  const values = useMemo(() => entries.map(([, { value }]) => value), [entries]);
+  const colors = useMemo(
+    () => labels.map((l) => CATEGORY_COLORS[l] || '#71717a'),
+    [labels]
+  );
 
-  const data = {
+  const data = useMemo(() => ({
     labels,
     datasets: [
       {
@@ -178,9 +175,9 @@ export function AllocationChart({ summary }) {
         hoverOffset: 8,
       },
     ],
-  };
+  }), [labels, values, colors]);
 
-  const options = {
+  const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     cutout: '65%',
@@ -201,7 +198,18 @@ export function AllocationChart({ summary }) {
         },
       },
     },
-  };
+  }), [totalValue]);
+
+  if (entries.length === 0) {
+    return (
+      <div className="pt-card pt-chart-card">
+        <div className="pt-card-header">
+          <h3 className="pt-card-title">Alokasi Aset</h3>
+        </div>
+        <div className="pt-empty pt-chart-empty">Belum ada data aset</div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-card pt-chart-card">
@@ -225,47 +233,40 @@ export function AllocationChart({ summary }) {
       </div>
     </div>
   );
-}
+});
 
 // ---- P/L Bar Chart ----
-export function PLChart({ summary }) {
+export const PLChart = /*#__PURE__*/ React.memo(function PLChart({ summary }) {
   const { assets = [] } = summary || {};
 
-  const sorted = [...assets]
-    .filter((a) => a.currentValue > 0)
-    .sort((a, b) => b.plPercent - a.plPercent);
+  const sorted = useMemo(
+    () => [...assets]
+      .filter((a) => a.currentValue > 0)
+      .sort((a, b) => b.plPercent - a.plPercent),
+    [assets]
+  );
 
-  if (sorted.length === 0) {
-    return (
-      <div className="pt-card pt-chart-card">
-        <div className="pt-card-header">
-          <h3 className="pt-card-title">Profit / Loss per Aset</h3>
-        </div>
-        <div className="pt-empty pt-chart-empty">Belum ada data aset</div>
-      </div>
-    );
-  }
+  const data = useMemo(() => {
+    const labels = sorted.map((a) => a.ticker);
+    const plValues = sorted.map((a) => a.plPercent);
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'P/L (%)',
+          data: plValues,
+          backgroundColor: plValues.map((v) =>
+            v >= 0 ? 'rgba(34,197,94,0.72)' : 'rgba(239,68,68,0.72)'
+          ),
+          borderColor: plValues.map((v) => (v >= 0 ? '#22c55e' : '#ef4444')),
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [sorted]);
 
-  const labels = sorted.map((a) => a.ticker);
-  const plValues = sorted.map((a) => a.plPercent);
-
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: 'P/L (%)',
-        data: plValues,
-        backgroundColor: plValues.map((v) =>
-          v >= 0 ? 'rgba(34,197,94,0.72)' : 'rgba(239,68,68,0.72)'
-        ),
-        borderColor: plValues.map((v) => (v >= 0 ? '#22c55e' : '#ef4444')),
-        borderWidth: 1,
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  const options = {
+  const options = useMemo(() => ({
     indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
@@ -288,26 +289,20 @@ export function PLChart({ summary }) {
         },
       },
     },
-    scales: {
-      x: {
-        grid: { color: '#27272a' },
-        ticks: {
-          color: '#a1a1aa',
-          font: { family: 'IBM Plex Mono, monospace', size: 11 },
-          callback: (v) => `${v}%`,
-        },
-      },
-      y: {
-        grid: { color: 'transparent' },
-        ticks: {
-          color: '#d4d4d8',
-          font: { family: 'IBM Plex Mono, monospace', size: 12 },
-        },
-      },
-    },
-  };
+  }), [sorted]);
 
   const chartHeight = Math.max(250, sorted.length * 40);
+
+  if (sorted.length === 0) {
+    return (
+      <div className="pt-card pt-chart-card">
+        <div className="pt-card-header">
+          <h3 className="pt-card-title">Profit / Loss per Aset</h3>
+        </div>
+        <div className="pt-empty pt-chart-empty">Belum ada data aset</div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-card pt-chart-card">
@@ -319,4 +314,4 @@ export function PLChart({ summary }) {
       </div>
     </div>
   );
-}
+});

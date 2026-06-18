@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { X, Calendar, DollarSign, Hash, Tag, FileText, TrendingUp } from 'lucide-react';
-import { CATEGORIES, MANUAL_CATEGORIES } from '@/lib/portfolio/priceService';
+import { CATEGORIES, MANUAL_CATEGORIES, fetchUsdToIdr } from '@/lib/portfolio/priceService';
+import { formatUSD } from '@/lib/portfolio/calculations';
 
 const EMPTY_FORM = {
   type: "buy",
@@ -12,17 +13,25 @@ const EMPTY_FORM = {
   date: new Date().toISOString().split("T")[0],
   units: "",
   buyPrice: "",
-  brokerFee: "0",
   hargaAset: "",
 };
 
 export default function TransactionForm({ initialAsset, editTx, onSave, onClose }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [usdRate, setUsdRate] = useState(0);
+
+  useEffect(() => {
+    fetchUsdToIdr().then(setUsdRate);
+  }, []);
 
   useEffect(() => {
     if (editTx) {
-      setForm({ ...EMPTY_FORM, ...editTx });
+      const base = { ...EMPTY_FORM, ...editTx };
+      if (editTx.category !== 'Reksa Dana' && editTx.buyPrice && usdRate > 0) {
+        base.buyPrice = (parseFloat(editTx.buyPrice) / usdRate).toString();
+      }
+      setForm(base);
     } else if (initialAsset) {
       setForm((f) => ({
         ...EMPTY_FORM,
@@ -32,7 +41,7 @@ export default function TransactionForm({ initialAsset, editTx, onSave, onClose 
         category: initialAsset.category || 'Saham IDX',
       }));
     }
-  }, [editTx, initialAsset]);
+  }, [editTx, initialAsset, usdRate]);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -63,8 +72,12 @@ export default function TransactionForm({ initialAsset, editTx, onSave, onClose 
 
   const handleSubmit = () => {
     if (!validate()) return;
+    const payload = { ...form };
+    if (!isReksaDana && usdRate > 0) {
+      payload.buyPrice = (parseFloat(payload.buyPrice) * usdRate).toString();
+    }
     onSave({
-      ...form,
+      ...payload,
       ticker: form.ticker.trim().toUpperCase(),
       id: editTx?.id,
     });
@@ -253,6 +266,7 @@ export default function TransactionForm({ initialAsset, editTx, onSave, onClose 
                   {form.type === "sell"
                     ? "Harga Jual (per unit)"
                     : "Harga Beli (per unit)"}
+                  {!isReksaDana && <span className="pt-currency-badge">USD</span>}
                 </label>
                 <input
                   type="number"
@@ -265,29 +279,11 @@ export default function TransactionForm({ initialAsset, editTx, onSave, onClose 
                 {errors.buyPrice && (
                   <span className="pt-error">{errors.buyPrice}</span>
                 )}
-                {form.category === "Saham US" && (
+                {!isReksaDana && (
                   <span className="pt-hint">
-                    Masukkan harga beli dalam IDR per unit. Harga pasar US akan
-                    dikonversi otomatis ke IDR.
+                    Harga dalam USD — akan dikonversi ke IDR ({usdRate > 0 ? usdRate.toLocaleString('id-ID') : '...'} per USD) saat disimpan.
                   </span>
                 )}
-              </div>
-            )}
-
-            {/* Biaya Broker — hidden for Reksa Dana */}
-            {!isReksaDana && (
-              <div className="pt-input-group">
-                <label className="pt-label">
-                  <DollarSign size={13} /> Biaya Broker / Fee
-                </label>
-                <input
-                  type="number"
-                  className="pt-input mono"
-                  placeholder="0"
-                  min="0"
-                  value={form.brokerFee}
-                  onChange={(e) => set("brokerFee", e.target.value)}
-                />
               </div>
             )}
 
@@ -309,13 +305,8 @@ export default function TransactionForm({ initialAsset, editTx, onSave, onClose 
             <div className="pt-total-estimate">
               <span>Estimasi Total:</span>
               <span className="mono">
-                {new Intl.NumberFormat("id-ID", {
-                  style: "currency",
-                  currency: "IDR",
-                  minimumFractionDigits: 0,
-                }).format(
-                  parseFloat(form.units || 0) * parseFloat(form.buyPrice || 0) +
-                    parseFloat(form.brokerFee || 0),
+                {formatUSD(
+                  parseFloat(form.units || 0) * parseFloat(form.buyPrice || 0),
                 )}
               </span>
             </div>
