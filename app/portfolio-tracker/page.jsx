@@ -42,20 +42,20 @@ export default function PortfolioTrackerPage() {
   const refreshTimer = useRef(null);
 
   // ---- Load data ----
-  const loadTransactions = useCallback(() => {
-    const txs = getTransactions();
+  const loadTransactions = useCallback(async () => {
+    const txs = await getTransactions();
     setTransactions(txs);
     return txs;
   }, []);
 
-  const loadPriceHistory = useCallback(() => {
-    const h = getPriceHistory();
+  const loadPriceHistory = useCallback(async () => {
+    const h = await getPriceHistory();
     setPriceHistory(h);
   }, []);
 
   // ---- Fetch live prices ----
   const refreshPrices = useCallback(async (txs) => {
-    const currentTxs = txs || getTransactions();
+    const currentTxs = txs || (await getTransactions());
     if (currentTxs.length === 0) {
       setSummary(calcPortfolioSummary([], {}));
       return;
@@ -76,7 +76,7 @@ export default function PortfolioTrackerPage() {
       }
     }
     const assets = Object.values(assetMap);
-    const manualPrices = getManualPrices();
+    const manualPrices = await getManualPrices();
 
     try {
       const newPrices = await fetchAllPrices(assets, manualPrices);
@@ -87,8 +87,8 @@ export default function PortfolioTrackerPage() {
 
       // Save price snapshot for trend chart
       if (newSummary.totalValue > 0) {
-        savePriceSnapshot(newSummary.totalValue);
-        loadPriceHistory();
+        await savePriceSnapshot(newSummary.totalValue);
+        await loadPriceHistory();
       }
 
       const now = new Date();
@@ -103,10 +103,10 @@ export default function PortfolioTrackerPage() {
   }, [loadPriceHistory]);
 
   // ---- Init after login ----
-  const initData = useCallback(() => {
-    const txs = loadTransactions();
-    loadPriceHistory();
-    refreshPrices(txs);
+  const initData = useCallback(async () => {
+    const txs = await loadTransactions();
+    await loadPriceHistory();
+    await refreshPrices(txs);
   }, [loadTransactions, loadPriceHistory, refreshPrices]);
 
   useEffect(() => {
@@ -138,23 +138,23 @@ export default function PortfolioTrackerPage() {
   }, [loggedIn, initData, refreshPrices]);
 
   // ---- Transaction CRUD ----
-  const handleSaveTx = (formData) => {
+  const handleSaveTx = async (formData) => {
     if (formData.id) {
-      updateTransaction(formData.id, formData);
+      await updateTransaction(formData.id, formData);
     } else {
-      saveTransaction(formData);
+      await saveTransaction(formData);
     }
-    const txs = loadTransactions();
-    refreshPrices(txs);
+    const txs = await loadTransactions();
+    await refreshPrices(txs);
     setShowForm(false);
     setEditTx(null);
     setPreselectedAsset(null);
   };
 
-  const handleDeleteTx = (id) => {
-    deleteTransaction(id);
-    const txs = loadTransactions();
-    refreshPrices(txs);
+  const handleDeleteTx = async (id) => {
+    await deleteTransaction(id);
+    const txs = await loadTransactions();
+    await refreshPrices(txs);
   };
 
   const handleEditTx = (tx) => {
@@ -169,12 +169,12 @@ export default function PortfolioTrackerPage() {
     setShowForm(true);
   };
 
-  const handleManualPriceUpdate = () => {
-    refreshPrices();
+  const handleManualPriceUpdate = async () => {
+    await refreshPrices();
   };
 
-  const handleDataChange = () => {
-    initData();
+  const handleDataChange = async () => {
+    await initData();
   };
 
   const handleLogout = () => {

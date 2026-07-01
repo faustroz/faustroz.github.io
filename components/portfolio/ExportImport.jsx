@@ -13,9 +13,9 @@ export default function ExportImport({ onDataChange }) {
     setTimeout(() => setStatus(null), 4000);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      exportData();
+      await exportData();
       showStatus('success', 'Data berhasil diekspor!');
     } catch (e) {
       showStatus('error', `Gagal ekspor: ${e.message}`);
@@ -26,11 +26,11 @@ export default function ExportImport({ onDataChange }) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
-        importData(ev.target.result);
+        await importData(ev.target.result);
         showStatus('success', `Berhasil import ${file.name}!`);
-        onDataChange();
+        await onDataChange();
       } catch (err) {
         showStatus('error', `Gagal import: ${err.message}`);
       }
@@ -39,11 +39,11 @@ export default function ExportImport({ onDataChange }) {
     e.target.value = '';
   };
 
-  const handleClear = () => {
-    clearAllData();
+  const handleClear = async () => {
+    await clearAllData();
     setConfirmClear(false);
     showStatus('success', 'Semua data telah dihapus');
-    onDataChange();
+    await onDataChange();
   };
 
   return (
@@ -106,7 +106,7 @@ export default function ExportImport({ onDataChange }) {
           </div>
           <h3>Hapus Semua Data</h3>
           <p>
-            Hapus <strong>seluruh data portofolio</strong> dari browser ini. Aksi ini
+            Hapus <strong>seluruh data portofolio</strong> dari Supabase. Aksi ini
             tidak dapat dibatalkan. Pastikan sudah export terlebih dahulu.
           </p>
           {confirmClear ? (
@@ -136,10 +136,9 @@ export default function ExportImport({ onDataChange }) {
         <div>
           <strong>Tentang Penyimpanan Data</strong>
           <p>
-            Semua data portofolio tersimpan di <code>localStorage</code> browser ini saja.
-            Data tidak pernah dikirim ke server manapun. Jika kamu ganti browser, device,
-            atau menghapus data browser, data portofolio akan hilang. Gunakan fitur
-            Export/Import untuk backup rutin.
+            Semua data portofolio tersimpan di Supabase. Data bisa dipakai lintas browser
+            atau device selama environment Supabase sama. Gunakan fitur Export/Import
+            untuk backup rutin.
           </p>
         </div>
       </div>

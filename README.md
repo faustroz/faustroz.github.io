@@ -16,6 +16,19 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Portfolio Tracker Supabase Setup
+
+Create the table and policies in Supabase SQL editor with `supabase-portfolio-tracker.sql`.
+
+Set these environment variables:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Current portfolio tracker storage uses one shared public table because the app has no Supabase Auth user session yet. Add Supabase Auth before using this for private multi-user data.
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.

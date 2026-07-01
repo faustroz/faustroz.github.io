@@ -9,17 +9,20 @@ export default function LoginGate({ onLogin }) {
   const [confirm, setConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  const [storageReady, setStorageReady] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!hasPassword()) {
-      setMode('setup');
-    } else {
-      setMode('login');
-    }
+    hasPassword()
+      .then((exists) => setMode(exists ? 'login' : 'setup'))
+      .catch((err) => {
+        setError(err.message);
+        setStorageReady(false);
+        setMode('setup');
+      });
   }, []);
 
-  const handleSetup = () => {
+  const handleSetup = async () => {
     setError('');
     if (password.length < 4) {
       setError('Password minimal 4 karakter');
@@ -30,21 +33,30 @@ export default function LoginGate({ onLogin }) {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setPassword(password);
-      setLoading(false);
-      onLogin();
+    setTimeout(async () => {
+      try {
+        await setPassword(password);
+        onLogin();
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
     }, 400);
   };
 
   const handleLogin = () => {
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      if (verifyPassword(password)) {
-        onLogin();
-      } else {
-        setError('Password salah');
+    setTimeout(async () => {
+      try {
+        if (await verifyPassword(password)) {
+          onLogin();
+        } else {
+          setError('Password salah');
+          setLoading(false);
+        }
+      } catch (err) {
+        setError(err.message);
         setLoading(false);
       }
     }, 400);
@@ -81,7 +93,7 @@ export default function LoginGate({ onLogin }) {
         {/* Security badge */}
         <div className="pt-login-badge">
           <Shield size={12} />
-          <span>Data tersimpan lokal di browser ini</span>
+          <span>Data tersimpan di Supabase</span>
         </div>
 
         {/* Form */}
@@ -144,7 +156,7 @@ export default function LoginGate({ onLogin }) {
             )}
           </button>
 
-          {mode === 'setup' && (
+          {mode === 'setup' && storageReady && (
             <button className="pt-btn-ghost" onClick={handleSkip}>
               Lewati (tanpa password)
             </button>

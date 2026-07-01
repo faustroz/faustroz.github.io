@@ -9,11 +9,11 @@ function ManualPriceInput({ asset, currentPrice, onUpdate }) {
   const [val, setVal] = useState(currentPrice?.toString() || '');
   const [editing, setEditing] = useState(false);
 
-  const save = () => {
+  const save = async () => {
     const parsed = parseFloat(val.replace(/\./g, '').replace(',', '.'));
     if (!isNaN(parsed) && parsed > 0) {
-      setManualPrice(asset.ticker, parsed);
-      onUpdate();
+      await setManualPrice(asset.ticker, parsed);
+      await onUpdate();
       setEditing(false);
     }
   };
