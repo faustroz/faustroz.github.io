@@ -10,7 +10,7 @@ const projects = [
       "YouTube-to-short-form workflow: paste a video URL, choose timestamps, transcribe with Whisper, burn captions, and export vertical clips.",
     href: "https://clipra.app/",
     image: "/portfolio/clipra.png",
-    imageClass: "object-contain p-8",
+    imageClass: "object-cover",
   },
   {
     name: "Confluo",
@@ -98,3 +98,4 @@ export default function Portfolio() {
     </section>
   );
 }
+
