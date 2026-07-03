@@ -27,7 +27,7 @@ const projects = [
     description:
       "Full-stack invoice system for Indonesian freelancers and small businesses with clients, PPN/PPh tax math, PDF export, and email sending.",
     href: "https://invopajak.com/",
-    image: "/portfolio/invopajak.svg",
+    image: "/portfolio/invopajak.png",
     imageClass: "object-cover",
   },
   {
@@ -35,7 +35,7 @@ const projects = [
     tag: "Comic Reader",
     description:
       "Modern manga and comic reader with search, latest/popular collections, reading history, chapter pages, and a dark reading-first interface.",
-    href: "https://yomu.app/",
+    href: "https://yomu-coral.vercel.app/",
     image: "/portfolio/yomu.png",
     imageClass: "object-cover object-top",
   },
