@@ -17,7 +17,7 @@ const projects = [
     tag: "AI Trading Co-Pilot",
     description:
       "Discord bot that scans crypto, stocks, and forex for technical setups confirmed by sentiment, then posts structured alerts and recaps.",
-    href: "https://confluo.app/",
+    href: "",
     image: "/portfolio/confluo.png",
     imageClass: "object-cover",
   },
@@ -26,8 +26,17 @@ const projects = [
     tag: "Invoice & Tax SaaS",
     description:
       "Full-stack invoice system for Indonesian freelancers and small businesses with clients, PPN/PPh tax math, PDF export, and email sending.",
-    href: "https://invopajak.com/",
+    href: "https://invopajak.vercel.app/",
     image: "/portfolio/invopajak.png",
+    imageClass: "object-cover",
+  },
+  {
+    name: "Portlio",
+    tag: "Finance Dashboard",
+    description:
+      "Public demo portfolio tracker for crypto, US stocks, and Indonesian reksadana with allocation charts, movers, and session-only holdings.",
+    href: "http://portlio-orpin.vercel.app/",
+    image: "/portfolio/portlio.png",
     imageClass: "object-cover",
   },
   {
@@ -54,7 +63,7 @@ export default function Portfolio() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {projects.map((project) => (
             <Link
               key={project.name}
@@ -69,7 +78,7 @@ export default function Portfolio() {
                   src={project.image}
                   alt={`${project.name} preview`}
                   fill
-                  sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+                  sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                   className={`${project.imageClass} transition-transform duration-300 group-hover:scale-105`}
                 />
               </div>
@@ -98,4 +107,6 @@ export default function Portfolio() {
     </section>
   );
 }
+
+
 
