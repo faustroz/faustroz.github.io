@@ -1,49 +1,105 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+﻿# Ferdy Diatmika Portfolio
 
-## Getting Started
+[![Build](https://github.com/faustroz/faustroz.github.io/actions/workflows/build.yml/badge.svg)](https://github.com/faustroz/faustroz.github.io/actions/workflows/build.yml)
 
-First, run the development server:
+Personal portfolio for web, AI automation, FiveM, Roblox, and full-stack product work.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Live URL
+
+https://faustroz.github.io/
+
+## Screenshots
+
+### Portfolio Projects
+
+![Clipra project preview](public/portfolio/clipra.png)
+![Invopajak project preview](public/portfolio/invopajak.png)
+![Portlio project preview](public/portfolio/portlio.png)
+![Yomu project preview](public/portfolio/yomu.png)
+
+## Featured Projects
+
+- **Clipra** — AI video clipping workflow for transcripts, captions, and short-form exports.
+- **Invopajak** — invoice and tax SaaS for Indonesian freelancers and UMKM.
+- **Portlio** — finance dashboard for crypto, US stocks, and Indonesian reksadana.
+- **Yomu** — manga/comic reader with search, chapters, history, and reading-first UI.
+- **Confluo** — AI trading co-pilot concept for structured market alerts.
+
+## Architecture
+
+```text
+app/
+├── page.jsx                    # Main portfolio landing page
+├── layout.jsx                  # App layout and metadata
+├── globals.css                 # Global styles
+└── portfolio-tracker/          # Public finance tracker demo
+
+components/
+├── hero.jsx                    # Landing hero
+├── about.jsx                   # About section
+├── portfolio.jsx               # Project cards
+├── FooterConditional.jsx       # Footer visibility logic
+└── portfolio/                  # Portfolio tracker UI components
+
+lib/
+├── utils.js
+└── portfolio/                  # Finance calculations, prices, storage
+
+public/
+├── ferdy.webp                  # Profile image
+└── portfolio/                  # Project screenshots
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-## Portfolio Tracker Supabase Setup
+- Next.js 14
+- React 18
+- Tailwind CSS
+- Supabase client
+- Chart.js / react-chartjs-2
+- Framer Motion
+- Radix UI primitives
 
-Create the table and policies in Supabase SQL editor with `supabase-portfolio-tracker.sql`.
+## Setup
 
-Set these environment variables:
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Environment
+
+Create `.env.local` if using the portfolio tracker storage feature:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Current portfolio tracker storage uses one shared public table because the app has no Supabase Auth user session yet. Add Supabase Auth before using this for private multi-user data.
+## Database
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Portfolio tracker setup lives in:
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```text
+supabase-portfolio-tracker.sql
+```
 
-## Learn More
+Current tracker storage uses a shared public table. Add Supabase Auth before using it for private multi-user data.
 
-To learn more about Next.js, take a look at the following resources:
+## Build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+This site deploys with GitHub Pages from the `main` branch.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+GitHub Actions workflow:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```text
+.github/workflows/build.yml
+```
