@@ -5,11 +5,17 @@ import HubNavigation from "@/components/hub/HubNavigation";
 
 export default function HubShell({ children }) {
   const pathname = usePathname();
-  const specialistRoute =
-    pathname?.startsWith("/finance/portfolio") || pathname?.startsWith("/youtube");
+  const financeRoute = pathname?.startsWith("/finance/portfolio");
+  const youtubeRoute = pathname?.startsWith("/youtube");
+  const specialistRoute = financeRoute || youtubeRoute;
+  const shellClasses = ["hub-shell"];
+
+  if (specialistRoute) shellClasses.push("hub-shell--specialist");
+  if (financeRoute) shellClasses.push("hub-shell--finance");
+  if (youtubeRoute) shellClasses.push("hub-shell--youtube");
 
   return (
-    <div className={`hub-shell${specialistRoute ? " hub-shell--specialist" : ""}`}>
+    <div className={shellClasses.join(" ")}>
       <HubNavigation />
       <div className="hub-content">{children}</div>
       {!specialistRoute && (

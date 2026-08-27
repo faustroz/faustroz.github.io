@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import HubNavigation from "@/components/hub/HubNavigation";
+import HubShell from "@/components/hub/HubShell";
 import {
   HUB_MODULES,
   LEGACY_ROUTES,
@@ -51,6 +52,20 @@ describe("Hub navigation contract", () => {
 });
 
 describe("HubNavigation", () => {
+  it("marks Finance as an isolated specialist shell", () => {
+    const { container } = render(
+      <HubShell>
+        <main>Finance module</main>
+      </HubShell>
+    );
+
+    expect(container.firstChild).toHaveClass(
+      "hub-shell",
+      "hub-shell--specialist",
+      "hub-shell--finance"
+    );
+  });
+
   it("marks nested Finance as active in desktop and mobile navigation", () => {
     render(<HubNavigation />);
 

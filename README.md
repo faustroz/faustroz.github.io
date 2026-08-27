@@ -1,64 +1,60 @@
-﻿# Ferdy Diatmika Portfolio
+# Ferdy Diatmika Personal Hub
 
-[![Build](https://github.com/faustroz/faustroz.github.io/actions/workflows/build.yml/badge.svg)](https://github.com/faustroz/faustroz.github.io/actions/workflows/build.yml)
+[![Deploy](https://github.com/faustroz/faustroz.github.io/actions/workflows/nextjs.yml/badge.svg)](https://github.com/faustroz/faustroz.github.io/actions/workflows/nextjs.yml)
 
-Personal portfolio for web, AI automation, FiveM, Roblox, and full-stack product work.
+A route-first personal command center for finance, creator work, projects, and profile modules. The Hub uses a compact Night Operations interface while specialist tools retain their own application UI.
 
 ## Live URL
 
 https://faustroz.github.io/
 
-## Screenshots
+## Routes
 
-### Portfolio Projects
+| Route | Module |
+| --- | --- |
+| `/` | Privacy-first Personal Hub dashboard |
+| `/finance/portfolio` | Existing Supabase-backed Portfolio Tracker |
+| `/youtube` | YouTube channel progress tracker |
+| `/projects` | Selected products and experiments |
+| `/about` | Profile, skills, and contact links |
 
-![Clipra project preview](public/portfolio/clipra.png)
-![Invopajak project preview](public/portfolio/invopajak.png)
-![Portlio project preview](public/portfolio/portlio.png)
-![Yomu project preview](public/portfolio/yomu.png)
-
-## Featured Projects
-
-- **Clipra** — AI video clipping workflow for transcripts, captions, and short-form exports.
-- **Invopajak** — invoice and tax SaaS for Indonesian freelancers and UMKM.
-- **Portlio** — finance dashboard for crypto, US stocks, and Indonesian reksadana.
-- **Yomu** — manga/comic reader with search, chapters, history, and reading-first UI.
-- **Confluo** — AI trading co-pilot concept for structured market alerts.
+Legacy `/portfolio-tracker` and `/youtube-tracker` URLs remain available as compatibility pages that send users to their canonical route.
 
 ## Architecture
 
 ```text
 app/
-├── page.jsx                    # Main portfolio landing page
-├── layout.jsx                  # App layout and metadata
-├── globals.css                 # Global styles
-└── portfolio-tracker/          # Public finance tracker demo
+├── page.jsx                       # Personal Hub dashboard
+├── layout.jsx                     # Global metadata and shared Hub shell
+├── hub.css                        # Night Operations design system
+├── finance/portfolio/             # Isolated Portfolio Tracker module
+├── youtube/                       # Isolated YouTube Tracker module
+├── projects/                      # Canonical project archive
+├── about/                         # Canonical profile route
+├── portfolio-tracker/             # Legacy compatibility route
+└── youtube-tracker/               # Legacy compatibility route
 
 components/
-├── hero.jsx                    # Landing hero
-├── about.jsx                   # About section
-├── portfolio.jsx               # Project cards
-├── FooterConditional.jsx       # Footer visibility logic
-└── portfolio/                  # Portfolio tracker UI components
+├── hub/                            # Shell, navigation, cards, redirects
+├── portfolio/                      # Existing finance UI components
+├── youtube/                        # Existing creator UI components
+└── ui/                             # Shared UI primitives
 
 lib/
-├── utils.js
-└── portfolio/                  # Finance calculations, prices, storage
+├── hub/                            # Route, content, and summary contracts
+└── portfolio/                      # Finance calculations, prices, storage
 
-public/
-├── ferdy.webp                  # Profile image
-└── portfolio/                  # Project screenshots
+tests/hub/                          # Vitest and Testing Library coverage
 ```
 
 ## Stack
 
-- Next.js 14
-- React 18
-- Tailwind CSS
-- Supabase client
+- Next.js 14 and React 18
+- Tailwind CSS plus isolated module stylesheets
+- Supabase JS
 - Chart.js / react-chartjs-2
-- Framer Motion
-- Radix UI primitives
+- Framer Motion and Lucide icons
+- Vitest, Testing Library, and jsdom
 
 ## Setup
 
@@ -71,35 +67,35 @@ Open `http://localhost:3000`.
 
 ## Environment
 
-Create `.env.local` if using the portfolio tracker storage feature:
+Create `.env.local` for the Supabase-backed tracker modules:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
+The root Finance card intentionally performs no portfolio query and displays no private value. Finance data is requested only after opening `/finance/portfolio` and passing its existing gate.
+
 ## Database
 
-Portfolio tracker setup lives in:
+- `supabase-portfolio-tracker.sql` — shared key/value Portfolio Tracker store.
+- `youtube-tracker-schema.sql` — settings, daily stats, and top-video tables.
 
-```text
-supabase-portfolio-tracker.sql
-```
+The current schemas permit anonymous access and are intended for the existing personal/demo setup. Add Supabase Auth and user-scoped RLS before using them for private multi-user data.
 
-Current tracker storage uses a shared public table. Add Supabase Auth before using it for private multi-user data.
-
-## Build
+## Verification
 
 ```bash
+npm test
 npm run build
 ```
 
+The build uses `output: 'export'` and generates the static `out/` directory.
+
 ## Deployment
 
-This site deploys with GitHub Pages from the `main` branch.
-
-GitHub Actions workflow:
+Pushes to `main` deploy through GitHub Pages using:
 
 ```text
-.github/workflows/build.yml
+.github/workflows/nextjs.yml
 ```

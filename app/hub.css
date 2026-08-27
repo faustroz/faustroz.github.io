@@ -1104,6 +1104,14 @@ body {
     backdrop-filter: blur(18px);
   }
 
+  .hub-shell--finance .hub-mobile-dock {
+    display: none;
+  }
+
+  .hub-shell--finance .hub-content {
+    padding-bottom: 0;
+  }
+
   .hub-mobile-dock a,
   .hub-mobile-dock button {
     display: flex;
