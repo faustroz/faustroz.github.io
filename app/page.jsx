@@ -1,6 +1,7 @@
 import { Activity, Fingerprint, LockKeyhole, Radio } from "lucide-react";
 import ModuleCard from "@/components/hub/ModuleCard";
 import YouTubeSummaryCard from "@/components/hub/YouTubeSummaryCard";
+import { HUB_PROFILE, PROJECTS } from "@/lib/hub/content.mjs";
 
 export default function Home() {
   return (
@@ -22,7 +23,7 @@ export default function Home() {
           </div>
           <div className="hub-focus-icon"><Fingerprint aria-hidden="true" /></div>
           <h2>Build useful systems.</h2>
-          <p>Medicine, software, finance, and creative work—organized as modules, not noise.</p>
+          <p>{HUB_PROFILE.currentFocus}</p>
           <div className="hub-focus-footer"><Activity aria-hidden="true" /> PERSONAL OS / REV. 01</div>
         </aside>
       </section>
@@ -51,7 +52,7 @@ export default function Home() {
           <ModuleCard
             number="03"
             label="Projects"
-            status="5 LIVE"
+            status={`${PROJECTS.length} LIVE`}
             href="/projects"
             title="Products, experiments, and shipped work."
             description="A field log of AI tools, finance products, readers, and automation systems."
@@ -66,7 +67,7 @@ export default function Home() {
             status="PROFILE"
             href="/about"
             title="The person behind the systems."
-            description="Medical student, developer, game builder, and persistent digital tinkerer."
+            description={HUB_PROFILE.shortBio}
             variant="about"
           />
         </div>
