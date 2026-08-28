@@ -1966,6 +1966,87 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
+/* ============================================================
+   HUB VISUAL ALIGNMENT
+   The specialist keeps its independent portfolio navigation while using the
+   same 4allx identity, spacing rhythm, and dark terminal surfaces as /hub.
+   ============================================================ */
+.hub-shell--finance .pt-app {
+  background: var(--pt-bg);
+}
+
+.hub-shell--finance .pt-hub-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--pt-border-hover);
+  border-radius: 8px;
+  color: var(--pt-gold);
+  background: var(--pt-surface-2);
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+.hub-shell--finance .pt-hub-wordmark {
+  margin-left: -5px;
+  color: var(--pt-text);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.hub-shell--finance .pt-mobile-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--pt-border);
+}
+
+.hub-shell--finance .pt-nav-brand,
+.hub-shell--finance .pt-mobile-header-brand {
+  gap: .4rem;
+}
+
+.hub-shell--finance .pt-nav-title {
+  color: var(--pt-text-muted);
+  font-family: var(--font-ui);
+  font-size: .76rem;
+  font-weight: 600;
+}
+
+.hub-shell--finance .pt-main {
+  width: min(calc(100vw - var(--pt-nav-w)), 92rem);
+  margin-right: auto;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.hub-shell--finance .pt-section-header,
+.hub-shell--finance .pt-dashboard-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--pt-border);
+}
+
+.hub-shell--finance .pt-card,
+.hub-shell--finance .pt-kpi-card,
+.hub-shell--finance .pt-asset-row,
+.hub-shell--finance .pt-tx-sum-card,
+.hub-shell--finance .pt-chart-card,
+.hub-shell--finance .pt-export-card,
+.hub-shell--finance .pt-modal {
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .hub-shell--finance .pt-mobile-header-brand { gap: .35rem; }
+  .hub-shell--finance .pt-hub-mark { width: 28px; height: 28px; font-size: .66rem; }
+  .hub-shell--finance .pt-hub-wordmark { font-size: .9rem; }
+  .hub-shell--finance .pt-main { width: 100%; margin-right: 0; }
+}
+
 @media (max-width: 480px) {
   .pt-kpi-grid {
     grid-template-columns: 1fr;

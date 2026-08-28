@@ -14,18 +14,16 @@ export default function Navbar({ activeTab, setActiveTab }) {
     <>
       <header className="pt-mobile-header">
         <div className="pt-mobile-header-brand">
-          <div className="pt-nav-logo">
-            <BarChart3 size={18} />
-          </div>
+          <span className="pt-hub-mark">4a</span><span className="pt-hub-wordmark">llx</span>
+          <span className="pt-mobile-divider" />
           <span className="pt-nav-title">Portfolio</span>
         </div>
       </header>
 
       <nav className="pt-nav" aria-label="Portfolio navigation">
         <div className="pt-nav-brand">
-          <div className="pt-nav-logo">
-            <BarChart3 size={20} />
-          </div>
+          <span className="pt-hub-mark">4a</span><span className="pt-hub-wordmark">llx</span>
+          <span className="pt-mobile-divider" />
           <span className="pt-nav-title">Portfolio</span>
         </div>
 
