@@ -18,6 +18,16 @@ export default function HubShell({ children }) {
 
   if (portfolioLanding) return children;
 
+  if (specialistRoute) {
+    return (
+      <div className={shellClasses.join(" ")}>
+        <div className="hub-content">
+          {privateRoute ? <HubAuthGate>{children}</HubAuthGate> : children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={shellClasses.join(" ")}>
       <HubNavigation />

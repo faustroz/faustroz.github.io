@@ -70,6 +70,9 @@ describe("HubNavigation", () => {
       "hub-shell--specialist",
       "hub-shell--finance"
     );
+    expect(
+      screen.queryByRole("navigation", { name: /primary navigation/i })
+    ).not.toBeInTheDocument();
   });
 
   it("marks nested Finance as active in desktop and mobile navigation", () => {

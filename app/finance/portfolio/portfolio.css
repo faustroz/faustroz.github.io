@@ -2258,3 +2258,15 @@ input[type="number"]::-webkit-outer-spin-button {
     backdrop-filter: none;
   }
 }
+
+/* The Portfolio Tracker is an isolated specialist view: no Hub header space. */
+@media (min-width: 769px) {
+  .hub-shell--finance .pt-nav { top: 0; }
+}
+
+@media (max-width: 768px) {
+  .hub-shell--finance .pt-mobile-header { top: 0; }
+  .hub-shell--finance .pt-main {
+    padding-top: calc(var(--pt-mobile-header-h) + env(safe-area-inset-top, 0px) + 16px);
+  }
+}
