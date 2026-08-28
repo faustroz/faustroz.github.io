@@ -1,5 +1,5 @@
 'use client';
-import { LayoutDashboard, Briefcase, ArrowLeftRight, BarChart3, Download, LogOut } from 'lucide-react';
+import { LayoutDashboard, Briefcase, ArrowLeftRight, BarChart3, Download } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { id: 'export', label: 'Backup', icon: Download },
 ];
 
-export default function Navbar({ activeTab, setActiveTab, onLogout }) {
+export default function Navbar({ activeTab, setActiveTab }) {
   return (
     <>
       <header className="pt-mobile-header">
@@ -19,14 +19,6 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }) {
           </div>
           <span className="pt-nav-title">Portfolio</span>
         </div>
-        <button
-          className="pt-mobile-logout"
-          onClick={onLogout}
-          title="Keluar"
-          aria-label="Keluar"
-        >
-          <LogOut size={18} />
-        </button>
       </header>
 
       <nav className="pt-nav" aria-label="Portfolio navigation">
@@ -52,10 +44,6 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }) {
           ))}
         </div>
 
-        <button className="pt-nav-logout" onClick={onLogout} title="Keluar">
-          <LogOut size={16} />
-          <span>Keluar</span>
-        </button>
       </nav>
     </>
   );

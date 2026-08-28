@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import LoginGate from '@/components/portfolio/LoginGate';
 import Navbar from '@/components/portfolio/Navbar';
 import Dashboard from '@/components/portfolio/Dashboard';
 import AssetList from '@/components/portfolio/AssetList';
@@ -23,7 +22,6 @@ import { calcPortfolioSummary } from '@/lib/portfolio/calculations';
 const REFRESH_INTERVAL_MS = 120 * 1000; // 2 menit (sebelumnya 60s)
 
 export default function PortfolioTrackerPage() {
-  const [loggedIn, setLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Data state
@@ -102,7 +100,7 @@ export default function PortfolioTrackerPage() {
     }
   }, [loadPriceHistory]);
 
-  // ---- Init after login ----
+  // ---- Init authenticated tracker data ----
   const initData = useCallback(async () => {
     const txs = await loadTransactions();
     await loadPriceHistory();
@@ -110,7 +108,6 @@ export default function PortfolioTrackerPage() {
   }, [loadTransactions, loadPriceHistory, refreshPrices]);
 
   useEffect(() => {
-    if (!loggedIn) return;
     initData();
 
     const startInterval = () => {
@@ -135,7 +132,7 @@ export default function PortfolioTrackerPage() {
       clearInterval(refreshTimer.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [loggedIn, initData, refreshPrices]);
+  }, [initData, refreshPrices]);
 
   // ---- Transaction CRUD ----
   const handleSaveTx = async (formData) => {
@@ -177,26 +174,11 @@ export default function PortfolioTrackerPage() {
     await initData();
   };
 
-  const handleLogout = () => {
-    setLoggedIn(false);
-    setTransactions([]);
-    setPrices({});
-    setSummary(null);
-    setPriceHistory([]);
-    setActiveTab('dashboard');
-    clearInterval(refreshTimer.current);
-  };
-
-  if (!loggedIn) {
-    return <LoginGate onLogin={() => setLoggedIn(true)} />;
-  }
-
   return (
     <div className="pt-app">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onLogout={handleLogout}
       />
 
       <main className="pt-main">

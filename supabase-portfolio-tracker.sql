@@ -57,3 +57,7 @@ using (true);
 
 grant select, insert, update, delete on public.portfolio_tracker_store to authenticated;
 revoke all on public.portfolio_tracker_store from anon;
+
+-- The obsolete client-side password gate has been removed. Supabase Auth + RLS
+-- are the only access controls; clear any legacy password hash if it exists.
+delete from public.portfolio_tracker_store where key = 'pt_password';

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap');
+
 /* ============================================================
    Portfolio Tracker — Night Operations module
    Shared phosphor palette, telemetry grid, and local Hub fonts
@@ -2143,5 +2145,116 @@ input[type="number"]::-webkit-outer-spin-button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   LEGACY DARK TERMINAL FINANCE / 8e0cfd0
+   Restores the original Portfolio Tracker visual system and
+   neutralizes the later Night Operations integration layer.
+   ============================================================ */
+.hub-shell--finance .pt-app {
+  --pt-bg: #080808;
+  --pt-surface: #101010;
+  --pt-surface-2: #171717;
+  --pt-surface-3: #222222;
+  --pt-border: rgba(255, 255, 255, 0.06);
+  --pt-border-hover: rgba(255, 255, 255, 0.12);
+  --pt-gold: #e5e7eb;
+  --pt-gold-dim: rgba(229, 231, 235, 0.14);
+  --pt-profit: #22c55e;
+  --pt-profit-dim: rgba(34, 197, 94, 0.14);
+  --pt-loss: #ef4444;
+  --pt-loss-dim: rgba(239, 68, 68, 0.14);
+  --pt-blue: #d1d5db;
+  --pt-purple: #6b7280;
+  --pt-text: #f5f5f5;
+  --pt-text-muted: #a1a1aa;
+  --pt-text-dim: #d4d4d8;
+  --pt-radius: 10px;
+  --pt-radius-sm: 6px;
+  --font-ui: "Manrope", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-display: "Bricolage Grotesque", "Manrope", sans-serif;
+  background: var(--pt-bg);
+  font-family: var(--font-ui);
+}
+
+.hub-shell--finance .pt-nav,
+.hub-shell--finance .pt-mobile-header {
+  border-color: var(--pt-border);
+  background: var(--pt-surface);
+  backdrop-filter: none;
+}
+
+.hub-shell--finance .pt-nav-brand::after,
+.hub-shell--finance .pt-login-card::before,
+.hub-shell--finance .pt-modal::before {
+  display: none;
+}
+
+.hub-shell--finance .pt-nav-logo,
+.hub-shell--finance .pt-export-icon,
+.hub-shell--finance .pt-empty-icon {
+  border-color: var(--pt-border-hover);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.hub-shell--finance .pt-card,
+.hub-shell--finance .pt-kpi-card,
+.hub-shell--finance .pt-asset-row,
+.hub-shell--finance .pt-tx-sum-card,
+.hub-shell--finance .pt-chart-card,
+.hub-shell--finance .pt-export-card,
+.hub-shell--finance .pt-modal {
+  border-color: var(--pt-border);
+  background: var(--pt-surface);
+  box-shadow: none;
+}
+
+.hub-shell--finance .pt-card:hover,
+.hub-shell--finance .pt-kpi-card:hover,
+.hub-shell--finance .pt-asset-row:hover,
+.hub-shell--finance .pt-export-card:hover {
+  border-color: var(--pt-border-hover);
+}
+
+.hub-shell--finance .pt-section-title,
+.hub-shell--finance .pt-modal-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.hub-shell--finance .pt-card-title,
+.hub-shell--finance .pt-kpi-label,
+.hub-shell--finance .pt-label,
+.hub-shell--finance .pt-nav-link,
+.hub-shell--finance .pt-btn-primary,
+.hub-shell--finance .pt-btn-ghost,
+.hub-shell--finance .pt-btn-refresh,
+.hub-shell--finance .pt-filter-btn,
+.hub-shell--finance .pt-toggle-btn,
+.hub-shell--finance .pt-table th {
+  font-family: var(--font-ui);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.hub-shell--finance .pt-btn-primary {
+  color: #000;
+  background: linear-gradient(135deg, var(--pt-gold), #cbd5e1);
+  box-shadow: none;
+}
+
+.hub-shell--finance .pt-table th { color: var(--pt-text-muted); }
+.hub-shell--finance .pt-table tr:hover td { background: rgba(255, 255, 255, 0.025); }
+
+@media (max-width: 767px) {
+  .hub-shell--finance .pt-nav,
+  .hub-shell--finance .pt-mobile-header {
+    background: var(--pt-surface);
+    backdrop-filter: none;
   }
 }
