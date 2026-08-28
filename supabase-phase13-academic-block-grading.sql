@@ -18,8 +18,9 @@ begin
   elsif new.block = 'Blok 26' then w_osce:=25; w_soca:=25; w_mp:=40; w_behavior:=10;
   else w_ospe:=20; w_osce:=20; w_soca:=20; w_mp:=30; w_behavior:=10;
   end if;
-  score := coalesce(new.ospe,0)*w_ospe/100 + coalesce(new.osce,0)*w_osce/100 + coalesce(new.soca_tutorial,0)*w_soca/100 + coalesce(new.mp,0)*w_mp/100 + coalesce(new.behavior,0)*w_behavior/100;
-  new.final_score := round(score,2);
+  -- The faculty grade uses whole-number scores: 74.5 rounds to 75, then maps to A.
+  score := round(coalesce(new.ospe,0)*w_ospe/100 + coalesce(new.osce,0)*w_osce/100 + coalesce(new.soca_tutorial,0)*w_soca/100 + coalesce(new.mp,0)*w_mp/100 + coalesce(new.behavior,0)*w_behavior/100, 0);
+  new.final_score := score;
   new.grade := case when score >= 75 then 'A' when score >= 70 then 'B+' when score >= 66 then 'B' when score >= 60 then 'C+' when score >= 55 then 'C' when score >= 40 then 'D' else 'E' end;
   return new;
 end $$;
