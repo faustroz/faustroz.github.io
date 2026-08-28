@@ -50,6 +50,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [lookups, setLookups] = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,6 +65,28 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
   }, [repository]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const lookupFields = fields.filter((field) => field.type === "lookup");
+    if (!lookupFields.length) return undefined;
+    let active = true;
+    const loadLookups = async () => {
+      try {
+        const entries = await Promise.all(lookupFields.map(async (field) => {
+          const columns = [...new Set([field.lookup.value, ...field.lookup.label, ...(field.lookup.kinds ? ["kind"] : [])])].join(",");
+          const { data, error } = await requireSupabase().from(field.lookup.table).select(columns).order(field.lookup.value);
+          if (error) throw error;
+          const rows = (data || []).filter((row) => !field.lookup.kinds || field.lookup.kinds.includes(row.kind));
+          return [field.name, rows];
+        }));
+        if (active) setLookups(Object.fromEntries(entries));
+      } catch (nextError) {
+        if (active) setError(nextError.message);
+      }
+    };
+    loadLookups();
+    return () => { active = false; };
+  }, [fields]);
 
   const reset = () => {
     setForm(emptyForm(fields));
@@ -151,6 +174,12 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
                 <span>{field.label}</span>
                 {field.type === "textarea" ? (
                   <textarea autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
+                ) : field.type === "lookup" ? (
+                  <select autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
+                    <option value="">{field.optional ? "Not assigned" : "Select an option"}</option>
+                    {form[field.name] && !(lookups[field.name] || []).some((row) => row[field.lookup.value] === form[field.name]) && <option value={form[field.name]}>{form[field.name]} (archived)</option>}
+                    {(lookups[field.name] || []).map((row) => <option key={`${field.name}-${row[field.lookup.value]}`} value={row[field.lookup.value]}>{field.lookup.label.map((key) => row[key]).filter(Boolean).join(" · ")}</option>)}
+                  </select>
                 ) : field.type === "select" ? (
                   <select autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
                     {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
