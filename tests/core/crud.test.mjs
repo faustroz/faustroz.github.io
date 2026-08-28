@@ -5,6 +5,7 @@ import { createCrudRepository } from "../../lib/hub/crud.mjs";
 function createQuery(response, calls) {
   const query = {
     select(columns) { calls.push(["select", columns]); return query; },
+    is(column, value) { calls.push(["is", column, value]); return query; },
     order(column, options) { calls.push(["order", column, options]); return Promise.resolve(response); },
     insert(values) { calls.push(["insert", values]); return query; },
     update(values) { calls.push(["update", values]); return query; },
@@ -33,6 +34,7 @@ test("CRUD repository lists owner-visible records in configured order", async ()
   assert.deepEqual(calls, [
     ["from", "expenses"],
     ["select", "*"],
+    ["is", "deleted_at", null],
     ["order", "spent_on", { ascending: false }],
   ]);
 });
@@ -54,7 +56,7 @@ test("CRUD repository creates, updates, and deletes records", async () => {
 
   assert.ok(calls.some(([method]) => method === "insert"));
   assert.ok(calls.some(([method]) => method === "update"));
-  assert.ok(calls.some(([method]) => method === "delete"));
+  assert.ok(calls.some(([method]) => method === "update"));
   assert.ok(calls.some((call) => call[0] === "eq" && call[2] === "budget-1"));
 });
 

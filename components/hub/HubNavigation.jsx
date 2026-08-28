@@ -27,7 +27,7 @@ const primaryModules = HUB_MODULES.filter(({ id }) =>
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["memory", "settings", "insights", "vault"].includes(id)
+  ["memory", "settings", "insights", "vault", "academic", "trash"].includes(id)
 );
 
 const primaryIcons = {
@@ -42,6 +42,8 @@ const secondaryIcons = {
   settings: Settings,
   insights: ChartNoAxesCombined,
   vault: FolderKanban,
+  academic: GraduationCap,
+  trash: X,
 };
 
 export default function HubNavigation() {

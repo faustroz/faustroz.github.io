@@ -25,6 +25,8 @@ describe("Hub navigation contract", () => {
       ["settings", "/settings"],
       ["insights", "/insights"],
       ["vault", "/vault"],
+      ["academic", "/academic"],
+      ["trash", "/trash"],
     ]);
   });
 

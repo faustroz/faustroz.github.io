@@ -43,7 +43,7 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
       queriedTables.push(table);
       return {
         select: () => ({
-          limit: async () => ({ data: records[table] || [], error: null }),
+          is: () => ({ limit: async () => ({ data: records[table] || [], error: null }) }),
           eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
         }),
       };

@@ -7,13 +7,13 @@ import { requireSupabase } from "@/lib/supabase/client";
 
 function emptyForm(fields) {
   return Object.fromEntries(
-    fields.map((field) => [field.name, field.type === "checkbox" ? false : field.defaultValue ?? ""])
+    fields.filter((field) => field.type !== "computed").map((field) => [field.name, field.type === "checkbox" ? false : field.defaultValue ?? ""])
   );
 }
 
 function normalizeForm(fields, form) {
   return Object.fromEntries(
-    fields.map((field) => {
+    fields.filter((field) => field.type !== "computed").map((field) => {
       const value = form[field.name];
       if (field.type === "number") {
         return [field.name, value === "" ? null : Number(value)];
@@ -38,7 +38,7 @@ function displayValue(field, value) {
   return value || "—";
 }
 
-export default function CrudPanel({ table, title, description, fields, orderBy }) {
+export default function CrudPanel({ table, title, description, fields, orderBy, onRecordsChange }) {
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
     [table, orderBy]
@@ -56,13 +56,15 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
     setLoading(true);
     setError("");
     try {
-      setRecords(await repository.list());
+      const nextRecords = await repository.list();
+      setRecords(nextRecords);
+      onRecordsChange?.(nextRecords);
     } catch (nextError) {
       setError(nextError.message);
     } finally {
       setLoading(false);
     }
-  }, [repository]);
+  }, [repository, onRecordsChange]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -120,7 +122,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
     setEditingId(record.id);
     setForm(
       Object.fromEntries(
-        fields.map((field) => [
+        fields.filter((field) => field.type !== "computed").map((field) => [
           field.name,
           field.type === "tags" ? (record[field.name] || []).join(", ") : record[field.name] ?? "",
         ])
@@ -169,7 +171,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
         <form className="hub-crud-form hub-crud-modal" onSubmit={save} role="dialog" aria-modal="true" aria-label={editingId ? `Edit ${title}` : `Create ${title}`} onMouseDown={(event) => event.stopPropagation()}>
           <div className="hub-crud-form-head"><span>{editingId ? "EDIT RECORD" : "CREATE RECORD"}</span><button type="button" onClick={closeForm} disabled={saving} aria-label="Close form"><X /></button></div>
           <div className="hub-form-grid">
-            {fields.map((field, index) => (
+            {fields.filter((field) => field.type !== "computed").map((field, index) => (
               <label key={field.name} className={field.type === "textarea" ? "hub-field-wide" : undefined}>
                 <span>{field.label}</span>
                 {field.type === "textarea" ? (
