@@ -1,5 +1,6 @@
 'use client';
-import { LayoutDashboard, Briefcase, ArrowLeftRight, BarChart3, Download } from 'lucide-react';
+import { LayoutDashboard, Briefcase, ArrowLeftRight, ArrowLeft, BarChart3, Download } from 'lucide-react';
+import Link from 'next/link';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,6 +19,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
           <span className="pt-mobile-divider" />
           <span className="pt-nav-title">Portfolio</span>
         </div>
+        <Link className="pt-hub-back pt-hub-back--mobile" href="/hub" aria-label="Back to 4allx Hub"><ArrowLeft size={17} /></Link>
       </header>
 
       <nav className="pt-nav" aria-label="Portfolio navigation">
@@ -26,6 +28,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
           <span className="pt-mobile-divider" />
           <span className="pt-nav-title">Portfolio</span>
         </div>
+
+        <Link className="pt-hub-back" href="/hub"><ArrowLeft size={15} /><span>Back to Hub</span></Link>
 
         <div className="pt-nav-links">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (

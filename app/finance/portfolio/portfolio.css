@@ -1966,6 +1966,68 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
+/* Shared 4allx Hub typography and return control. */
+.hub-shell--finance .pt-app,
+.hub-shell--finance .pt-input,
+.hub-shell--finance .pt-select,
+.hub-shell--finance .pt-btn-primary,
+.hub-shell--finance .pt-btn-ghost,
+.hub-shell--finance .pt-btn-sm,
+.hub-shell--finance .pt-btn-refresh,
+.hub-shell--finance .pt-nav-link {
+  font-family: "Manrope", var(--font-geist-sans), sans-serif;
+}
+
+.hub-shell--finance .pt-section-title,
+.hub-shell--finance .pt-modal-title,
+.hub-shell--finance .pt-dashboard-header h1,
+.hub-shell--finance .pt-export-title {
+  font-family: "Bricolage Grotesque", "Manrope", sans-serif;
+}
+
+.hub-shell--finance .pt-label,
+.hub-shell--finance .pt-kpi-label,
+.hub-shell--finance .pt-card-count,
+.hub-shell--finance .pt-last-updated,
+.hub-shell--finance .pt-table th {
+  font-family: "IBM Plex Mono", var(--font-geist-mono), monospace;
+}
+
+.hub-shell--finance .pt-hub-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.35rem;
+  margin: 0 .5rem .85rem;
+  padding: 0 .7rem;
+  border: 1px solid var(--pt-border);
+  border-radius: 6px;
+  color: var(--pt-text-muted);
+  font: 500 .76rem "Manrope", var(--font-geist-sans), sans-serif;
+  text-decoration: none;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.hub-shell--finance .pt-hub-back:hover {
+  border-color: var(--pt-border-hover);
+  color: var(--pt-text);
+  background: var(--pt-surface-2);
+}
+
+.hub-shell--finance .pt-hub-back--mobile { display: none; }
+
+@media (max-width: 768px) {
+  .hub-shell--finance .pt-hub-back { display: none; }
+  .hub-shell--finance .pt-hub-back--mobile {
+    display: grid;
+    width: 2rem;
+    min-height: 2rem;
+    margin: 0;
+    padding: 0;
+    place-items: center;
+  }
+}
+
 /* ============================================================
    HUB VISUAL ALIGNMENT
    The specialist keeps its independent portfolio navigation while using the
