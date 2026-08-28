@@ -94,8 +94,8 @@ export default function HubNavigation() {
     <>
       <header className="hub-header">
         <Link className="hub-brand" href="/hub" aria-label="Ferdy personal hub home">
-          <span className="hub-brand-mark">FD</span>
-          <span>_OS</span>
+          <span className="hub-brand-mark">4a</span>
+          <span>llx</span>
         </Link>
 
         <nav className="hub-desktop-nav" aria-label="Primary navigation">

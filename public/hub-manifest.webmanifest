@@ -1,6 +1,6 @@
 {
-  "name": "FD_OS Personal Hub",
-  "short_name": "FD_OS",
+  "name": "4allx Personal Hub",
+  "short_name": "4allx",
   "id": "/hub",
   "description": "Ferdy Diatmika's private personal command center.",
   "start_url": "/hub",

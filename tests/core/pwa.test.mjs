@@ -21,6 +21,8 @@ test("service worker keeps API traffic and non-GET requests out of cache", async
   assert.match(worker, /url\.origin !== self\.location\.origin/);
   assert.match(worker, /Never cache Supabase/);
   assert.match(worker, /SKIP_WAITING/);
+  assert.match(worker, /4allx-shell-v2/);
+  assert.match(worker, /then\(\(\) => self\.skipWaiting\(\)\)/);
 });
 
 test("Hub mobile polish protects safe areas, dock, and form keyboard behavior", async () => {

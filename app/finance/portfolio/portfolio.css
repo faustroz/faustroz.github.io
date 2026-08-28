@@ -2105,7 +2105,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .hub-shell--finance .pt-login-card::before,
 .hub-shell--finance .pt-modal::before {
-  content: "SECURE TERMINAL / FD_OS";
+  content: "SECURE TERMINAL / 4allx";
   display: block;
   margin-bottom: 1.5rem;
   color: var(--pt-gold);

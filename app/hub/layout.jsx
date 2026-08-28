@@ -12,7 +12,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FD_OS",
+    title: "4allx",
   },
   icons: {
     icon: "/icons/fd-os-icon.svg",

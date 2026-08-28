@@ -1,8 +1,14 @@
-const CACHE_NAME = "fd-os-shell-v1";
+// Bump this whenever shell markup changes so a standalone install cannot pair
+// fresh HTML with a stale JavaScript bundle during hydration.
+const CACHE_NAME = "4allx-shell-v2";
 const APP_SHELL = ["/", "/hub", "/offline.html", "/hub-manifest.webmanifest", "/icons/fd-os-icon.svg"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {
