@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import CrudPanel from "@/components/hub/CrudPanel";
 
 export default function ModuleWorkspace({ channels }) {
   const [active, setActive] = useState(channels[0].id);
+  const searchParams = useSearchParams();
+  const requestedChannel = searchParams.get("channel");
+
+  useEffect(() => {
+    if (channels.some(({ id }) => id === requestedChannel)) setActive(requestedChannel);
+  }, [channels, requestedChannel]);
+
   const channel = channels.find(({ id }) => id === active) || channels[0];
 
   return (

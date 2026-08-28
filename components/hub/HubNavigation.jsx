@@ -11,12 +11,14 @@ import {
   Home,
   Mail,
   Menu,
+  Search,
   Settings,
   WalletCards,
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { HUB_MODULES, resolveActiveNav } from "@/lib/hub/navigation.mjs";
+import GlobalSearch from "@/components/hub/GlobalSearch";
 
 const primaryModules = HUB_MODULES.filter(({ id }) =>
   ["home", "finance", "study", "projects"].includes(id)
@@ -43,6 +45,7 @@ export default function HubNavigation() {
   const pathname = usePathname();
   const active = resolveActiveNav(pathname);
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const triggerRef = useRef(null);
   const closeRef = useRef(null);
 
@@ -75,6 +78,18 @@ export default function HubNavigation() {
     setOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const openSearch = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen(false);
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", openSearch);
+    return () => window.removeEventListener("keydown", openSearch);
+  }, []);
+
   return (
     <>
       <header className="hub-header">
@@ -98,7 +113,10 @@ export default function HubNavigation() {
           ))}
         </nav>
 
-        <div className="hub-system-status" aria-label="All systems online">
+        <div className="hub-system-status" aria-label="System controls">
+          <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setOpen(false); setSearchOpen(true); }}>
+            <Search aria-hidden="true" /><span>SEARCH</span>
+          </button>
           <i aria-hidden="true" />
           <span className="hub-status-long">ALL SYSTEMS ONLINE</span>
           <span className="hub-status-short">ONLINE</span>
@@ -182,6 +200,7 @@ export default function HubNavigation() {
           </section>
         </div>
       )}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
