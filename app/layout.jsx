@@ -16,6 +16,8 @@ const geistMono = localFont({
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#07100d",
+  colorScheme: "dark",
 };
 
 export const metadata = {
@@ -25,6 +27,11 @@ export const metadata = {
   keywords:
     "web developer, frontend developer, React, Next.js, portfolio, landing pages, web design",
   authors: [{ name: "Ferdy Diatmika" }],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ferdy Diatmika",
+  },
   robots: "index, follow",
   openGraph: {
     title: "Ferdy Diatmika - Web Developer Portfolio",

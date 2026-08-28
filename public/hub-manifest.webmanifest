@@ -1,0 +1,10 @@
+{
+  "name": "FD_OS Personal Hub",
+  "short_name": "FD_OS",
+  "description": "Ferdy Diatmika's private personal command center.",
+  "start_url": "/hub",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07100d",
+  "theme_color": "#07100d"
+}
