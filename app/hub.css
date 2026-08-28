@@ -13,11 +13,14 @@
 }
 
 html {
+  min-height: 100%;
   background: var(--hub-ink);
 }
 
 body {
+  min-height: 100%;
   margin: 0;
+  -webkit-text-size-adjust: 100%;
 }
 
 ::selection {
@@ -27,6 +30,7 @@ body {
 
 .hub-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--hub-text);
   background:
     linear-gradient(rgba(100, 239, 173, 0.025) 1px, transparent 1px),
@@ -38,6 +42,7 @@ body {
 
 .hub-content {
   min-height: calc(100vh - 65px);
+  min-height: calc(100dvh - 65px);
 }
 
 .hub-header {
@@ -162,6 +167,28 @@ body {
 .hub-mobile-dock {
   display: none;
 }
+
+.hub-pwa-status {
+  position: fixed;
+  z-index: 140;
+  right: 1rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: calc(100% - 2rem);
+  min-height: 2.7rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.75rem;
+  border: 1px solid var(--hub-line-bright);
+  color: var(--hub-text);
+  background: rgba(7, 16, 13, 0.94);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.36);
+  font: 0.58rem var(--font-geist-mono), monospace;
+  letter-spacing: 0.08em;
+}
+
+.hub-pwa-status svg { width: 0.9rem; color: var(--hub-accent); }
+.hub-pwa-status button { min-height: 1.8rem; border: 1px solid var(--hub-accent); color: var(--hub-ink); background: var(--hub-accent); font: inherit; letter-spacing: inherit; cursor: pointer; }
 
 .hub-sheet-backdrop {
   position: fixed;
@@ -1192,8 +1219,8 @@ body {
   .hub-header {
     position: relative;
     grid-template-columns: 1fr auto;
-    min-height: 58px;
-    padding: 0 1rem;
+    min-height: calc(58px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 1rem 0;
   }
 
   .hub-desktop-nav {
@@ -1202,6 +1229,7 @@ body {
 
   .hub-content {
     min-height: calc(100vh - 58px);
+    min-height: calc(100dvh - 58px - env(safe-area-inset-top));
     padding-bottom: calc(5.6rem + env(safe-area-inset-bottom));
   }
 
@@ -1219,6 +1247,7 @@ body {
     background: rgba(216, 248, 231, 0.96);
     box-shadow: 0 1rem 4rem rgba(0, 0, 0, 0.42);
     backdrop-filter: blur(18px);
+    transition: opacity 160ms ease, transform 160ms ease;
   }
 
   .hub-shell--finance .hub-mobile-dock {
@@ -1263,6 +1292,27 @@ body {
   .hub-footer {
     padding: 1.1rem 1rem 7rem;
     font-size: 0.52rem;
+  }
+
+  .hub-auth-form input,
+  .hub-crud-form input,
+  .hub-crud-form select,
+  .hub-crud-form textarea,
+  .hub-search-input input {
+    font-size: 1rem;
+  }
+
+  body:has(.hub-auth-form input:focus, .hub-crud-form input:focus, .hub-crud-form select:focus, .hub-crud-form textarea:focus, .hub-search-input input:focus) .hub-mobile-dock {
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(calc(100% + env(safe-area-inset-bottom) + 1rem));
+  }
+
+  .hub-pwa-status {
+    right: 0.7rem;
+    bottom: calc(6.25rem + env(safe-area-inset-bottom));
+    left: 0.7rem;
+    justify-content: center;
   }
 }
 

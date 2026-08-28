@@ -11,6 +11,7 @@ import {
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/finance/portfolio",
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 describe("Hub navigation contract", () => {

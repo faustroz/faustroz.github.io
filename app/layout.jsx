@@ -2,6 +2,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import "./hub.css";
 import HubShell from "@/components/hub/HubShell";
+import PwaBootstrap from "@/components/hub/PwaBootstrap";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -16,6 +17,7 @@ const geistMono = localFont({
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#07100d",
   colorScheme: "dark",
 };
@@ -31,6 +33,10 @@ export const metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Ferdy Diatmika",
+  },
+  icons: {
+    icon: "/icons/fd-os-icon.svg",
+    apple: "/icons/fd-os-icon.svg",
   },
   robots: "index, follow",
   openGraph: {
@@ -52,6 +58,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <PwaBootstrap />
         <HubShell>{children}</HubShell>
       </body>
     </html>

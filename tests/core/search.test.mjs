@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  SEARCH_SOURCES,
   buildSearchHref,
   createGlobalSearchService,
   deriveSearchGroups,
 } from "../../lib/hub/search.mjs";
+
+test("search source contract covers every private operational module", () => {
+  assert.deepEqual(
+    [...new Set(SEARCH_SOURCES.map(({ group }) => group))],
+    ["Finance", "Study", "Projects", "AI Memory"]
+  );
+  assert.ok(SEARCH_SOURCES.some(({ label }) => label === "Portfolio"));
+});
 
 test("public global search never queries private tables", async () => {
   let queried = false;

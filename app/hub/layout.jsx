@@ -1,4 +1,5 @@
 export const viewport = {
+  viewportFit: "cover",
   themeColor: "#07100d",
   colorScheme: "dark",
 };
@@ -12,6 +13,10 @@ export const metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "FD_OS",
+  },
+  icons: {
+    icon: "/icons/fd-os-icon.svg",
+    apple: "/icons/fd-os-icon.svg",
   },
 };
 
