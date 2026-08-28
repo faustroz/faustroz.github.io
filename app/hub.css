@@ -1553,6 +1553,28 @@ body {
 .hub-crud-heading button { flex: 0 0 auto; }
 
 .hub-crud-form { margin: 1rem; padding: 1rem; border: 1px solid var(--hub-line-bright); background: var(--hub-panel); }
+.hub-crud-modal-backdrop {
+  position: fixed;
+  z-index: 220;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  background: rgba(2, 7, 5, 0.82);
+  backdrop-filter: blur(10px);
+  animation: hub-fade-in 160ms ease both;
+}
+
+.hub-crud-modal {
+  width: min(100%, 44rem);
+  max-height: min(88vh, 52rem);
+  max-height: min(88dvh, 52rem);
+  margin: 0;
+  overflow-y: auto;
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.48);
+  animation: hub-sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 .hub-crud-form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .hub-crud-form-head button,
 .hub-record-actions button { display: grid; width: 2rem; height: 2rem; place-items: center; border: 1px solid var(--hub-line); color: var(--hub-muted); background: transparent; cursor: pointer; }
@@ -1611,6 +1633,8 @@ body {
   .hub-specialist-link > svg:last-child { display: none; }
   .hub-crud-heading { flex-direction: column; }
   .hub-crud-heading button { width: 100%; }
+  .hub-crud-modal-backdrop { align-items: end; padding: 0; }
+  .hub-crud-modal { width: 100%; max-height: min(90dvh, 52rem); border-right: 0; border-bottom: 0; border-left: 0; }
   .hub-form-grid { grid-template-columns: 1fr; }
   .hub-field-wide { grid-column: auto; }
   .hub-record { grid-template-columns: 2rem minmax(0, 1fr); align-items: start; }

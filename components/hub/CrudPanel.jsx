@@ -71,6 +71,28 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
     setFormOpen(false);
   };
 
+  const closeForm = () => {
+    if (!saving) reset();
+  };
+
+  useEffect(() => {
+    if (!formOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !saving) {
+        setForm(emptyForm(fields));
+        setEditingId(null);
+        setFormOpen(false);
+      }
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [fields, formOpen, saving]);
+
   const edit = (record) => {
     setEditingId(record.id);
     setForm(
@@ -120,22 +142,23 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
       </header>
 
       {formOpen && (
-        <form className="hub-crud-form" onSubmit={save}>
-          <div className="hub-crud-form-head"><span>{editingId ? "EDIT RECORD" : "CREATE RECORD"}</span><button type="button" onClick={reset} aria-label="Close form"><X /></button></div>
+        <div className="hub-crud-modal-backdrop" onMouseDown={closeForm}>
+        <form className="hub-crud-form hub-crud-modal" onSubmit={save} role="dialog" aria-modal="true" aria-label={editingId ? `Edit ${title}` : `Create ${title}`} onMouseDown={(event) => event.stopPropagation()}>
+          <div className="hub-crud-form-head"><span>{editingId ? "EDIT RECORD" : "CREATE RECORD"}</span><button type="button" onClick={closeForm} disabled={saving} aria-label="Close form"><X /></button></div>
           <div className="hub-form-grid">
-            {fields.map((field) => (
+            {fields.map((field, index) => (
               <label key={field.name} className={field.type === "textarea" ? "hub-field-wide" : undefined}>
                 <span>{field.label}</span>
                 {field.type === "textarea" ? (
-                  <textarea required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
+                  <textarea autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
                 ) : field.type === "select" ? (
-                  <select required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
+                  <select autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
                     {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
                   </select>
                 ) : field.type === "checkbox" ? (
-                  <input type="checkbox" checked={Boolean(form[field.name])} onChange={(event) => setForm({ ...form, [field.name]: event.target.checked })} />
+                  <input autoFocus={index === 0} type="checkbox" checked={Boolean(form[field.name])} onChange={(event) => setForm({ ...form, [field.name]: event.target.checked })} />
                 ) : (
-                  <input type={field.type === "tags" ? "text" : field.type || "text"} min={field.min} max={field.max} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
+                  <input autoFocus={index === 0} type={field.type === "tags" ? "text" : field.type || "text"} min={field.min} max={field.max} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
                 )}
               </label>
             ))}
@@ -143,6 +166,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
           {error && <p className="hub-data-error" role="alert">{error}</p>}
           <button className="hub-save-button" type="submit" disabled={saving}><Check aria-hidden="true" /> {saving ? "WRITING…" : "COMMIT ENTRY"}</button>
         </form>
+        </div>
       )}
 
       {!formOpen && error && <p className="hub-data-error" role="alert">{error}</p>}
