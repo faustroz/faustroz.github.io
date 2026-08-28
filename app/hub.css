@@ -2409,3 +2409,22 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
     background: rgba(255, 255, 255, 0.06);
   }
 }
+
+/* Final mobile modal override — must come after the legacy Hub surface rules. */
+@media (max-width: 767px) {
+  .hub-crud-modal-backdrop {
+    align-items: center !important;
+    justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top)) 1.25rem max(1rem, env(safe-area-inset-bottom)) !important;
+  }
+
+  .hub-shell:not(.hub-shell--finance) .hub-crud-modal {
+    width: min(100%, 25rem) !important;
+    max-height: min(76dvh, 38rem) !important;
+    margin: auto !important;
+    overflow-y: auto;
+    border: 1px solid var(--hub-line) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.58) !important;
+  }
+}
