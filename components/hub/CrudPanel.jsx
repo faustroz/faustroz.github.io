@@ -189,7 +189,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
                 ) : field.type === "checkbox" ? (
                   <input autoFocus={index === 0} type="checkbox" checked={Boolean(form[field.name])} onChange={(event) => setForm({ ...form, [field.name]: event.target.checked })} />
                 ) : (
-                  <input autoFocus={index === 0} type={field.type === "tags" ? "text" : field.type || "text"} min={field.min} max={field.max} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
+                  <input autoFocus={index === 0} type={field.type === "tags" ? "text" : field.type || "text"} inputMode={field.inputMode} placeholder={field.placeholder} min={field.min} max={field.max} step={field.step} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
                 )}
               </label>
             ))}
