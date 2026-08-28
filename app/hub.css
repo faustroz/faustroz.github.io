@@ -2419,7 +2419,8 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   }
 
   .hub-shell:not(.hub-shell--finance) .hub-crud-modal {
-    width: min(100%, 25rem) !important;
+    width: 100% !important;
+    max-width: 34rem !important;
     max-height: min(76dvh, 38rem) !important;
     margin: auto !important;
     overflow-y: auto;
