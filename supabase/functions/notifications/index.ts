@@ -11,10 +11,10 @@ Deno.serve(async (request) => {
     supabase.from("project_tasks").select("user_id,title,due_on").gte("due_on", today).lte("due_on", today).neq("status", "done"),
     supabase.from("subscriptions").select("user_id,name,next_billing_on").gte("next_billing_on", today).lte("next_billing_on", today).eq("active", true),
     supabase.from("budgets").select("user_id,name,limit_amount,starts_on"),
-    supabase.from("expenses").select("user_id,amount,spent_on"),
+    supabase.from("expenses").select("user_id,amount,spent_on,category"),
   ]);
   const budgetAlerts = (budgets || []).flatMap((budget) => {
-    const spent = (expenses || []).filter((expense) => expense.user_id === budget.user_id && expense.spent_on >= budget.starts_on).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    const spent = (expenses || []).filter((expense) => expense.user_id === budget.user_id && expense.category === budget.name && expense.spent_on >= budget.starts_on).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
     return spent >= Number(budget.limit_amount) ? [{ user_id: budget.user_id, kind: "budget", title: `Budget limit: ${budget.name}`, body: `Spent ${spent} of ${budget.limit_amount}`, due_at: today }] : [];
   });
   const rows = [

@@ -6,7 +6,7 @@ import { FINANCE_CHANNELS, MEMORY_CHANNELS, PROJECT_CHANNELS, STUDY_CHANNELS } f
 import { createCrudRepository } from "@/lib/hub/crud.mjs";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
-const OPTIONS = [FINANCE_CHANNELS[0], PROJECT_CHANNELS[1], STUDY_CHANNELS[2], STUDY_CHANNELS[0], MEMORY_CHANNELS[0]];
+const OPTIONS = [FINANCE_CHANNELS.find(({ id }) => id === "expenses"), PROJECT_CHANNELS[1], STUDY_CHANNELS[2], STUDY_CHANNELS[0], MEMORY_CHANNELS[0]];
 const initial = (fields) => Object.fromEntries(fields.map((field) => [field.name, field.type === "checkbox" ? false : field.defaultValue ?? ""]));
 
 export default function QuickAdd() {
