@@ -323,6 +323,15 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-academic-summary article { padding:1rem; border:1px solid var(--hub-line); border-radius:10px; background:var(--hub-panel); }
 .hub-academic-summary span { display:block; color:var(--hub-muted); font:.62rem "IBM Plex Mono",monospace; letter-spacing:.08em; }
 .hub-academic-summary strong { display:block; margin-top:.55rem; color:var(--hub-text); font:700 1.65rem "Bricolage Grotesque",sans-serif; }
+.hub-academic-guide { margin:0 0 1rem; padding:1rem; border:1px solid var(--hub-line); border-radius:10px; background:var(--hub-panel); }
+.hub-academic-guide header span { color:var(--hub-muted); font:.62rem "IBM Plex Mono",monospace; letter-spacing:.08em; }
+.hub-academic-guide p { margin:.45rem 0 .75rem; color:var(--hub-muted); font-size:.8rem; }
+.hub-academic-guide div { display:flex; flex-wrap:wrap; gap:.45rem; }
+.hub-academic-guide div span { padding:.35rem .5rem; border:1px solid var(--hub-line); border-radius:5px; color:var(--hub-muted); font:.68rem "IBM Plex Mono",monospace; }
+.hub-academic-guide b { color:var(--hub-text); }
+.hub-academic-guide ul { display:grid; gap:.4rem; margin:.9rem 0 0; padding:0; list-style:none; }
+.hub-academic-guide li { display:grid; gap:.2rem; padding-top:.45rem; border-top:1px solid var(--hub-line); color:var(--hub-muted); font:.66rem/1.45 "IBM Plex Mono",monospace; }
+.hub-academic-guide li b { font-size:.68rem; }
 
 /* Compact mobile record sheet: retains context around the form instead of
    turning every entry into an edge-to-edge bottom drawer. */
