@@ -54,6 +54,13 @@ body {
   backdrop-filter: blur(18px);
 }
 
+@supports (padding-top: env(safe-area-inset-top)) {
+  .hub-header {
+    min-height: calc(65px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 .hub-brand {
   display: inline-flex;
   align-items: center;
