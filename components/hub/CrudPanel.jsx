@@ -73,7 +73,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
     const loadLookups = async () => {
       try {
         const entries = await Promise.all(lookupFields.map(async (field) => {
-          const columns = [...new Set([field.lookup.value, ...field.lookup.label, ...(field.lookup.kinds ? ["kind"] : [])])].join(",");
+          const columns = [...new Set([field.lookup.value, ...field.lookup.label, ...(field.lookup.include || []), ...(field.lookup.kinds ? ["kind"] : [])])].join(",");
           const { data, error } = await requireSupabase().from(field.lookup.table).select(columns).order(field.lookup.value);
           if (error) throw error;
           const rows = (data || []).filter((row) => !field.lookup.kinds || field.lookup.kinds.includes(row.kind));
@@ -178,7 +178,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
                   <select autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
                     <option value="">{field.optional ? "Not assigned" : "Select an option"}</option>
                     {form[field.name] && !(lookups[field.name] || []).some((row) => row[field.lookup.value] === form[field.name]) && <option value={form[field.name]}>{form[field.name]} (archived)</option>}
-                    {(lookups[field.name] || []).map((row) => <option key={`${field.name}-${row[field.lookup.value]}`} value={row[field.lookup.value]}>{field.lookup.label.map((key) => row[key]).filter(Boolean).join(" · ")}</option>)}
+                    {(lookups[field.name] || []).map((row) => <option key={`${field.name}-${row[field.lookup.value]}`} value={row[field.lookup.value]} style={row.color ? { color: row.color } : undefined}>{row.color ? "● " : ""}{field.lookup.label.map((key) => row[key]).filter(Boolean).join(" · ")}</option>)}
                   </select>
                 ) : field.type === "select" ? (
                   <select autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
@@ -209,9 +209,11 @@ export default function CrudPanel({ table, title, description, fields, orderBy }
             <article className="hub-record" key={record.id}>
               <div className="hub-record-index">{String(index + 1).padStart(2, "0")}</div>
               <div className="hub-record-values">
-                {fields.slice(0, 5).map((field) => (
-                  <div key={field.name}><span>{field.label}</span><strong>{displayValue(field, record[field.name])}</strong></div>
-                ))}
+                {fields.slice(0, 5).map((field) => {
+                  const match = field.type === "lookup" ? (lookups[field.name] || []).find((row) => row[field.lookup.value] === record[field.name]) : null;
+                  const color = field.type === "color" ? record[field.name] : match?.color;
+                  return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color && <i style={{ backgroundColor: color }} aria-hidden="true" />}{displayValue(field, record[field.name])}</strong></div>;
+                })}
               </div>
               <div className="hub-record-actions">
                 <button type="button" onClick={() => edit(record)} aria-label={`Edit ${record.title || record.name || "record"}`}><Pencil /></button>

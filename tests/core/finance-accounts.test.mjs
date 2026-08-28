@@ -13,6 +13,7 @@ test("finance exposes private balances and category-specific budget configuratio
   assert.equal(budgets.fields.find(({ name }) => name === "name").label, "Expense category");
   assert.equal(expenses.fields.find(({ name }) => name === "category").type, "lookup");
   assert.equal(expenses.fields.find(({ name }) => name === "bank_account_name").lookup.table, "bank_accounts");
+  assert.equal(FINANCE_CHANNELS.find(({ id }) => id === "categories").fields.find(({ name }) => name === "color").type, "color");
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "bank_accounts"));
 });
 
