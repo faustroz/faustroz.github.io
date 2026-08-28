@@ -299,6 +299,25 @@ body {
   .hub-search-source { font-size: 0.54rem; }
 }
 
+/* Phase 8 operational controls */
+.hub-quick-add-trigger, .hub-notification-center > button { display:inline-flex; align-items:center; justify-content:center; gap:.35rem; min-width:2.25rem; min-height:2.25rem; border:1px solid var(--hub-line); color:var(--hub-text); background:var(--hub-panel-raised); font:inherit; cursor:pointer; }
+.hub-quick-add-trigger svg, .hub-notification-center svg { width:1rem; height:1rem; }
+.hub-notification-center { position:relative; }
+.hub-notification-center > button { position:relative; }
+.hub-notification-center b { position:absolute; top:-.35rem; right:-.35rem; display:grid; place-items:center; min-width:1rem; height:1rem; border-radius:99px; color:#080808; background:#22c55e; font-size:.55rem; }
+.hub-notification-center section { position:absolute; z-index:130; top:calc(100% + .5rem); right:0; width:min(20rem, calc(100vw - 2rem)); max-height:22rem; overflow:auto; border:1px solid var(--hub-line-bright); border-radius:8px; background:var(--hub-panel); box-shadow:0 1.5rem 4rem rgba(0,0,0,.4); }
+.hub-notification-center section header { display:flex; justify-content:space-between; gap:.5rem; padding:.75rem; border-bottom:1px solid var(--hub-line); font:.6rem "IBM Plex Mono",monospace; }
+.hub-notification-center section header button { border:0; color:var(--hub-accent); background:transparent; font:inherit; cursor:pointer; }
+.hub-notification-center section > button { display:grid; gap:.25rem; width:100%; padding:.8rem; border:0; border-bottom:1px solid var(--hub-line); color:var(--hub-text); background:transparent; text-align:left; cursor:pointer; }
+.hub-notification-center small, .hub-notification-center p { color:var(--hub-muted); }
+.hub-vault-upload, .hub-backup-actions label { display:inline-flex; align-items:center; gap:.45rem; min-height:2.5rem; padding:0 .8rem; border-radius:6px; color:#080808; background:linear-gradient(135deg,#e5e7eb,#cbd5e1); font-size:.72rem; font-weight:700; cursor:pointer; }
+.hub-vault-upload input, .hub-backup-actions input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.hub-vault .hub-search-input { margin:0 0 1rem; }
+.hub-backup-actions { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1rem; }
+.hub-backup-actions button { min-height:2.5rem; padding:0 .8rem; }
+.hub-quick-add > label { display:grid; gap:.45rem; margin-bottom:1rem; color:var(--hub-muted); font:.65rem "IBM Plex Mono",monospace; }
+@media (max-width:767px) { .hub-quick-add-trigger span { display:none; } .hub-quick-add-trigger { order:-1; } .hub-system-status { gap:.35rem; } .hub-vault-upload { width:100%; justify-content:center; } }
+
 .hub-more-sheet {
   width: min(100%, 34rem);
   padding: 1.1rem;

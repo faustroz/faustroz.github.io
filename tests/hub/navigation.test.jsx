@@ -24,6 +24,7 @@ describe("Hub navigation contract", () => {
       ["memory", "/memory"],
       ["settings", "/settings"],
       ["insights", "/insights"],
+      ["vault", "/vault"],
     ]);
   });
 

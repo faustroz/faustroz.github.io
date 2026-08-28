@@ -10,9 +10,10 @@ import {
 test("search source contract covers every private operational module", () => {
   assert.deepEqual(
     [...new Set(SEARCH_SOURCES.map(({ group }) => group))],
-    ["Finance", "Study", "Projects", "AI Memory"]
+    ["Finance", "Study", "Projects", "AI Memory", "Documents"]
   );
   assert.ok(SEARCH_SOURCES.some(({ label }) => label === "Portfolio"));
+  assert.ok(SEARCH_SOURCES.some(({ table }) => table === "vault_documents"));
 });
 
 test("public global search never queries private tables", async () => {

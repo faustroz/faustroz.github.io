@@ -19,13 +19,15 @@ import {
 import { usePathname } from "next/navigation";
 import { HUB_MODULES, resolveActiveNav } from "@/lib/hub/navigation.mjs";
 import GlobalSearch from "@/components/hub/GlobalSearch";
+import QuickAdd from "@/components/hub/QuickAdd";
+import NotificationCenter from "@/components/hub/NotificationCenter";
 
 const primaryModules = HUB_MODULES.filter(({ id }) =>
   ["home", "finance", "study", "projects"].includes(id)
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["memory", "settings", "insights"].includes(id)
+  ["memory", "settings", "insights", "vault"].includes(id)
 );
 
 const primaryIcons = {
@@ -39,6 +41,7 @@ const secondaryIcons = {
   memory: BrainCircuit,
   settings: Settings,
   insights: ChartNoAxesCombined,
+  vault: FolderKanban,
 };
 
 export default function HubNavigation() {
@@ -114,6 +117,8 @@ export default function HubNavigation() {
         </nav>
 
         <div className="hub-system-status" aria-label="System controls">
+          <QuickAdd />
+          <NotificationCenter />
           <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setOpen(false); setSearchOpen(true); }}>
             <Search aria-hidden="true" /><span>SEARCH</span>
           </button>
