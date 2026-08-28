@@ -19,7 +19,7 @@ create table if not exists public.vault_documents (
 create table if not exists public.integration_connections (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  provider text not null check (provider in ('github', 'google_calendar', 'ai')),
+  provider text not null check (provider in ('github', 'google_calendar')),
   status text not null default 'disconnected' check (status in ('disconnected', 'connected', 'error')),
   label text not null default '',
   scopes text[] not null default '{}',
@@ -39,6 +39,11 @@ create table if not exists public.hub_notifications (
   read_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- If this migration was applied before AI integrations were deferred, remove
+-- the old constraint before adding the restricted provider set.
+alter table public.integration_connections drop constraint if exists integration_connections_provider_check;
+alter table public.integration_connections add constraint integration_connections_provider_check check (provider in ('github', 'google_calendar'));
 
 do $$
 declare table_name text;

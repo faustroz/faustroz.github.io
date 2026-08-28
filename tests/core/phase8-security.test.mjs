@@ -18,6 +18,6 @@ test("Phase 8 vault and notification data are owner-scoped and Storage stays pri
 test("integration function reads provider secrets only from server environment", async () => {
   const source = await readFile(integrationPath, "utf8");
   assert.match(source, /Deno\.env\.get\("GITHUB_TOKEN"\)/);
-  assert.match(source, /Deno\.env\.get\("AI_API_KEY"\)/);
+  assert.doesNotMatch(source, /AI_API_KEY/);
   assert.doesNotMatch(source, /NEXT_PUBLIC_/);
 });
