@@ -2415,12 +2415,12 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-crud-modal-backdrop {
     align-items: center !important;
     justify-content: center;
-    padding: max(1rem, env(safe-area-inset-top)) 1.25rem max(1rem, env(safe-area-inset-bottom)) !important;
+    padding: max(1rem, env(safe-area-inset-top)) 0.5rem max(1rem, env(safe-area-inset-bottom)) !important;
   }
 
   .hub-shell:not(.hub-shell--finance) .hub-crud-modal {
-    width: 100% !important;
-    max-width: 34rem !important;
+    width: calc(100vw - 1rem) !important;
+    max-width: none !important;
     max-height: min(76dvh, 38rem) !important;
     margin: auto !important;
     overflow-y: auto;
