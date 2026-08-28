@@ -8,5 +8,5 @@ export const metadata = {
 };
 
 export default function PortfolioTrackerLayout({ children }) {
-  return <div style={{ background: '#080c14', minHeight: '100vh' }}>{children}</div>;
+  return <div style={{ background: '#07100d', minHeight: '100vh' }}>{children}</div>;
 }

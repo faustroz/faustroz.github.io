@@ -4,35 +4,39 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FolderKanban,
+  BrainCircuit,
   Github,
+  GraduationCap,
+  ChartNoAxesCombined,
   Home,
   Mail,
   Menu,
-  UserRound,
+  Settings,
   WalletCards,
   X,
-  Youtube,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { HUB_MODULES, resolveActiveNav } from "@/lib/hub/navigation.mjs";
 
 const primaryModules = HUB_MODULES.filter(({ id }) =>
-  ["home", "finance", "youtube"].includes(id)
+  ["home", "finance", "study", "projects"].includes(id)
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["projects", "about"].includes(id)
+  ["memory", "settings", "insights"].includes(id)
 );
 
 const primaryIcons = {
   home: Home,
   finance: WalletCards,
-  youtube: Youtube,
+  study: GraduationCap,
+  projects: FolderKanban,
 };
 
 const secondaryIcons = {
-  projects: FolderKanban,
-  about: UserRound,
+  memory: BrainCircuit,
+  settings: Settings,
+  insights: ChartNoAxesCombined,
 };
 
 export default function HubNavigation() {
@@ -74,7 +78,7 @@ export default function HubNavigation() {
   return (
     <>
       <header className="hub-header">
-        <Link className="hub-brand" href="/" aria-label="Ferdy personal hub home">
+        <Link className="hub-brand" href="/hub" aria-label="Ferdy personal hub home">
           <span className="hub-brand-mark">FD</span>
           <span>_OS</span>
         </Link>

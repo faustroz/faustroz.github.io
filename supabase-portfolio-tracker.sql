@@ -27,24 +27,33 @@ drop policy if exists "portfolio tracker public read" on public.portfolio_tracke
 drop policy if exists "portfolio tracker public insert" on public.portfolio_tracker_store;
 drop policy if exists "portfolio tracker public update" on public.portfolio_tracker_store;
 drop policy if exists "portfolio tracker public delete" on public.portfolio_tracker_store;
+drop policy if exists "portfolio owner read" on public.portfolio_tracker_store;
+drop policy if exists "portfolio owner insert" on public.portfolio_tracker_store;
+drop policy if exists "portfolio owner update" on public.portfolio_tracker_store;
+drop policy if exists "portfolio owner delete" on public.portfolio_tracker_store;
 
-create policy "portfolio tracker public read"
+-- Portfolio keeps its existing shared key/value shape so current data and UI
+-- remain intact. Access is restricted to authenticated Personal Hub users.
+create policy "portfolio owner read"
 on public.portfolio_tracker_store for select
-to anon
+to authenticated
 using (true);
 
-create policy "portfolio tracker public insert"
+create policy "portfolio owner insert"
 on public.portfolio_tracker_store for insert
-to anon
+to authenticated
 with check (true);
 
-create policy "portfolio tracker public update"
+create policy "portfolio owner update"
 on public.portfolio_tracker_store for update
-to anon
+to authenticated
 using (true)
 with check (true);
 
-create policy "portfolio tracker public delete"
+create policy "portfolio owner delete"
 on public.portfolio_tracker_store for delete
-to anon
+to authenticated
 using (true);
+
+grant select, insert, update, delete on public.portfolio_tracker_store to authenticated;
+revoke all on public.portfolio_tracker_store from anon;

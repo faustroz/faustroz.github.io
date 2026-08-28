@@ -1,42 +1,30 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import Home from "@/app/page";
-
-vi.mock("@/components/hub/YouTubeSummaryCard", () => ({
-  default: () => (
-    <a aria-label="Open YouTube" href="/youtube">
-      YouTube summary
-    </a>
-  ),
-}));
+import { describe, expect, it } from "vitest";
+import HubHome from "@/app/hub/page";
 
 describe("Personal Hub dashboard", () => {
   it("renders the approved route-first module dashboard", () => {
-    render(<Home />);
+    render(<HubHome />);
 
     expect(
       screen.getByRole("heading", { name: /personal command center/i })
     ).toBeVisible();
     expect(screen.getByRole("link", { name: /open finance/i })).toHaveAttribute(
       "href",
-      "/finance/portfolio"
+      "/finance"
     );
-    expect(screen.getByRole("link", { name: /open youtube/i })).toHaveAttribute(
-      "href",
-      "/youtube"
-    );
+    expect(screen.getByRole("link", { name: /open study/i })).toHaveAttribute("href", "/study");
     expect(screen.getByRole("link", { name: /open projects/i })).toHaveAttribute(
       "href",
       "/projects"
     );
-    expect(screen.getByRole("link", { name: /open about/i })).toHaveAttribute(
-      "href",
-      "/about"
-    );
+    expect(screen.getByRole("link", { name: /open ai memory/i })).toHaveAttribute("href", "/memory");
+    expect(screen.getByRole("link", { name: /open settings/i })).toHaveAttribute("href", "/settings");
+    expect(screen.queryByRole("link", { name: /open about/i })).not.toBeInTheDocument();
   });
 
   it("keeps the Finance summary locked and free of private values", () => {
-    render(<Home />);
+    render(<HubHome />);
 
     const finance = screen.getByTestId("finance-summary");
     expect(within(finance).getByText("LOCKED")).toBeVisible();

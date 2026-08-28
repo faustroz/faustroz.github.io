@@ -16,29 +16,34 @@ vi.mock("next/navigation", () => ({
 describe("Hub navigation contract", () => {
   it("keeps the agreed canonical route order", () => {
     expect(HUB_MODULES.map(({ id, href }) => [id, href])).toEqual([
-      ["home", "/"],
-      ["finance", "/finance/portfolio"],
-      ["youtube", "/youtube"],
+      ["home", "/hub"],
+      ["finance", "/finance"],
+      ["study", "/study"],
       ["projects", "/projects"],
-      ["about", "/about"],
+      ["memory", "/memory"],
+      ["settings", "/settings"],
+      ["insights", "/insights"],
     ]);
   });
 
   it.each([
-    ["/", "home"],
+    ["/", null],
+    ["/hub", "home"],
     ["/finance/portfolio", "finance"],
     ["/finance/portfolio/history", "finance"],
-    ["/youtube", "youtube"],
-    ["/projects", "more"],
-    ["/about", "more"],
+    ["/study", "study"],
+    ["/projects", "projects"],
+    ["/memory", "more"],
+    ["/settings", "more"],
+    ["/insights", "more"],
+    ["/about", null],
   ])("resolves %s to %s", (pathname, expected) => {
     expect(resolveActiveNav(pathname)).toBe(expected);
   });
 
-  it("maps both legacy routes to canonical destinations", () => {
+  it("maps the Portfolio legacy route to its canonical destination", () => {
     expect(LEGACY_ROUTES).toEqual({
       "/portfolio-tracker": "/finance/portfolio",
-      "/youtube-tracker": "/youtube",
     });
   });
 
@@ -101,9 +106,9 @@ describe("HubNavigation", () => {
 
     const dialog = screen.getByRole("dialog", { name: /more navigation/i });
     expect(dialog).toBeVisible();
-    expect(within(dialog).getByRole("link", { name: /projects/i })).toHaveAttribute(
+    expect(within(dialog).getByRole("link", { name: /ai memory/i })).toHaveAttribute(
       "href",
-      "/projects"
+      "/memory"
     );
 
     await user.keyboard("{Escape}");

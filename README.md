@@ -1,8 +1,10 @@
-# Ferdy Diatmika Personal Hub
+# Ferdy Diatmika Portfolio & Personal Hub
 
 [![Deploy](https://github.com/faustroz/faustroz.github.io/actions/workflows/nextjs.yml/badge.svg)](https://github.com/faustroz/faustroz.github.io/actions/workflows/nextjs.yml)
 
-A route-first personal command center for finance, creator work, projects, and profile modules. The Hub uses a compact Night Operations interface while specialist tools retain their own application UI.
+The public root remains Ferdy Diatmika's portfolio. A separate Night Operations Personal Hub provides access to private finance tooling, projects, and profile modules.
+
+The Night Operations system applies to `/hub` and its modules; the public landing page at `/` intentionally retains its original portfolio design. The previous module design is documented in `docs/design-backups/pre-night-operations-finance.md`.
 
 ## Live URL
 
@@ -12,39 +14,40 @@ https://faustroz.github.io/
 
 | Route | Module |
 | --- | --- |
-| `/` | Privacy-first Personal Hub dashboard |
+| `/` | Public portfolio landing page |
+| `/hub` | Privacy-first Personal Hub dashboard |
 | `/finance/portfolio` | Existing Supabase-backed Portfolio Tracker |
-| `/youtube` | YouTube channel progress tracker |
-| `/projects` | Selected products and experiments |
-| `/about` | Profile, skills, and contact links |
+| `/finance` | Private expenses, budgets, and subscriptions workspace |
+| `/study` | Private topics, exams, flashcards, and progress workspace |
+| `/projects` | Private projects, tasks, progress, and changelog workspace |
+| `/memory` | Private, API-ready AI context and memory entries |
+| `/settings` | Account, privacy, and integration placeholders |
+| `/insights` | Lightweight authenticated Finance, Study, and Projects analytics |
 
-Legacy `/portfolio-tracker` and `/youtube-tracker` URLs remain available as compatibility pages that send users to their canonical route.
+Legacy `/portfolio-tracker` remains available as a compatibility page that sends users to `/finance/portfolio`.
 
 ## Architecture
 
 ```text
 app/
-├── page.jsx                       # Personal Hub dashboard
-├── layout.jsx                     # Global metadata and shared Hub shell
+├── page.jsx                       # Public portfolio landing page
+├── hub/                           # Personal Hub dashboard and metadata
 ├── hub.css                        # Night Operations design system
 ├── finance/portfolio/             # Isolated Portfolio Tracker module
-├── youtube/                       # Isolated YouTube Tracker module
 ├── projects/                      # Canonical project archive
-├── about/                         # Canonical profile route
-├── portfolio-tracker/             # Legacy compatibility route
-└── youtube-tracker/               # Legacy compatibility route
+└── portfolio-tracker/             # Legacy compatibility route
 
 components/
-├── hub/                            # Shell, navigation, cards, redirects
-├── portfolio/                      # Existing finance UI components
-├── youtube/                        # Existing creator UI components
-└── ui/                             # Shared UI primitives
+├── hero.jsx                       # Public portfolio hero
+├── about.jsx                      # Public portfolio About Me section
+├── portfolio.jsx                  # Public portfolio project grid
+├── hub/                           # Shell, navigation, cards, redirects
+├── portfolio/                     # Existing finance UI components
+└── ui/                            # Shared UI primitives
 
 lib/
-├── hub/                            # Route, content, and summary contracts
-└── portfolio/                      # Finance calculations, prices, storage
-
-tests/hub/                          # Vitest and Testing Library coverage
+├── hub/                           # Route and content contracts
+└── portfolio/                     # Finance calculations, prices, storage
 ```
 
 ## Stack
@@ -67,26 +70,28 @@ Open `http://localhost:3000`.
 
 ## Environment
 
-Create `.env.local` for the Supabase-backed tracker modules:
+Create `.env.local` for Supabase Auth and private modules:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-The root Finance card intentionally performs no portfolio query and displays no private value. Finance data is requested only after opening `/finance/portfolio` and passing its existing gate.
+The public Hub dashboard performs no private Supabase data query. After an authenticated Supabase session is present, `/hub` loads lightweight Finance, Study, Projects, and AI Memory summaries, plus Current Focus and Recent Activity. Private routes require an authenticated session; Portfolio keeps its existing internal gate after the shared account gate.
 
 ## Database
 
-- `supabase-portfolio-tracker.sql` — shared key/value Portfolio Tracker store.
-- `youtube-tracker-schema.sql` — settings, daily stats, and top-video tables.
+1. Enable Email authentication in Supabase and create the private owner account.
+2. Run `supabase-portfolio-tracker.sql` for the existing authenticated Portfolio store.
+3. Run `supabase-phase4-private-modules.sql` for all Phase 4 tables and owner-scoped RLS policies.
 
-The current schemas permit anonymous access and are intended for the existing personal/demo setup. Add Supabase Auth and user-scoped RLS before using them for private multi-user data.
+Every new Phase 4 table defaults `user_id` to `auth.uid()` and applies owner-only select, insert, update, and delete policies. AI Memory stores structured context only; it makes no external API calls in Phase 4.
 
 ## Verification
 
 ```bash
 npm test
+npm run test:core
 npm run build
 ```
 
@@ -94,8 +99,4 @@ The build uses `output: 'export'` and generates the static `out/` directory.
 
 ## Deployment
 
-Pushes to `main` deploy through GitHub Pages using:
-
-```text
-.github/workflows/nextjs.yml
-```
+Pushes to `main` deploy through GitHub Pages using `.github/workflows/nextjs.yml`.

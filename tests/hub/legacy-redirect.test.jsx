@@ -11,10 +11,9 @@ vi.mock("next/navigation", () => ({
 describe("LegacyRedirect", () => {
   beforeEach(() => replace.mockClear());
 
-  it.each([
-    ["/portfolio-tracker", "/finance/portfolio"],
-    ["/youtube-tracker", "/youtube"],
-  ])("replaces %s and renders a fallback link", async (from, destination) => {
+  it("replaces the Portfolio legacy route and renders a fallback link", async () => {
+    const from = "/portfolio-tracker";
+    const destination = "/finance/portfolio";
     render(<LegacyRedirect from={from} />);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith(destination));

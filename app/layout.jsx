@@ -19,25 +19,25 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: "Ferdy Diatmika — Personal Hub",
+  title: "Ferdy Diatmika - Web Developer Portfolio",
   description:
-    "Personal command center for Ferdy Diatmika's finance, creator work, projects, and profile.",
+    "Professional web developer specializing in modern web applications, landing pages, company profiles, and custom web solutions.",
   keywords:
     "web developer, frontend developer, React, Next.js, portfolio, landing pages, web design",
   authors: [{ name: "Ferdy Diatmika" }],
   robots: "index, follow",
   openGraph: {
-    title: "Ferdy Diatmika — Personal Hub",
+    title: "Ferdy Diatmika - Web Developer Portfolio",
     description:
-      "Personal command center for finance, creator work, projects, and profile.",
+      "Professional web developer specializing in modern web applications, landing pages, company profiles, and custom web solutions.",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ferdy Diatmika — Personal Hub",
+    title: "Ferdy Diatmika - Web Developer Portfolio",
     description:
-      "Personal command center for finance, creator work, projects, and profile.",
+      "Professional web developer specializing in modern web applications, landing pages, company profiles, and custom web solutions.",
   },
 };
 
