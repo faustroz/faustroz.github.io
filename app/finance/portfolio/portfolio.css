@@ -2408,7 +2408,32 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 @media (max-width: 768px) {
-  .hub-shell--finance .pt-mobile-header { top: 0; }
+  /* Keep the specialist identity in a single safe-area-aware control row.
+     The old fixed 52px box included the notch inset in its height, which let
+     its border cut through the brand and Hub return control on iPhone. */
+  .hub-shell--finance .pt-mobile-header {
+    top: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2.35rem;
+    gap: .75rem;
+    height: calc(var(--pt-mobile-header-h) + env(safe-area-inset-top, 0px));
+    min-height: calc(var(--pt-mobile-header-h) + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 1rem 0;
+  }
+
+  .hub-shell--finance .pt-mobile-header-brand {
+    min-height: var(--pt-mobile-header-h);
+    overflow: hidden;
+  }
+
+  .hub-shell--finance .pt-hub-back--mobile {
+    align-self: center;
+    width: 2.35rem;
+    min-height: 2.35rem;
+    height: 2.35rem;
+    border-radius: 7px;
+  }
+
   .hub-shell--finance .pt-main {
     padding-top: calc(var(--pt-mobile-header-h) + env(safe-area-inset-top, 0px) + 16px);
   }
