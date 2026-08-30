@@ -13,4 +13,6 @@ test("Phone Lookup preserves adapter tag objects and maps their tag values in th
   assert.match(handler, /phone-lookup tags response/);
   assert.match(panel, /item\?\.tag/);
   assert.match(panel, /quotaNumber\(result\.count\)/);
+  assert.match(panel, /hub-phone-tags/);
+  assert.match(panel, /Show all \$\{tags\.length\} tags/);
 });
