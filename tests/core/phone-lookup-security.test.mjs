@@ -18,6 +18,9 @@ test("Phone Lookup keeps provider access server-side and limits authenticated re
   assert.match(handler, /phone-lookup proxy response error/);
   assert.match(handler, /phone-lookup proxy network error/);
   assert.match(handler, /phone-lookup rate-limit RPC error/);
+  assert.match(handler, /quota: \{[\s\S]*search: \{/);
+  assert.match(handler, /search\?\.remaining/);
+  assert.match(handler, /renewDate/);
   assert.doesNotMatch(handler, /GETCONTACT_ADAPTER_TOKEN|X-Adapter-Token|lookup4allx\.anjas\.id/);
   assert.doesNotMatch(handler, /return json\(\{[^}]*GETCONTACT_PROXY_TOKEN/);
 });

@@ -9,6 +9,7 @@ type LookupRequest = { action: LookupAction; phone?: string };
 
 const text = (value: unknown, limit = 160) => typeof value === "string" ? value.trim().slice(0, limit) : "";
 const list = (value: unknown) => Array.isArray(value) ? value.map((item) => text(item, 100)).filter(Boolean).slice(0, 50) : [];
+const quotaNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 
 async function getContactLookup(request: LookupRequest) {
   const proxyToken = Deno.env.get("GETCONTACT_PROXY_TOKEN");
@@ -64,8 +65,23 @@ async function getContactLookup(request: LookupRequest) {
     });
     return { kind: "tags", tags, count, phone: request.phone };
   }
-  const quota = body?.quota || body?.data || body || {};
-  return { kind: "quota", search: Number(quota.search || quota.searchRemaining || 0) || 0, numberDetail: Number(quota.numberDetail || quota.numberDetailRemaining || 0) || 0, resetsAt: text(quota.resetsAt || quota.resetDate, 64) };
+  const quota = body?.quota || body?.data?.quota || body?.data || body || {};
+  const search = quota?.search;
+  const limit = quotaNumber(search?.limit);
+  const remaining = quotaNumber(search?.remaining);
+  const used = quotaNumber(search?.used);
+  const renewDate = text(quota?.renewDate || quota?.resetsAt || quota?.resetDate, 64);
+  return {
+    kind: "quota",
+    quota: {
+      search: {
+        ...(limit === null ? {} : { limit }),
+        ...(remaining === null ? {} : { remaining }),
+        ...(used === null ? {} : { used }),
+      },
+      ...(renewDate ? { renewDate } : {}),
+    },
+  };
 }
 
 function normalizePhone(value: unknown) {
