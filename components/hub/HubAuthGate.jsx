@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { KeyRound, LockKeyhole, Radio, ShieldCheck } from "lucide-react";
 import { createAuthService } from "@/lib/hub/auth.mjs";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import UsernameLookupDeveloperTest from "@/components/hub/UsernameLookupDeveloperTest";
 
 export default function HubAuthGate({ children }) {
   const auth = useMemo(
@@ -121,5 +122,5 @@ export default function HubAuthGate({ children }) {
     );
   }
 
-  return children;
+  return <>{children}<UsernameLookupDeveloperTest /></>;
 }
