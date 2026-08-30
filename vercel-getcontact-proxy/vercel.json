@@ -5,6 +5,9 @@
     },
     "api/username.js": {
       "maxDuration": 60
+    },
+    "api/username-job.js": {
+      "maxDuration": 15
     }
   }
 }
