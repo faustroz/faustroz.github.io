@@ -38,7 +38,7 @@ export default function HubHome() {
             variant="finance"
             testId="finance-summary"
           >
-            <div className="hub-privacy-note"><LockKeyhole aria-hidden="true" /><span>NO FINANCIAL DATA REQUESTED ON HOME</span></div>
+            <div className="hub-privacy-note"><LockKeyhole aria-hidden="true" /><span>Home never requests financial data.</span></div>
           </ModuleCard>
         </div>
 

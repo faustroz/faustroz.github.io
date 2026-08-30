@@ -36,8 +36,8 @@ export default function HubShell({ children }) {
       </div>
       {!specialistRoute && (
         <footer className="hub-footer">
-          <span>4allx / PERSONAL HUB</span>
-          <span>© {new Date().getFullYear()} FERDY DIATMIKA</span>
+          <span>4allx / Personal Hub</span>
+          <span>© {new Date().getFullYear()} Ferdy Diatmika</span>
         </footer>
       )}
     </div>

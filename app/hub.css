@@ -2375,6 +2375,27 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   box-shadow: none;
 }
 
+.hub-shell:not(.hub-shell--finance) .hub-operations-loading {
+  min-height: 4.5rem;
+  padding: 0.75rem 1rem;
+  font: 0.75rem "Manrope", var(--font-geist-sans), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-module-body > p {
+  max-width: 32rem;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-privacy-note,
+.hub-shell:not(.hub-shell--finance) .hub-module-action,
+.hub-shell:not(.hub-shell--finance) .hub-system-status,
+.hub-shell:not(.hub-shell--finance) .hub-footer {
+  font-family: "Manrope", var(--font-geist-sans), sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 .hub-shell:not(.hub-shell--finance) .hub-kicker,
 .hub-shell:not(.hub-shell--finance) .hub-module-meta,
 .hub-shell:not(.hub-shell--finance) .hub-module-action,

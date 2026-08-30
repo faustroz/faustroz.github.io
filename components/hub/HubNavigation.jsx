@@ -125,8 +125,8 @@ export default function HubNavigation() {
             <Search aria-hidden="true" /><span>SEARCH</span>
           </button>
           <i aria-hidden="true" />
-          <span className="hub-status-long">ALL SYSTEMS ONLINE</span>
-          <span className="hub-status-short">ONLINE</span>
+          <span className="hub-status-long">All systems online</span>
+          <span className="hub-status-short">Online</span>
         </div>
       </header>
 

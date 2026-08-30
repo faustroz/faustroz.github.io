@@ -40,7 +40,7 @@ export default function OperationsSummary() {
   }, [service]);
 
   if (state.loading) {
-    return <section className="hub-operations-loading" role="status"><RefreshCw className="hub-spin" /> CHECKING OPERATOR SESSION</section>;
+    return <section className="hub-operations-loading" role="status"><RefreshCw className="hub-spin" /> Checking session…</section>;
   }
 
   if (!state.authenticated) {
