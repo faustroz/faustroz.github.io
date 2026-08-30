@@ -1,4 +1,4 @@
-import { Activity, Fingerprint, LockKeyhole, Radio } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import ModuleCard from "@/components/hub/ModuleCard";
 import OperationsSummary from "@/components/hub/OperationsSummary";
 import { HUB_PROFILE } from "@/lib/hub/content.mjs";
@@ -8,7 +8,6 @@ export default function HubHome() {
     <main className="hub-dashboard">
       <section className="hub-dashboard-intro hub-reveal">
         <div className="hub-intro-copy">
-          <div className="hub-kicker"><Radio aria-hidden="true" /> OPERATIONS / HOME</div>
           <h1>Personal command center.</h1>
           <p>
             One quiet place for the systems I build, track, and keep moving.
@@ -18,13 +17,11 @@ export default function HubHome() {
 
         <aside className="hub-focus-panel">
           <div className="hub-module-meta">
-            <span>CURRENT FOCUS</span>
-            <span className="hub-module-status"><i aria-hidden="true" />ACTIVE</span>
+            <span>Current focus</span>
+            <span className="hub-module-status"><i aria-hidden="true" />Active</span>
           </div>
-          <div className="hub-focus-icon"><Fingerprint aria-hidden="true" /></div>
           <h2>Build useful systems.</h2>
           <p>{HUB_PROFILE.currentFocus}</p>
-          <div className="hub-focus-footer"><Activity aria-hidden="true" /> PERSONAL OS / REV. 01</div>
         </aside>
       </section>
 
@@ -33,7 +30,6 @@ export default function HubHome() {
       <section className="hub-module-grid" aria-label="Personal Hub modules">
         <div className="hub-reveal hub-reveal--1">
           <ModuleCard
-            number="01"
             label="Finance"
             status="LOCKED"
             href="/finance"
@@ -48,7 +44,6 @@ export default function HubHome() {
 
         <div className="hub-reveal hub-reveal--2">
           <ModuleCard
-            number="02"
             label="Study"
             status="PRIVATE"
             href="/study"
@@ -60,7 +55,6 @@ export default function HubHome() {
 
         <div className="hub-reveal hub-reveal--3">
           <ModuleCard
-            number="03"
             label="Projects"
             status="PRIVATE"
             href="/projects"
@@ -72,7 +66,6 @@ export default function HubHome() {
 
         <div className="hub-reveal hub-reveal--4">
           <ModuleCard
-            number="04"
             label="Settings"
             status="PRIVATE"
             href="/settings"

@@ -2320,6 +2320,61 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   box-shadow: 0 1.5rem 3.8rem rgba(0, 0, 0, 0.42);
 }
 
+/* Hub home: compact, flat console hierarchy. */
+.hub-shell:not(.hub-shell--finance) .hub-intro-copy,
+.hub-shell:not(.hub-shell--finance) .hub-focus-panel,
+.hub-shell:not(.hub-shell--finance) .hub-module-card,
+.hub-shell:not(.hub-shell--finance) .hub-operations,
+.hub-shell:not(.hub-shell--finance) .hub-public-operations {
+  box-shadow: none;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-intro-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--hub-panel);
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-intro-copy h1 {
+  margin-top: 0;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-focus-panel {
+  justify-content: space-between;
+  background: var(--hub-panel);
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-focus-panel h2 {
+  margin: 2.5rem 0 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-module-meta,
+.hub-shell:not(.hub-shell--finance) .hub-module-action,
+.hub-shell:not(.hub-shell--finance) .hub-operation-card span,
+.hub-shell:not(.hub-shell--finance) .hub-operation-card--empty strong,
+.hub-shell:not(.hub-shell--finance) .hub-current-focus > span,
+.hub-shell:not(.hub-shell--finance) .hub-recent-activity > span {
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-module-body h2,
+.hub-shell:not(.hub-shell--finance) .hub-operations-head h2,
+.hub-shell:not(.hub-shell--finance) .hub-operation-card strong,
+.hub-shell:not(.hub-shell--finance) .hub-current-focus h3 {
+  letter-spacing: -0.02em;
+}
+
+.hub-shell:not(.hub-shell--finance) .hub-system-status i,
+.hub-shell:not(.hub-shell--finance) .hub-module-status i,
+.hub-shell:not(.hub-shell--finance) .hub-recent-activity li i {
+  box-shadow: none;
+}
+
 .hub-shell:not(.hub-shell--finance) .hub-kicker,
 .hub-shell:not(.hub-shell--finance) .hub-module-meta,
 .hub-shell:not(.hub-shell--finance) .hub-module-action,

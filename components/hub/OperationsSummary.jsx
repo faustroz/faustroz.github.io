@@ -56,17 +56,17 @@ export default function OperationsSummary() {
   const { snapshot } = state;
   return (
     <section className="hub-operations" data-testid="authenticated-operations">
-      <div className="hub-operations-head"><div><span>LIVE OPERATION SUMMARY</span><h2>Only what needs attention.</h2></div><Link href="/insights"><ChartNoAxesCombined aria-hidden="true" /> VIEW INSIGHTS</Link></div>
+      <div className="hub-operations-head"><div><h2>Only what needs attention.</h2></div><Link href="/insights"><ChartNoAxesCombined aria-hidden="true" /> View insights</Link></div>
 
       <div className="hub-operation-grid">
-        {snapshot.empty.finance ? <EmptySummary label="FINANCE" href="/finance" /> : <Link className="hub-operation-card" href="/finance"><CircleDollarSign aria-hidden="true" /><span>FINANCE / CURRENT MONTH</span><strong>{formatIDR(snapshot.finance.expenseTotal)}</strong><small>{snapshot.finance.expenseCount} expenses · {snapshot.finance.activeSubscriptions} active subscriptions</small></Link>}
-        {snapshot.empty.study ? <EmptySummary label="STUDY" href="/study" /> : <Link className="hub-operation-card" href="/study"><GraduationCap aria-hidden="true" /><span>STUDY / TOPIC PROGRESS</span><strong>{snapshot.study.averageProgress}%</strong><small>{snapshot.study.topicCount} topics · {snapshot.study.flashcardCount} flashcards</small></Link>}
-        {snapshot.empty.projects ? <EmptySummary label="PROJECTS" href="/projects" /> : <Link className="hub-operation-card" href="/projects"><Activity aria-hidden="true" /><span>PROJECTS / OPEN QUEUE</span><strong>{snapshot.projects.openTaskCount}</strong><small>{snapshot.projects.activeProjectCount} active · {snapshot.projects.taskCompletion}% tasks complete</small></Link>}
+        {snapshot.empty.finance ? <EmptySummary label="Finance" href="/finance" /> : <Link className="hub-operation-card" href="/finance"><CircleDollarSign aria-hidden="true" /><span>Finance · current month</span><strong>{formatIDR(snapshot.finance.expenseTotal)}</strong><small>{snapshot.finance.expenseCount} expenses · {snapshot.finance.activeSubscriptions} active subscriptions</small></Link>}
+        {snapshot.empty.study ? <EmptySummary label="Study" href="/study" /> : <Link className="hub-operation-card" href="/study"><GraduationCap aria-hidden="true" /><span>Study · topic progress</span><strong>{snapshot.study.averageProgress}%</strong><small>{snapshot.study.topicCount} topics · {snapshot.study.flashcardCount} flashcards</small></Link>}
+        {snapshot.empty.projects ? <EmptySummary label="Projects" href="/projects" /> : <Link className="hub-operation-card" href="/projects"><Activity aria-hidden="true" /><span>Projects · open queue</span><strong>{snapshot.projects.openTaskCount}</strong><small>{snapshot.projects.activeProjectCount} active · {snapshot.projects.taskCompletion}% tasks complete</small></Link>}
       </div>
 
       <div className="hub-operations-detail">
-        <article className="hub-current-focus"><span>CURRENT FOCUS</span>{snapshot.currentFocus ? <><h3>{snapshot.currentFocus.title}</h3><p>{snapshot.currentFocus.detail}</p></> : <><h3>No active signal.</h3><p>Mark a project or study topic as active to set an operational focus.</p></>}</article>
-        <article className="hub-recent-activity"><span>RECENT ACTIVITY</span>{snapshot.recentActivity.length ? <ol>{snapshot.recentActivity.map((item) => <li key={item.id}><i aria-hidden="true" /><div><strong>{item.title}</strong><small>{item.source} · {new Date(item.updatedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}</small></div></li>)}</ol> : <p>No private records updated yet.</p>}</article>
+        <article className="hub-current-focus"><span>Current focus</span>{snapshot.currentFocus ? <><h3>{snapshot.currentFocus.title}</h3><p>{snapshot.currentFocus.detail}</p></> : <><h3>No active signal.</h3><p>Mark a project or study topic as active to set an operational focus.</p></>}</article>
+        <article className="hub-recent-activity"><span>Recent activity</span>{snapshot.recentActivity.length ? <ol>{snapshot.recentActivity.map((item) => <li key={item.id}><i aria-hidden="true" /><div><strong>{item.title}</strong><small>{item.source} · {new Date(item.updatedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}</small></div></li>)}</ol> : <p>No private records updated yet.</p>}</article>
       </div>
     </section>
   );

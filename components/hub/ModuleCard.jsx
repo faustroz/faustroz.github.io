@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 export default function ModuleCard({
-  number,
   label,
   status,
   href,
@@ -20,7 +19,7 @@ export default function ModuleCard({
       data-testid={testId}
     >
       <div className="hub-module-meta">
-        <span>{number} / {label.toUpperCase()}</span>
+        <span>{label}</span>
         <span className="hub-module-status"><i aria-hidden="true" />{status}</span>
       </div>
       <div className="hub-module-body">
