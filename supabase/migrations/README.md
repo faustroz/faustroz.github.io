@@ -20,6 +20,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 016 | `016-cashflow-soft-delete-balance.sql` | Correct balance reversal on delete and restore | 012, 015 |
 | 017 | `017-income-account-provider-filter.sql` | Exact Income account links and provider-level Finance filters | 015, 016 |
 | 018 | `018-phone-lookup-rate-limit.sql` | Phone Lookup server-side quota enforcement | Supabase Auth |
+| 020 | `020-cashflow-trash-permanent-delete.sql` | Prevent double balance refunds when permanently deleting Trash cashflow records | 016 |
 
 ## Safety notes
 
