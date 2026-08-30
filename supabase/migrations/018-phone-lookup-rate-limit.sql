@@ -17,16 +17,16 @@ create or replace function public.consume_phone_lookup_rate_limit(
   p_user_id uuid,
   p_action text
 ) returns boolean language plpgsql security definer set search_path = public as $$
-declare window_start timestamptz; current_count integer;
+declare v_window_start timestamptz; v_current_count integer;
 begin
   if p_action not in ('profile', 'tags', 'quota') then raise exception 'Invalid lookup action'; end if;
-  window_start := date_trunc('hour', now()) + floor(extract(minute from now()) / 15) * interval '15 minutes';
-  insert into public.phone_lookup_rate_limits (user_id, action, window_start, request_count)
-  values (p_user_id, p_action, window_start, 1)
+  v_window_start := date_trunc('hour', now()) + floor(extract(minute from now()) / 15) * interval '15 minutes';
+  insert into public.phone_lookup_rate_limits as rate_limits (user_id, action, window_start, request_count)
+  values (p_user_id, p_action, v_window_start, 1)
   on conflict (user_id, action, window_start) do update
-    set request_count = public.phone_lookup_rate_limits.request_count + 1
-    where public.phone_lookup_rate_limits.request_count < 5
-  returning request_count into current_count;
+    set request_count = rate_limits.request_count + 1
+    where rate_limits.request_count < 5
+  returning rate_limits.request_count into v_current_count;
   return found;
 exception when no_data_found then
   return false;
