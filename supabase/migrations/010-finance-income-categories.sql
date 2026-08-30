@@ -1,5 +1,5 @@
 -- Personal Hub Phase 10: private income ledger and custom finance categories.
--- Apply after supabase-phase9-finance-accounts.sql.
+-- Apply after 009-finance-accounts.sql.
 
 create table if not exists public.finance_categories (
   id uuid primary key default gen_random_uuid(),

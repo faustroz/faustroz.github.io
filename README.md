@@ -82,10 +82,9 @@ The public Hub dashboard performs no private Supabase data query. After an authe
 ## Database
 
 1. Enable Email authentication in Supabase and create the private owner account.
-2. Run `supabase-portfolio-tracker.sql` for the existing authenticated Portfolio store.
-3. Run `supabase-phase4-private-modules.sql` for all Phase 4 tables and owner-scoped RLS policies.
+2. Run the SQL files in [`supabase/migrations`](supabase/migrations) in numerical order. See its README for the exact sequence and prerequisites.
 
-Every new Phase 4 table defaults `user_id` to `auth.uid()` and applies owner-only select, insert, update, and delete policies. AI Memory stores structured context only; it makes no external API calls in Phase 4.
+Every Hub-owned table defaults `user_id` to `auth.uid()` and applies owner-only select, insert, update, and delete policies. AI Memory stores structured context only; it makes no external API calls.
 
 ## Verification
 

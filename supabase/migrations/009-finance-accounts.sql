@@ -1,5 +1,5 @@
 -- Personal Hub Phase 9: owner-scoped bank balances and expense account attribution.
--- Apply after supabase-phase4-private-modules.sql.
+-- Apply after 004-private-modules.sql.
 
 create table if not exists public.bank_accounts (
   id uuid primary key default gen_random_uuid(),

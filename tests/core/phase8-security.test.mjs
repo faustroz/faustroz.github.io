@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const schemaPath = new URL("../../supabase-phase8-private-operations.sql", import.meta.url);
+const schemaPath = new URL("../../supabase/migrations/008-private-operations.sql", import.meta.url);
 const integrationPath = new URL("../../supabase/functions/integrations/index.ts", import.meta.url);
 
 test("Phase 8 vault and notification data are owner-scoped and Storage stays private", async () => {

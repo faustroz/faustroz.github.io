@@ -4,7 +4,7 @@ import test from "node:test";
 
 test("Phase 4 schema enables owner-scoped RLS for every private table", async () => {
   const sql = await readFile(
-    new URL("../../supabase-phase4-private-modules.sql", import.meta.url),
+    new URL("../../supabase/migrations/004-private-modules.sql", import.meta.url),
     "utf8"
   );
   const tables = [

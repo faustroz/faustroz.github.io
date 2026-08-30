@@ -27,7 +27,7 @@ test("finance has owner-private income and custom category channels", () => {
 });
 
 test("bank account schema remains owner-scoped", async () => {
-  const sql = await readFile(new URL("../../supabase-phase9-finance-accounts.sql", import.meta.url), "utf8");
+  const sql = await readFile(new URL("../../supabase/migrations/009-finance-accounts.sql", import.meta.url), "utf8");
   assert.match(sql, /alter table public\.bank_accounts enable row level security/);
   assert.match(sql, /auth\.uid\(\) = user_id/);
   assert.match(sql, /bank_account_name/);

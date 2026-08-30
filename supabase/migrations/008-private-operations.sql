@@ -1,5 +1,5 @@
 -- Personal Hub Phase 8: document vault, integrations metadata, and notifications.
--- Apply after supabase-phase4-private-modules.sql in the Supabase SQL editor.
+-- Apply after 004-private-modules.sql in the Supabase SQL editor.
 
 create table if not exists public.vault_documents (
   id uuid primary key default gen_random_uuid(),

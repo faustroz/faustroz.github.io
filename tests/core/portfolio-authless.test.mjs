@@ -4,7 +4,7 @@ import test from "node:test";
 
 const pagePath = new URL("../../app/finance/portfolio/page.jsx", import.meta.url);
 const storagePath = new URL("../../lib/portfolio/storage.js", import.meta.url);
-const sqlPath = new URL("../../supabase-portfolio-tracker.sql", import.meta.url);
+const sqlPath = new URL("../../supabase/migrations/000-portfolio-tracker.sql", import.meta.url);
 
 test("Portfolio Tracker relies on Hub Auth/RLS instead of a second password gate", async () => {
   const [page, storage, sql] = await Promise.all([
