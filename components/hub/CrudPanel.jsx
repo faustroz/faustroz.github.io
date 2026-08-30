@@ -227,7 +227,8 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
                 {fields.slice(0, 5).map((field) => {
                   const match = field.type === "lookup" ? (lookups[field.name] || []).find((row) => row[field.lookup.value] === record[field.name]) : null;
                   const color = field.type === "color" ? record[field.name] : match?.color;
-                  return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color && <i style={{ backgroundColor: color }} aria-hidden="true" />}{displayValue(field, record[field.name])}</strong></div>;
+                  const lookupLabel = match && field.displayLookupLabel ? field.lookup.label.map((key) => match[key]).filter(Boolean).join(" · ") : record[field.fallbackField] || displayValue(field, record[field.name]);
+                  return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color && <i style={{ backgroundColor: color }} aria-hidden="true" />}{lookupLabel}</strong></div>;
                 })}
               </div>
               <div className="hub-record-actions">

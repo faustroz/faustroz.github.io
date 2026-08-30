@@ -16,6 +16,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 013 | `013-academic-block-grading.sql` | Block component scoring and automatic grade/IP calculation | 012 |
 | 014 | `014-quick-expense-api.sql` | Revocable iPhone Quick Expense API keys | 009, 010 |
 | 015 | `015-expense-account-linking.sql` | Exact account links, atomic Quick Expense writes, replay protection | 011, 012, 014 |
+| 016 | `016-cashflow-soft-delete-balance.sql` | Correct balance reversal on delete and restore | 012, 015 |
 
 ## Safety notes
 
