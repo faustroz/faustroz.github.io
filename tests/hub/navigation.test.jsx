@@ -26,7 +26,7 @@ describe("Hub navigation contract", () => {
       ["vault", "/vault"],
       ["academic", "/academic"],
       ["trash", "/trash"],
-      ["osint", undefined],
+      ["osint", "/osint"],
     ]);
   });
 
@@ -39,7 +39,8 @@ describe("Hub navigation contract", () => {
     ["/projects", "projects"],
     ["/settings", "more"],
     ["/insights", "more"],
-    ["/phone-lookup", "more"],
+    ["/osint", "osint"],
+    ["/phone-lookup", "osint"],
     ["/about", null],
   ])("resolves %s to %s", (pathname, expected) => {
     expect(resolveActiveNav(pathname)).toBe(expected);
@@ -114,7 +115,7 @@ describe("HubNavigation", () => {
     const dialog = screen.getByRole("dialog", { name: /more navigation/i });
     expect(dialog).toBeVisible();
     expect(within(dialog).queryByRole("link", { name: /ai memory/i })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: /phone lookup/i })).toBeVisible();
+    expect(within(dialog).getByRole("link", { name: /osint/i })).toBeVisible();
 
     await user.keyboard("{Escape}");
 

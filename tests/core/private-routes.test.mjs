@@ -10,6 +10,7 @@ test("Phase 4 module routes are private while public pages stay open", () => {
     "/projects",
     "/settings",
     "/insights",
+    "/osint",
     "/phone-lookup",
   ]) {
     assert.equal(isPrivateHubRoute(route), true, route);
