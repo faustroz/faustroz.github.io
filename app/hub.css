@@ -332,6 +332,15 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-academic-guide ul { display:grid; gap:.4rem; margin:.9rem 0 0; padding:0; list-style:none; }
 .hub-academic-guide li { display:grid; gap:.2rem; padding-top:.45rem; border-top:1px solid var(--hub-line); color:var(--hub-muted); font:.66rem/1.45 "IBM Plex Mono",monospace; }
 .hub-academic-guide li b { font-size:.68rem; }
+.hub-ledger-controls { display:flex; flex-wrap:wrap; align-items:end; gap:.55rem; margin:0 0 1rem; padding:.75rem; border:1px solid var(--hub-line); background:var(--hub-panel); }
+.hub-ledger-controls label { display:grid; gap:.3rem; min-width:8.8rem; }
+.hub-ledger-controls label span { color:var(--hub-muted); font:.58rem var(--font-geist-mono),monospace; letter-spacing:.1em; }
+.hub-ledger-controls input, .hub-ledger-controls select, .hub-ledger-controls button { min-height:2.35rem; border:1px solid var(--hub-line); border-radius:5px; color:var(--hub-text); background:var(--hub-panel-raised); font:.72rem var(--font-geist-mono),monospace; }
+.hub-ledger-controls input, .hub-ledger-controls select { padding:0 .55rem; }
+.hub-ledger-controls button { padding:0 .65rem; cursor:pointer; }
+.hub-ledger-controls button.is-active { border-color:var(--hub-accent); color:var(--hub-ink); background:var(--hub-accent); }
+.hub-ledger-controls strong { margin-left:auto; padding:.45rem 0; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; letter-spacing:.07em; }
+@media (max-width: 540px) { .hub-ledger-controls { display:grid; grid-template-columns:1fr auto; } .hub-ledger-controls label:last-of-type { grid-column:1 / -1; } .hub-ledger-controls label { min-width:0; } .hub-ledger-controls strong { margin:0; } }
 
 /* Compact mobile record sheet: retains context around the form instead of
    turning every entry into an edge-to-edge bottom drawer. */

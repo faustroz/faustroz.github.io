@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { createCrudRepository } from "@/lib/hub/crud.mjs";
+import { currentLedgerMonth, filterAndSortLedger } from "@/lib/hub/ledger.mjs";
 import { requireSupabase } from "@/lib/supabase/client";
 
 function emptyForm(fields) {
@@ -38,7 +39,7 @@ function displayValue(field, value) {
   return value || "—";
 }
 
-export default function CrudPanel({ table, title, description, fields, orderBy, onRecordsChange }) {
+export default function CrudPanel({ table, title, description, fields, orderBy, ledger, onRecordsChange }) {
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
     [table, orderBy]
@@ -51,6 +52,9 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [lookups, setLookups] = useState({});
+  const [ledgerMonth, setLedgerMonth] = useState(() => currentLedgerMonth());
+  const [ledgerSort, setLedgerSort] = useState("date-desc");
+  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(records, { ...ledger, month: ledgerMonth, sort: ledgerSort }) : records, [ledger, ledgerMonth, ledgerSort, records]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,6 +170,13 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
         <button type="button" onClick={() => { reset(); setFormOpen(true); }}><Plus aria-hidden="true" /> NEW ENTRY</button>
       </header>
 
+      {ledger && <div className="hub-ledger-controls" aria-label={`${title} filters and sort order`}>
+        <label><span>MONTH</span><input type="month" value={ledgerMonth === "all" ? "" : ledgerMonth} onChange={(event) => setLedgerMonth(event.target.value || "all")} /></label>
+        <button type="button" className={ledgerMonth === "all" ? "is-active" : undefined} onClick={() => setLedgerMonth("all")}>ALL TIME</button>
+        <label><span>SORT</span><select value={ledgerSort} onChange={(event) => setLedgerSort(event.target.value)}><option value="date-desc">Date · newest</option><option value="date-asc">Date · oldest</option><option value="amount-desc">Amount · highest</option><option value="amount-asc">Amount · lowest</option></select></label>
+        <strong>{visibleRecords.length} {visibleRecords.length === 1 ? "ENTRY" : "ENTRIES"}</strong>
+      </div>}
+
       {formOpen && (
         <div className="hub-crud-modal-backdrop" onMouseDown={closeForm}>
         <form className="hub-crud-form hub-crud-modal" onSubmit={save} role="dialog" aria-modal="true" aria-label={editingId ? `Edit ${title}` : `Create ${title}`} onMouseDown={(event) => event.stopPropagation()}>
@@ -205,9 +216,11 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
         <div className="hub-data-state"><RefreshCw className="hub-spin" /> READING PRIVATE TABLE</div>
       ) : records.length === 0 ? (
         <div className="hub-data-state">NO RECORDS / CHANNEL READY</div>
+      ) : visibleRecords.length === 0 ? (
+        <div className="hub-data-state">NO ENTRIES FOR THIS MONTH</div>
       ) : (
         <div className="hub-record-grid">
-          {records.map((record, index) => (
+          {visibleRecords.map((record, index) => (
             <article className="hub-record" key={record.id}>
               <div className="hub-record-index">{String(index + 1).padStart(2, "0")}</div>
               <div className="hub-record-values">
