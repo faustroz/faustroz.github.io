@@ -87,9 +87,10 @@ async function username(request, response) {
   if (!contentType.toLowerCase().startsWith("application/json")) return response.status(415).json({ error: "Content-Type must be application/json" });
 
   let body;
+  let requestPayload;
   try {
     body = await readBody(request);
-    JSON.parse(body.toString("utf8"));
+    requestPayload = JSON.parse(body.toString("utf8"));
   } catch (error) {
     const status = error && error.statusCode ? error.statusCode : 400;
     return response.status(status).json({ error: status === 413 ? "Request body too large" : "Invalid JSON" });
@@ -99,6 +100,10 @@ async function username(request, response) {
   if (!adapterToken) return response.status(500).json({ error: "Proxy is not configured" });
 
   try {
+    console.info("getcontact username proxy request", {
+      topSites: requestPayload?.topSites,
+      topSitesSnake: requestPayload?.top_sites,
+    });
     const upstream = await requestUpstream(body, adapterToken);
     if (upstream.status >= 400) console.warn("getcontact username proxy upstream error", { status: upstream.status });
     response.status(upstream.status);

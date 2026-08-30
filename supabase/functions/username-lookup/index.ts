@@ -48,6 +48,11 @@ Deno.serve(async (request) => {
   const proxyToken = Deno.env.get("GETCONTACT_PROXY_TOKEN");
   if (!proxyToken) return json({ error: "Username Intelligence provider is not configured." }, 503);
 
+  // The deployed Python adapter accepts snake_case while the Hub public
+  // contract is camelCase. Keep both names numerically identical so the
+  // Vercel proxy can continue forwarding the request bytes unchanged.
+  const upstreamBody = { username, topSites, top_sites: topSites };
+  console.info("username-lookup request", { topSites });
   let upstream: Response;
   try {
     upstream = await fetch(proxyUrl, {
@@ -56,7 +61,7 @@ Deno.serve(async (request) => {
         "Content-Type": "application/json",
         "X-Proxy-Token": proxyToken,
       },
-      body: JSON.stringify({ username, topSites }),
+      body: JSON.stringify(upstreamBody),
     });
   } catch (error) {
     console.error("username-lookup proxy network error", { message: error instanceof Error ? error.message : "Unknown network error" });

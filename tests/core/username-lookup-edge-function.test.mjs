@@ -14,6 +14,8 @@ test("Username Intelligence is authenticated, validated, and proxied server-side
   assert.match(source, /userClient\.auth\.getUser\(\)/);
   assert.match(config, /\[functions\.username-lookup\][\s\S]*verify_jwt = false/);
   assert.match(source, /Math\.min\(200, Math\.max\(5, Math\.trunc\(value\)\)\)/);
+  assert.match(source, /const upstreamBody = \{ username, topSites, top_sites: topSites \}/);
+  assert.match(source, /console\.info\("username-lookup request", \{ topSites \}\)/);
   assert.match(source, /"Cache-Control": "no-store"/);
   assert.doesNotMatch(source, /console\.(?:warn|error)\([^\n]*\{[^}]*\b(?:username|proxyToken|responseText)\b/);
 });

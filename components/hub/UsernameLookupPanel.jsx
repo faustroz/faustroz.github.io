@@ -52,6 +52,7 @@ export default function UsernameLookupPanel() {
   const run = async (event) => {
     event.preventDefault();
     setLoading(true); setError(""); setResult(null);
+    console.info("username-lookup UI request", { topSites: Number(topSites) });
     const { data, error: invokeError } = await requireSupabase().functions.invoke("username-lookup", {
       body: { username, topSites: Number(topSites) },
     });

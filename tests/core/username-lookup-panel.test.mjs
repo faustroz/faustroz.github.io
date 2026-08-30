@@ -11,6 +11,7 @@ test("Username Intelligence is private-session UI backed by the authenticated Ed
   assert.match(page, /<UsernameLookupPanel \/>/);
   assert.match(panel, /functions\.invoke\("username-lookup"/);
   assert.match(panel, /username, topSites: Number\(topSites\)/);
+  assert.match(panel, /console\.info\("username-lookup UI request", \{ topSites: Number\(topSites\) \}\)/);
   assert.match(panel, /Possible \/ Found/);
   assert.match(panel, /Rate-limited, blocked, or uncertain — verify manually/);
   assert.match(panel, /target="_blank" rel="noreferrer"/);

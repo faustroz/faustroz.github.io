@@ -14,6 +14,8 @@ test("username proxy targets only the username adapter with server-side credenti
   assert.match(source, /headerPresent: Boolean\(suppliedToken\)/);
   assert.match(source, /tokenMatch,/);
   assert.match(source, /upstream\.end\(body\)/);
+  assert.match(source, /topSites: requestPayload\?\.topSites/);
+  assert.match(source, /topSitesSnake: requestPayload\?\.top_sites/);
   assert.match(source, /response\.setHeader\("Cache-Control", "no-store"\)/);
   assert.doesNotMatch(source, /console\.(?:warn|error)\([^\n]*body/);
 });
