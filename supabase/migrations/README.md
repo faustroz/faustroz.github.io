@@ -14,6 +14,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 011 | `011-finance-balance-sync.sql` | Income/expense balance synchronization triggers | 009, 010 |
 | 012 | `012-academic-goals-trash.sql` | Academic records, financial goals, and 30-day recovery | 004 |
 | 013 | `013-academic-block-grading.sql` | Block component scoring and automatic grade/IP calculation | 012 |
+| 014 | `014-quick-expense-api.sql` | Revocable iPhone Quick Expense API keys | 009, 010 |
 
 ## Safety notes
 
