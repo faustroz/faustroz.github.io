@@ -21,7 +21,6 @@ describe("Hub navigation contract", () => {
       ["finance", "/finance"],
       ["study", "/study"],
       ["projects", "/projects"],
-      ["memory", "/memory"],
       ["settings", "/settings"],
       ["insights", "/insights"],
       ["vault", "/vault"],
@@ -38,7 +37,6 @@ describe("Hub navigation contract", () => {
     ["/finance/portfolio/history", "finance"],
     ["/study", "study"],
     ["/projects", "projects"],
-    ["/memory", "more"],
     ["/settings", "more"],
     ["/insights", "more"],
     ["/phone-lookup", "more"],
@@ -115,10 +113,7 @@ describe("HubNavigation", () => {
 
     const dialog = screen.getByRole("dialog", { name: /more navigation/i });
     expect(dialog).toBeVisible();
-    expect(within(dialog).getByRole("link", { name: /ai memory/i })).toHaveAttribute(
-      "href",
-      "/memory"
-    );
+    expect(within(dialog).queryByRole("link", { name: /ai memory/i })).not.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 

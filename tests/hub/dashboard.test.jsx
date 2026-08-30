@@ -18,7 +18,7 @@ describe("Personal Hub dashboard", () => {
       "href",
       "/projects"
     );
-    expect(screen.getByRole("link", { name: /open ai memory/i })).toHaveAttribute("href", "/memory");
+    expect(screen.queryByRole("link", { name: /open ai memory/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open settings/i })).toHaveAttribute("href", "/settings");
     expect(screen.queryByRole("link", { name: /open about/i })).not.toBeInTheDocument();
   });

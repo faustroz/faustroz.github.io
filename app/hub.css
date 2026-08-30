@@ -312,6 +312,9 @@ body {
 .hub-notification-center small, .hub-notification-center p { color:var(--hub-muted); }
 .hub-vault-upload, .hub-backup-actions label { display:inline-flex; align-items:center; gap:.45rem; min-height:2.5rem; padding:0 .8rem; border-radius:6px; color:#080808; background:linear-gradient(135deg,#e5e7eb,#cbd5e1); font-size:.72rem; font-weight:700; cursor:pointer; }
 .hub-vault-upload input, .hub-backup-actions input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.hub-vault-controls { display:flex; flex-wrap:wrap; gap:.55rem; }
+.hub-vault-folder-picker { display:grid; gap:.4rem; max-width:22rem; margin:0 0 1rem; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; letter-spacing:.08em; }
+.hub-vault-folder-picker select, .hub-record-values select { min-height:2.25rem; border:1px solid var(--hub-line); color:var(--hub-text); background:var(--hub-panel-raised); font:inherit; }
 .hub-vault .hub-search-input { margin:0 0 1rem; }
 .hub-backup-actions { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1rem; }
 .hub-backup-actions button { min-height:2.5rem; padding:0 .8rem; }
@@ -366,7 +369,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
     box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
   }
 }
-@media (max-width:767px) { .hub-quick-add-trigger span { display:none; } .hub-quick-add-trigger { order:-1; } .hub-system-status { gap:.35rem; } .hub-vault-upload { width:100%; justify-content:center; } }
+@media (max-width:767px) { .hub-quick-add-trigger span { display:none; } .hub-quick-add-trigger { order:-1; } .hub-system-status { gap:.35rem; } .hub-vault-controls { width:100%; } .hub-vault-upload { flex:1; justify-content:center; } }
 
 .hub-more-sheet {
   width: min(100%, 34rem);
@@ -1411,10 +1414,6 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   background: linear-gradient(145deg, rgba(100, 239, 173, 0.06), transparent 48%), rgba(14, 32, 26, 0.76);
 }
 
-.hub-module-card--memory {
-  background: radial-gradient(circle at 85% 82%, rgba(100, 239, 173, 0.11), transparent 14rem), rgba(14, 32, 26, 0.76);
-}
-
 .hub-auth-state,
 .hub-data-state {
   display: flex;
@@ -2307,8 +2306,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 }
 
 .hub-shell:not(.hub-shell--finance) .hub-module-card--finance,
-.hub-shell:not(.hub-shell--finance) .hub-module-card--study,
-.hub-shell:not(.hub-shell--finance) .hub-module-card--memory {
+.hub-shell:not(.hub-shell--finance) .hub-module-card--study {
   background: var(--hub-panel);
 }
 

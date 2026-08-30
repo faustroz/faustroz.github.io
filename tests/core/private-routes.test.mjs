@@ -8,7 +8,6 @@ test("Phase 4 module routes are private while public pages stay open", () => {
     "/finance/portfolio",
     "/study",
     "/projects",
-    "/memory",
     "/settings",
     "/insights",
     "/phone-lookup",

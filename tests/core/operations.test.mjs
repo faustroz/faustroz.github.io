@@ -18,10 +18,9 @@ test("empty authenticated data returns real zero-state summaries", () => {
   assert.equal(snapshot.finance.expenseTotal, 0);
   assert.equal(snapshot.study.averageProgress, 0);
   assert.equal(snapshot.projects.taskCompletion, 0);
-  assert.equal(snapshot.memory.entryCount, 0);
   assert.equal(snapshot.currentFocus, null);
   assert.deepEqual(snapshot.recentActivity, []);
-  assert.deepEqual(snapshot.empty, { finance: true, study: true, projects: true, memory: true });
+  assert.deepEqual(snapshot.empty, { finance: true, study: true, projects: true });
 });
 
 test("authenticated snapshot derives focus, activity, and analytics from records", () => {
@@ -34,7 +33,6 @@ test("authenticated snapshot derives focus, activity, and analytics from records
     hub_projects: [{ id: "p1", name: "Hub", status: "active", progress: 40, updated_at: "2026-08-28T09:00:00Z" }],
     project_tasks: [{ id: "k1", title: "Ship", status: "done", updated_at: "2026-08-28T06:00:00Z" }],
     project_changelog: [],
-    ai_memory_entries: [{ id: "m1", title: "Preference", kind: "preference", updated_at: "2026-08-28T10:00:00Z" }],
   });
 
   assert.equal(snapshot.finance.expenseTotal, 125000);
@@ -42,5 +40,5 @@ test("authenticated snapshot derives focus, activity, and analytics from records
   assert.equal(snapshot.study.averageProgress, 60);
   assert.equal(snapshot.projects.taskCompletion, 100);
   assert.deepEqual(snapshot.currentFocus, { type: "project", title: "Hub", detail: "40% project progress" });
-  assert.equal(snapshot.recentActivity[0].source, "AI Memory");
+  assert.equal(snapshot.recentActivity[0].source, "Projects");
 });

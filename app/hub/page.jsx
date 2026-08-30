@@ -73,18 +73,6 @@ export default function HubHome() {
         <div className="hub-reveal hub-reveal--4">
           <ModuleCard
             number="04"
-            label="AI Memory"
-            status="API READY"
-            href="/memory"
-            title="Context, made durable."
-            description="Structured memories prepared for a future authenticated API—without external AI access today."
-            variant="memory"
-          />
-        </div>
-
-        <div className="hub-reveal hub-reveal--4">
-          <ModuleCard
-            number="05"
             label="Settings"
             status="PRIVATE"
             href="/settings"

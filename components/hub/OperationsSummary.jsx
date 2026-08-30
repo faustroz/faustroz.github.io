@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, BrainCircuit, ChartNoAxesCombined, CircleDollarSign, GraduationCap, LockKeyhole, RefreshCw } from "lucide-react";
+import { Activity, ChartNoAxesCombined, CircleDollarSign, GraduationCap, LockKeyhole, RefreshCw } from "lucide-react";
 import { createOperationsService } from "@/lib/hub/operations.mjs";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
@@ -46,7 +46,7 @@ export default function OperationsSummary() {
   if (!state.authenticated) {
     return (
       <section className="hub-public-operations" data-testid="public-operations">
-        <div><span>PRIVATE TELEMETRY / LOCKED</span><h2>Authenticate to read your operating signal.</h2><p>Finance, study, projects, and memory summaries remain private until a Supabase owner session is present.</p></div>
+        <div><span>PRIVATE TELEMETRY / LOCKED</span><h2>Authenticate to read your operating signal.</h2><p>Finance, study, and projects summaries remain private until a Supabase owner session is present.</p></div>
         <Link href="/settings"><LockKeyhole aria-hidden="true" /> OPEN AUTH GATE</Link>
         {state.error && <small>STATUS: PRIVATE CHANNEL UNAVAILABLE</small>}
       </section>
@@ -62,7 +62,6 @@ export default function OperationsSummary() {
         {snapshot.empty.finance ? <EmptySummary label="FINANCE" href="/finance" /> : <Link className="hub-operation-card" href="/finance"><CircleDollarSign aria-hidden="true" /><span>FINANCE / CURRENT MONTH</span><strong>{formatIDR(snapshot.finance.expenseTotal)}</strong><small>{snapshot.finance.expenseCount} expenses · {snapshot.finance.activeSubscriptions} active subscriptions</small></Link>}
         {snapshot.empty.study ? <EmptySummary label="STUDY" href="/study" /> : <Link className="hub-operation-card" href="/study"><GraduationCap aria-hidden="true" /><span>STUDY / TOPIC PROGRESS</span><strong>{snapshot.study.averageProgress}%</strong><small>{snapshot.study.topicCount} topics · {snapshot.study.flashcardCount} flashcards</small></Link>}
         {snapshot.empty.projects ? <EmptySummary label="PROJECTS" href="/projects" /> : <Link className="hub-operation-card" href="/projects"><Activity aria-hidden="true" /><span>PROJECTS / OPEN QUEUE</span><strong>{snapshot.projects.openTaskCount}</strong><small>{snapshot.projects.activeProjectCount} active · {snapshot.projects.taskCompletion}% tasks complete</small></Link>}
-        {snapshot.empty.memory ? <EmptySummary label="AI MEMORY" href="/memory" /> : <Link className="hub-operation-card" href="/memory"><BrainCircuit aria-hidden="true" /><span>AI MEMORY / ENTRIES</span><strong>{snapshot.memory.entryCount}</strong><small>Private context ready for future API access</small></Link>}
       </div>
 
       <div className="hub-operations-detail">

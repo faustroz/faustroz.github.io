@@ -74,7 +74,6 @@ export default function SettingsPanel() {
         <Webhook aria-hidden="true" />
         <h2>Future API channels</h2>
         <div className="hub-integration-list">
-          <div><strong>AI Memory API</strong><span>NOT CONNECTED</span><code>/api/memory — future authenticated access</code></div>
           <div><strong>Calendar Sync</strong><span>NOT CONNECTED</span><code>OAuth provider placeholder</code></div>
           <div><strong>Finance Import</strong><span>NOT CONNECTED</span><code>Read-only provider placeholder</code></div>
         </div>

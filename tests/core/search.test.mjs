@@ -10,7 +10,7 @@ import {
 test("search source contract covers every private operational module", () => {
   assert.deepEqual(
     [...new Set(SEARCH_SOURCES.map(({ group }) => group))],
-    ["Finance", "Study", "Projects", "AI Memory", "Documents"]
+    ["Finance", "Study", "Projects", "Documents"]
   );
   assert.ok(SEARCH_SOURCES.some(({ label }) => label === "Portfolio"));
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "vault_documents"));
@@ -34,7 +34,7 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
     study_topics: [{ id: "s1", title: "Cloud architecture", subject: "Systems", status: "active" }],
     study_exams: [], study_flashcards: [],
     hub_projects: [{ id: "p1", name: "Hub refresh", description: "Cloud navigation", status: "active" }],
-    project_tasks: [], project_changelog: [], ai_memory_entries: [],
+    project_tasks: [], project_changelog: [],
   };
   const queriedTables = [];
   const search = createGlobalSearchService({
@@ -57,7 +57,7 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
   assert.equal(result.groups[1].results[0].title, "Cloud architecture");
   assert.equal(result.groups[2].results[0].title, "Hub refresh");
   assert.equal(result.groups[0].results[0].href, "/finance?channel=expenses&record=e1");
-  assert.equal(queriedTables.includes("ai_memory_entries"), true);
+  assert.equal(queriedTables.includes("ai_memory_entries"), false);
 });
 
 test("short authenticated search does not fetch records", async () => {
@@ -73,11 +73,7 @@ test("short authenticated search does not fetch records", async () => {
 
 test("search href targets the matching module channel", () => {
   assert.equal(
-    buildSearchHref({ route: "/memory", channel: "memory" }, { id: "m1" }),
-    "/memory?channel=memory&record=m1"
-  );
-  assert.deepEqual(
-    deriveSearchGroups({ ai_memory_entries: [{ id: "m1", title: "API preference", kind: "preference", tags: ["api"] }] }, "PREF"),
-    [{ group: "AI Memory", results: [{ id: "ai_memory_entries-m1", recordId: "m1", group: "AI Memory", source: "Memory", title: "API preference", detail: "preference · api", href: "/memory?channel=memory&record=m1" }] }]
+    buildSearchHref({ route: "/finance", channel: "expenses" }, { id: "e1" }),
+    "/finance?channel=expenses&record=e1"
   );
 });

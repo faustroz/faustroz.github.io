@@ -3,7 +3,7 @@
 import { Download, Upload } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 
-const TABLES = ["bank_accounts", "finance_categories", "income_entries", "expenses", "budgets", "subscriptions", "study_topics", "study_exams", "study_flashcards", "hub_projects", "project_tasks", "project_changelog", "ai_memory_entries", "vault_documents"];
+const TABLES = ["bank_accounts", "finance_categories", "income_entries", "expenses", "budgets", "subscriptions", "study_topics", "study_exams", "study_flashcards", "hub_projects", "project_tasks", "project_changelog", "vault_documents"];
 const download = (name, content, type) => { const url = URL.createObjectURL(new Blob([content], { type })); const anchor = document.createElement("a"); anchor.href = url; anchor.download = name; anchor.click(); URL.revokeObjectURL(url); };
 
 export default function BackupPanel() {

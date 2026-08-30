@@ -67,7 +67,7 @@ test("CRUD repository rejects invalid ids and Supabase errors", async () => {
         return createQuery({ data: null, error: new Error("RLS denied") }, []);
       },
     },
-    "ai_memory_entries"
+    "expenses"
   );
 
   await assert.rejects(() => repository.update("", {}), /record id/i);

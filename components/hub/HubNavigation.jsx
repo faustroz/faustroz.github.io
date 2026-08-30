@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FolderKanban,
-  BrainCircuit,
   Github,
   GraduationCap,
   ChartNoAxesCombined,
@@ -28,7 +27,7 @@ const primaryModules = HUB_MODULES.filter(({ id }) =>
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["memory", "settings", "insights", "vault", "academic", "trash", "phone-lookup"].includes(id)
+  ["settings", "insights", "vault", "academic", "trash", "phone-lookup"].includes(id)
 );
 
 const primaryIcons = {
@@ -39,7 +38,6 @@ const primaryIcons = {
 };
 
 const secondaryIcons = {
-  memory: BrainCircuit,
   settings: Settings,
   insights: ChartNoAxesCombined,
   vault: FolderKanban,
