@@ -54,7 +54,10 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
   const [lookups, setLookups] = useState({});
   const [ledgerMonth, setLedgerMonth] = useState(() => currentLedgerMonth());
   const [ledgerSort, setLedgerSort] = useState("date-desc");
-  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(records, { ...ledger, month: ledgerMonth, sort: ledgerSort }) : records, [ledger, ledgerMonth, ledgerSort, records]);
+  const [ledgerProvider, setLedgerProvider] = useState("all");
+  const [ledgerAccounts, setLedgerAccounts] = useState([]);
+  const providerByAccountId = useMemo(() => Object.fromEntries(ledgerAccounts.map((account) => [account.id, account.bank_name])), [ledgerAccounts]);
+  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(records, { ...ledger, month: ledgerMonth, provider: ledgerProvider, providerForRecord: (record) => providerByAccountId[record[ledger.accountField]], sort: ledgerSort }) : records, [ledger, ledgerMonth, ledgerProvider, ledgerSort, providerByAccountId, records]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,6 +74,17 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
   }, [repository, onRecordsChange]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!ledger?.accountField) return undefined;
+    let active = true;
+    requireSupabase().from("bank_accounts").select("id,bank_name").is("deleted_at", null).order("bank_name").then(({ data, error }) => {
+      if (!active) return;
+      if (error) setError(error.message);
+      else setLedgerAccounts(data || []);
+    });
+    return () => { active = false; };
+  }, [ledger]);
 
   useEffect(() => {
     const lookupFields = fields.filter((field) => field.type === "lookup");
@@ -173,6 +187,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
       {ledger && <div className="hub-ledger-controls" aria-label={`${title} filters and sort order`}>
         <label><span>MONTH</span><input type="month" value={ledgerMonth === "all" ? "" : ledgerMonth} onChange={(event) => setLedgerMonth(event.target.value || "all")} /></label>
         <button type="button" className={ledgerMonth === "all" ? "is-active" : undefined} onClick={() => setLedgerMonth("all")}>ALL TIME</button>
+        <label><span>PROVIDER</span><select value={ledgerProvider} onChange={(event) => setLedgerProvider(event.target.value)}><option value="all">All banks & cash</option>{[...new Set(ledgerAccounts.map((account) => account.bank_name))].map((provider) => <option key={provider} value={provider}>{provider}</option>)}</select></label>
         <label><span>SORT</span><select value={ledgerSort} onChange={(event) => setLedgerSort(event.target.value)}><option value="date-desc">Date · newest</option><option value="date-asc">Date · oldest</option><option value="amount-desc">Amount · highest</option><option value="amount-asc">Amount · lowest</option></select></label>
         <strong>{visibleRecords.length} {visibleRecords.length === 1 ? "ENTRY" : "ENTRIES"}</strong>
       </div>}
@@ -227,7 +242,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
                 {fields.slice(0, 5).map((field) => {
                   const match = field.type === "lookup" ? (lookups[field.name] || []).find((row) => row[field.lookup.value] === record[field.name]) : null;
                   const color = field.type === "color" ? record[field.name] : match?.color;
-                  const lookupLabel = match && field.displayLookupLabel ? field.lookup.label.map((key) => match[key]).filter(Boolean).join(" · ") : record[field.fallbackField] || displayValue(field, record[field.name]);
+                  const lookupLabel = match && field.displayLookupLabel ? field.lookup.label.map((key) => match[key]).filter(Boolean).join(" · ") : (field.fallbackField && record[field.fallbackField]) || displayValue(field, record[field.name]);
                   return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color && <i style={{ backgroundColor: color }} aria-hidden="true" />}{lookupLabel}</strong></div>;
                 })}
               </div>

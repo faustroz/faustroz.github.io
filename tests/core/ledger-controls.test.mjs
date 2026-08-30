@@ -16,6 +16,15 @@ test("ledger controls filter an owner-visible ledger by month and sort date or a
   assert.deepEqual(filterAndSortLedger(rows, { ...config, month: "2026-08", sort: "amount-asc" }).map(({ id }) => id), ["b", "a"]);
 });
 
+test("ledger controls filter exact account records by bank provider", () => {
+  const records = [{ id: "jago", received_on: "2026-08-01", bank_account_id: "account-jago" }, { id: "bni", received_on: "2026-08-01", bank_account_id: "account-bni" }];
+  const byId = { "account-jago": "JAGO", "account-bni": "BNI" };
+  assert.deepEqual(filterAndSortLedger(records, { dateField: "received_on", provider: "JAGO", providerForRecord: (record) => byId[record.bank_account_id] }).map(({ id }) => id), ["jago"]);
+});
+
 test("Income and Expenses expose ledger filter metadata", () => {
-  for (const id of ["income", "expenses"]) assert.ok(FINANCE_CHANNELS.find((channel) => channel.id === id)?.ledger);
+  for (const id of ["income", "expenses"]) {
+    const channel = FINANCE_CHANNELS.find((item) => item.id === id);
+    assert.equal(channel?.ledger?.accountField, "bank_account_id");
+  }
 });

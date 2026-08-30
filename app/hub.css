@@ -340,7 +340,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-ledger-controls button { padding:0 .65rem; cursor:pointer; }
 .hub-ledger-controls button.is-active { border-color:var(--hub-accent); color:var(--hub-ink); background:var(--hub-accent); }
 .hub-ledger-controls strong { margin-left:auto; padding:.45rem 0; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; letter-spacing:.07em; }
-@media (max-width: 540px) { .hub-ledger-controls { display:grid; grid-template-columns:1fr auto; } .hub-ledger-controls label:last-of-type { grid-column:1 / -1; } .hub-ledger-controls label { min-width:0; } .hub-ledger-controls strong { margin:0; } }
+@media (max-width: 540px) { .hub-ledger-controls { display:grid; grid-template-columns:1fr auto; } .hub-ledger-controls label:nth-of-type(n + 2) { grid-column:1 / -1; } .hub-ledger-controls label { min-width:0; } .hub-ledger-controls strong { margin:0; } }
 
 /* Compact mobile record sheet: retains context around the form instead of
    turning every entry into an edge-to-edge bottom drawer. */
