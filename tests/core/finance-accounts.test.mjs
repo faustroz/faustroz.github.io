@@ -9,10 +9,10 @@ test("finance exposes private balances and category-specific budget configuratio
   const expenses = FINANCE_CHANNELS.find(({ id }) => id === "expenses");
   const budgets = FINANCE_CHANNELS.find(({ id }) => id === "budgets");
   assert.equal(accounts.table, "bank_accounts");
-  assert.ok(expenses.fields.some(({ name }) => name === "bank_account_name"));
+  assert.ok(expenses.fields.some(({ name }) => name === "bank_account_id"));
   assert.equal(budgets.fields.find(({ name }) => name === "name").label, "Expense category");
   assert.equal(expenses.fields.find(({ name }) => name === "category").type, "lookup");
-  assert.equal(expenses.fields.find(({ name }) => name === "bank_account_name").lookup.table, "bank_accounts");
+  assert.equal(expenses.fields.find(({ name }) => name === "bank_account_id").lookup.table, "bank_accounts");
   assert.equal(FINANCE_CHANNELS.find(({ id }) => id === "categories").fields.find(({ name }) => name === "color").type, "color");
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "bank_accounts"));
 });

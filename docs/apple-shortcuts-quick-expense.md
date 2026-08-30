@@ -4,7 +4,7 @@ This Shortcut sends a single expense to the private 4allx Finance system. It use
 
 ## One-time Supabase setup
 
-1. In Supabase SQL Editor, run `supabase/migrations/014-quick-expense-api.sql`.
+1. In Supabase SQL Editor, run `supabase/migrations/014-quick-expense-api.sql`, then `supabase/migrations/015-expense-account-linking.sql`.
 2. Deploy the function from the repository root:
 
    ```bash
@@ -66,4 +66,4 @@ The resulting flow is: **Double Back Tap → Category → Item Name → Amount �
 }
 ```
 
-`category` must be an existing expense/both category (or `General`). `account` is matched to the owned bank/provider value in `bank_accounts.bank_name`; invalid, revoked, expired, or foreign values are rejected.
+`category` must be an existing expense/both category (or `General`). `account` is matched to the owned bank/provider value in `bank_accounts.bank_name`; the backend then records the exact `bank_account_id` and debits that one account atomically. Invalid, revoked, expired, replayed, or foreign values are rejected.

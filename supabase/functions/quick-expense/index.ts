@@ -80,24 +80,26 @@ async function createExpense(request: Request, body: Record<string, unknown>) {
   const { data: key } = await admin.from("quick_expense_api_keys").select("id,user_id,expires_at").eq("token_hash", await hash(rawKey)).is("revoked_at", null).maybeSingle();
   if (!key || (key.expires_at && new Date(key.expires_at).getTime() <= Date.now())) return json({ error: "Unauthorized" }, 401);
 
-  const [{ data: categoryRow }, { data: accountRow }] = await Promise.all([
+  const [{ data: categoryRow }, { data: accountRows }] = await Promise.all([
     admin.from("finance_categories").select("id").eq("user_id", key.user_id).eq("name", category).in("kind", ["expense", "both"]).maybeSingle(),
-    admin.from("bank_accounts").select("id,name").eq("user_id", key.user_id).eq("bank_name", account).maybeSingle(),
+    admin.from("bank_accounts").select("id").eq("user_id", key.user_id).eq("bank_name", account).is("deleted_at", null).limit(2),
   ]);
   if (!categoryRow && category !== "General") return json({ error: "Unknown expense category" }, 400);
-  if (!accountRow) return json({ error: "Unknown bank account" }, 400);
+  if (!accountRows?.length) return json({ error: "Unknown bank account" }, 400);
+  if (accountRows.length !== 1) return json({ error: "More than one bank account matches this provider" }, 409);
 
-  const { data: expense, error } = await admin.from("expenses").insert({
-    user_id: key.user_id,
-    title,
-    amount,
-    category,
-    // The Shortcut selects the bank/provider, while the balance trigger uses
-    // the account's internal name stored in bank_accounts.name.
-    bank_account_name: accountRow.name,
-    spent_on: spentOn,
-    notes: `iPhone Back Tap · ${body.device_timestamp}`,
-  }).select("id,title,amount,category,bank_account_name,spent_on").single();
+  const requestHash = await hash(JSON.stringify({ key_id: key.id, title, category, amount, account, device_timestamp: body.device_timestamp }));
+  const { data: expense, error } = await admin.rpc("create_quick_expense", {
+    p_user_id: key.user_id,
+    p_device_key_id: key.id,
+    p_request_hash: requestHash,
+    p_title: title,
+    p_amount: amount,
+    p_category: category,
+    p_bank_account_id: accountRows[0].id,
+    p_spent_on: spentOn,
+    p_notes: `iPhone Back Tap · ${body.device_timestamp}`,
+  });
   if (error) return json({ error: "Unable to save expense" }, 400);
   await admin.from("quick_expense_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", key.id);
   return json({ expense }, 201);
