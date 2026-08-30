@@ -33,7 +33,7 @@ Pemilik menggunakan aplikasi pada iPhone dan desktop. Personal Hub berjalan seba
 
 ## Brand Commitments
 
-Night Operations adalah identitas visual untuk `/hub`. Aplikasi harus privacy-first: data sensitif tidak ditampilkan sebelum autentikasi. UI harus minimal, compact, cepat, dan menghindari card atau container yang tidak perlu.
+Monochrome Command Console adalah identitas visual untuk `/hub`; Night Operations tidak digunakan sebagai acuan baru. Aplikasi harus privacy-first: data sensitif tidak ditampilkan sebelum autentikasi. UI harus minimal, compact, cepat, dan menghindari card atau container yang tidak perlu.
 
 ## Evidence on Hand
 
