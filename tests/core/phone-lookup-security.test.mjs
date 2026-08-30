@@ -12,11 +12,12 @@ test("Phone Lookup keeps provider access server-side and limits authenticated re
   assert.match(handler, /auth\.getUser/);
   assert.match(handler, /consume_phone_lookup_rate_limit/);
   assert.match(handler, /normalizePhone/);
-  assert.match(handler, /GETCONTACT_ADAPTER_TOKEN/);
-  assert.match(handler, /"X-Adapter-Token": token/);
-  assert.match(handler, /"Host": "lookup4allx\.anjas\.id"/);
-  assert.match(handler, /phone-lookup adapter response error/);
-  assert.match(handler, /phone-lookup adapter network error/);
+  assert.match(handler, /GETCONTACT_PROXY_TOKEN/);
+  assert.match(handler, /"X-Proxy-Token": proxyToken/);
+  assert.match(handler, /https:\/\/4allx-getcontact-proxy\.vercel\.app\/api\/lookup/);
+  assert.match(handler, /phone-lookup proxy response error/);
+  assert.match(handler, /phone-lookup proxy network error/);
   assert.match(handler, /phone-lookup rate-limit RPC error/);
-  assert.doesNotMatch(handler, /return json\(\{[^}]*GETCONTACT_ADAPTER_TOKEN/);
+  assert.doesNotMatch(handler, /GETCONTACT_ADAPTER_TOKEN|X-Adapter-Token|lookup4allx\.anjas\.id/);
+  assert.doesNotMatch(handler, /return json\(\{[^}]*GETCONTACT_PROXY_TOKEN/);
 });

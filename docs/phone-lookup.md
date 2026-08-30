@@ -5,11 +5,10 @@ The Phone Lookup module is private to authenticated 4allx users. It supports one
 ## Deploy
 
 1. If it has not already been applied, run `supabase/migrations/018-phone-lookup-rate-limit.sql` in Supabase SQL Editor.
-2. Set the deployed adapter URL and its access token in Supabase only:
+2. Set the Vercel proxy token in Supabase only:
 
    ```bash
-   supabase secrets set GETCONTACT_ADAPTER_URL=http://194.15.36.113/cgi-bin/lookup.py
-   supabase secrets set GETCONTACT_ADAPTER_TOKEN='YOUR_GETCONTACT_ADAPTER_TOKEN'
+   supabase secrets set GETCONTACT_PROXY_TOKEN='YOUR_VERCEL_PROXY_TOKEN'
    ```
 
 3. Deploy:
@@ -18,9 +17,9 @@ The Phone Lookup module is private to authenticated 4allx users. It supports one
    supabase functions deploy phone-lookup
    ```
 
-## Adapter contract
+## Proxy contract
 
-The server-side adapter sends a JSON `POST` to `GETCONTACT_ADAPTER_URL` with one of:
+The server-side function sends a JSON `POST` to `https://4allx-getcontact-proxy.vercel.app/api/lookup` with one of:
 
 ```json
 { "action": "profile", "phone": "+628123456789" }
@@ -34,11 +33,10 @@ The server-side adapter sends a JSON `POST` to `GETCONTACT_ADAPTER_URL` with one
 { "action": "quota" }
 ```
 
-Every request also includes these server-side headers:
+Every request also includes this server-side header:
 
 ```http
-X-Adapter-Token: <GETCONTACT_ADAPTER_TOKEN>
-Host: lookup4allx.anjas.id
+X-Proxy-Token: <GETCONTACT_PROXY_TOKEN>
 ```
 
-The adapter normalizes only safe result fields (`displayName`, `tagCount`, `email`, tags, and quota); no provider token, mobile device credential, encryption material, or signing data is sent to the frontend.
+The Vercel proxy owns the adapter URL, virtual host, and adapter token. The function normalizes only safe result fields (`displayName`, `tagCount`, `email`, tags, and quota); no provider token, proxy token, mobile device credential, encryption material, or signing data is sent to the frontend.

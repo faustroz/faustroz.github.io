@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const cors = { "Access-Control-Allow-Origin": "https://faustroz.github.io", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+const proxyUrl = "https://4allx-getcontact-proxy.vercel.app/api/lookup";
 type LookupAction = "profile" | "tags" | "quota";
 type LookupRequest = { action: LookupAction; phone?: string };
 
@@ -10,30 +11,28 @@ const text = (value: unknown, limit = 160) => typeof value === "string" ? value.
 const list = (value: unknown) => Array.isArray(value) ? value.map((item) => text(item, 100)).filter(Boolean).slice(0, 50) : [];
 
 async function getContactLookup(request: LookupRequest) {
-  const url = Deno.env.get("GETCONTACT_ADAPTER_URL");
-  const token = Deno.env.get("GETCONTACT_ADAPTER_TOKEN");
-  if (!url || !token) throw new Error("Phone Lookup provider is not configured.");
+  const proxyToken = Deno.env.get("GETCONTACT_PROXY_TOKEN");
+  if (!proxyToken) throw new Error("Phone Lookup provider is not configured.");
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetch(proxyUrl, {
       method: "POST",
       headers: {
-        "X-Adapter-Token": token,
-        "Host": "lookup4allx.anjas.id",
+        "X-Proxy-Token": proxyToken,
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
       body: JSON.stringify(request),
     });
   } catch (error) {
-    console.error("phone-lookup adapter network error", { message: error instanceof Error ? error.message : "Unknown network error" });
+    console.error("phone-lookup proxy network error", { message: error instanceof Error ? error.message : "Unknown network error" });
     throw new Error("Phone Lookup provider request failed.");
   }
 
   if (!response.ok) {
     const responseBody = (await response.text()).slice(0, 4_000);
-    console.error("phone-lookup adapter response error", { status: response.status, body: responseBody });
+    console.error("phone-lookup proxy response error", { status: response.status, body: responseBody });
     throw new Error(response.status === 429 ? "Provider quota reached." : "Phone Lookup provider request failed.");
   }
 
@@ -41,7 +40,7 @@ async function getContactLookup(request: LookupRequest) {
   try {
     body = await response.json();
   } catch (error) {
-    console.error("phone-lookup adapter response parse error", { status: response.status, message: error instanceof Error ? error.message : "Invalid JSON" });
+    console.error("phone-lookup proxy response parse error", { status: response.status, message: error instanceof Error ? error.message : "Invalid JSON" });
     throw new Error("Phone Lookup provider request failed.");
   }
 
@@ -91,7 +90,7 @@ Deno.serve(async (request) => {
   try {
     return json({ result: await getContactLookup({ action, phone }) });
   } catch (error) {
-    console.error("phone-lookup adapter failure", { message: error instanceof Error ? error.message : "Lookup failed." });
+    console.error("phone-lookup proxy failure", { message: error instanceof Error ? error.message : "Lookup failed." });
     return json({ error: error instanceof Error ? error.message : "Lookup failed." }, 502);
   }
 });
