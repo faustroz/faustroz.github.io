@@ -15,7 +15,12 @@ export async function getContactLookup(request: LookupRequest) {
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Accept": "application/json" },
+    headers: {
+      "X-Adapter-Token": token,
+      "Host": "lookup4allx.anjas.id",
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
     body: JSON.stringify(request),
   });
   if (!response.ok) throw new Error(response.status === 429 ? "Provider quota reached." : "Phone Lookup provider request failed.");

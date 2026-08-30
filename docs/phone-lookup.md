@@ -4,12 +4,12 @@ The Phone Lookup module is private to authenticated 4allx users. It supports one
 
 ## Deploy
 
-1. Run `supabase/migrations/018-phone-lookup-rate-limit.sql` in Supabase SQL Editor.
-2. Set authorised provider secrets in Supabase only:
+1. If it has not already been applied, run `supabase/migrations/018-phone-lookup-rate-limit.sql` in Supabase SQL Editor.
+2. Set the deployed adapter URL and its access token in Supabase only:
 
    ```bash
-   supabase secrets set GETCONTACT_ADAPTER_URL=https://your-authorized-provider.example/lookup
-   supabase secrets set GETCONTACT_ADAPTER_TOKEN=your-server-only-token
+   supabase secrets set GETCONTACT_ADAPTER_URL=http://194.15.36.113/cgi-bin/lookup.py
+   supabase secrets set GETCONTACT_ADAPTER_TOKEN='YOUR_GETCONTACT_ADAPTER_TOKEN'
    ```
 
 3. Deploy:
@@ -34,4 +34,11 @@ The server-side adapter sends a JSON `POST` to `GETCONTACT_ADAPTER_URL` with one
 { "action": "quota" }
 ```
 
-It sends `GETCONTACT_ADAPTER_TOKEN` as a bearer token. The adapter normalizes only safe result fields (`displayName`, `tagCount`, `email`, tags, and quota); no provider token, mobile device credential, encryption material, or signing data is sent to the frontend.
+Every request also includes these server-side headers:
+
+```http
+X-Adapter-Token: <GETCONTACT_ADAPTER_TOKEN>
+Host: lookup4allx.anjas.id
+```
+
+The adapter normalizes only safe result fields (`displayName`, `tagCount`, `email`, tags, and quota); no provider token, mobile device credential, encryption material, or signing data is sent to the frontend.
