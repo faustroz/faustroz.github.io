@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Phone } from "lucide-react";
+import UsernameLookupPanel from "@/components/hub/UsernameLookupPanel";
 
 export const metadata = { title: "OSINT — Personal Hub" };
 
@@ -21,6 +22,7 @@ export default function OsintPage() {
         </div>
         <ArrowUpRight aria-hidden="true" />
       </Link>
+      <UsernameLookupPanel />
     </main>
   );
 }
