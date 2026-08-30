@@ -2,3 +2,9 @@
 # The iPhone calls this function with a revocable device key instead of a
 # short-lived Supabase JWT. The handler verifies that key before every write.
 verify_jwt = false
+
+[functions.username-lookup]
+# Keep gateway verification disabled so this function can use the same
+# explicit auth.getUser() validation path as the deployed Phone Lookup
+# function. The handler still rejects every request without a valid user JWT.
+verify_jwt = false
