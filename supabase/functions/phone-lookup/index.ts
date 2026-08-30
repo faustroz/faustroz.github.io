@@ -49,8 +49,20 @@ async function getContactLookup(request: LookupRequest) {
     return { kind: "profile", displayName: text(profile.displayName || profile.name), tagCount: Number(profile.tagCount || profile.tagsCount || 0) || 0, email: text(profile.email), phone: request.phone };
   }
   if (request.action === "tags") {
-    const tags = list(body?.tags || body?.data?.tags || body?.data || []);
-    return { kind: "tags", tags, tagCount: Number(body?.tagCount || body?.data?.tagCount || tags.length) || tags.length, phone: request.phone };
+    // The adapter returns { tags: [{ tag, count }], count }. Keep that
+    // contract intact for the PWA; log only its structure, never tag values
+    // or the requested phone number.
+    const tags = Array.isArray(body?.tags) ? body.tags : [];
+    const count = typeof body?.count === "number" && Number.isFinite(body.count) && body.count >= 0
+      ? body.count
+      : tags.length;
+    console.info("phone-lookup tags response", {
+      hasTagsArray: Array.isArray(body?.tags),
+      tagsLength: tags.length,
+      reportedCount: count,
+      firstEntryType: tags.length ? typeof tags[0] : "none",
+    });
+    return { kind: "tags", tags, count, phone: request.phone };
   }
   const quota = body?.quota || body?.data || body || {};
   return { kind: "quota", search: Number(quota.search || quota.searchRemaining || 0) || 0, numberDetail: Number(quota.numberDetail || quota.numberDetailRemaining || 0) || 0, resetsAt: text(quota.resetsAt || quota.resetDate, 64) };
