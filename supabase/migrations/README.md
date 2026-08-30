@@ -21,6 +21,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 017 | `017-income-account-provider-filter.sql` | Exact Income account links and provider-level Finance filters | 015, 016 |
 | 018 | `018-phone-lookup-rate-limit.sql` | Phone Lookup server-side quota enforcement | Supabase Auth |
 | 020 | `020-cashflow-trash-permanent-delete.sql` | Prevent double balance refunds when permanently deleting Trash cashflow records | 016 |
+| 021 | `021-phone-lookup-practical-rate-limits.sql` | Per-action practical Phone Lookup limits and stale-window cleanup | 018 |
 
 ## Safety notes
 

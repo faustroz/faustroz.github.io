@@ -3,12 +3,16 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("Phone Lookup keeps provider access server-side and limits authenticated requests", async () => {
-  const [schema, handler] = await Promise.all([
+  const [schema, repair, handler] = await Promise.all([
     readFile(new URL("../../supabase/migrations/018-phone-lookup-rate-limit.sql", import.meta.url), "utf8"),
+    readFile(new URL("../../supabase/migrations/021-phone-lookup-practical-rate-limits.sql", import.meta.url), "utf8"),
     readFile(new URL("../../supabase/functions/phone-lookup/index.ts", import.meta.url), "utf8"),
   ]);
-  assert.match(schema, /request_count between 0 and 5/);
+  assert.match(schema, /request_count between 0 and 10/);
   assert.match(schema, /consume_phone_lookup_rate_limit/);
+  assert.match(repair, /case p_action when 'quota' then 6 else 10 end/);
+  assert.match(repair, /unique key, so quota checks never consume Profile or Tags allowance/);
+  assert.match(repair, /window_start < date_trunc\('hour', now\(\)\) - interval '1 hour'/);
   assert.match(handler, /auth\.getUser/);
   assert.match(handler, /consume_phone_lookup_rate_limit/);
   assert.match(handler, /normalizePhone/);
