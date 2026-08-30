@@ -1,6 +1,6 @@
 # GetContact Vercel proxy
 
-This isolated Vercel project accepts authenticated JSON `POST` requests at `/api/lookup` and forwards their bytes unchanged to the existing shared-IP adapter. It does not change the Supabase Edge Function or the ANJAS adapter.
+This isolated Vercel project accepts authenticated JSON `POST` requests at `/api/lookup` and `/api/username`, forwarding their bytes unchanged to the relevant existing shared-IP adapter. It does not change the Supabase Edge Function or the ANJAS adapter.
 
 ## Deploy
 
@@ -8,7 +8,7 @@ This isolated Vercel project accepts authenticated JSON `POST` requests at `/api
 2. Set the Vercel project **Root Directory** to `vercel-getcontact-proxy`.
 3. Name the project `4allx-getcontact-proxy`.
 4. Add the environment variables below for Production (and Preview if you use Preview deployments).
-5. Deploy. The production endpoint will be `https://4allx-getcontact-proxy.vercel.app/api/lookup`.
+5. Deploy. The production endpoints will be `https://4allx-getcontact-proxy.vercel.app/api/lookup` and `https://4allx-getcontact-proxy.vercel.app/api/username`.
 
 ## Required environment variables
 
@@ -26,3 +26,13 @@ curl --request POST 'https://4allx-getcontact-proxy.vercel.app/api/lookup' \
 
 The proxy sends the upstream request with `Host: lookup4allx.anjas.id`, the server-only `X-Adapter-Token`, and `Content-Type: application/json`. It never caches response data or logs either secret.
 
+## Username request contract
+
+`POST /api/username` uses the same `X-Proxy-Token` authentication and forwards the JSON request body unchanged to the username adapter.
+
+```bash
+curl --request POST 'https://4allx-getcontact-proxy.vercel.app/api/username' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Proxy-Token: YOUR_PROXY_TOKEN' \
+  --data '{"username":"example"}'
+```
