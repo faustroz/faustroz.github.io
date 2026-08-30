@@ -15,5 +15,8 @@ test("Phone Lookup keeps provider access server-side and limits authenticated re
   assert.match(handler, /GETCONTACT_ADAPTER_TOKEN/);
   assert.match(handler, /"X-Adapter-Token": token/);
   assert.match(handler, /"Host": "lookup4allx\.anjas\.id"/);
+  assert.match(handler, /phone-lookup adapter response error/);
+  assert.match(handler, /phone-lookup adapter network error/);
+  assert.match(handler, /phone-lookup rate-limit RPC error/);
   assert.doesNotMatch(handler, /return json\(\{[^}]*GETCONTACT_ADAPTER_TOKEN/);
 });

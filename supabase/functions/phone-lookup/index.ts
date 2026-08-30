@@ -14,18 +14,36 @@ async function getContactLookup(request: LookupRequest) {
   const token = Deno.env.get("GETCONTACT_ADAPTER_TOKEN");
   if (!url || !token) throw new Error("Phone Lookup provider is not configured.");
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "X-Adapter-Token": token,
-      "Host": "lookup4allx.anjas.id",
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) throw new Error(response.status === 429 ? "Provider quota reached." : "Phone Lookup provider request failed.");
-  const body = await response.json();
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "X-Adapter-Token": token,
+        "Host": "lookup4allx.anjas.id",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(request),
+    });
+  } catch (error) {
+    console.error("phone-lookup adapter network error", { message: error instanceof Error ? error.message : "Unknown network error" });
+    throw new Error("Phone Lookup provider request failed.");
+  }
+
+  if (!response.ok) {
+    const responseBody = (await response.text()).slice(0, 4_000);
+    console.error("phone-lookup adapter response error", { status: response.status, body: responseBody });
+    throw new Error(response.status === 429 ? "Provider quota reached." : "Phone Lookup provider request failed.");
+  }
+
+  let body: any;
+  try {
+    body = await response.json();
+  } catch (error) {
+    console.error("phone-lookup adapter response parse error", { status: response.status, message: error instanceof Error ? error.message : "Invalid JSON" });
+    throw new Error("Phone Lookup provider request failed.");
+  }
 
   if (request.action === "profile") {
     const profile = body?.profile || body?.data || body || {};
@@ -64,12 +82,16 @@ Deno.serve(async (request) => {
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data: allowed, error: rateError } = await admin.rpc("consume_phone_lookup_rate_limit", { p_user_id: user.id, p_action: action });
-  if (rateError) return json({ error: "Lookup protection is unavailable." }, 503);
+  if (rateError) {
+    console.error("phone-lookup rate-limit RPC error", { code: rateError.code, message: rateError.message, details: rateError.details, hint: rateError.hint });
+    return json({ error: "Lookup protection is unavailable." }, 503);
+  }
   if (!allowed) return json({ error: "Rate limit reached. Try again in the next 15-minute window." }, 429);
 
   try {
     return json({ result: await getContactLookup({ action, phone }) });
   } catch (error) {
+    console.error("phone-lookup adapter failure", { message: error instanceof Error ? error.message : "Lookup failed." });
     return json({ error: error instanceof Error ? error.message : "Lookup failed." }, 502);
   }
 });
