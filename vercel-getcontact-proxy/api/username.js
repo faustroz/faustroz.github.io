@@ -13,6 +13,12 @@ function isAuthorized(value, secret) {
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 
+function proxyTokenHeader(headers) {
+  const entry = Object.entries(headers).find(([name]) => name.toLowerCase() === "x-proxy-token");
+  const value = entry?.[1];
+  return typeof value === "string" ? value : Array.isArray(value) && typeof value[0] === "string" ? value[0] : undefined;
+}
+
 function readBody(request) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -66,7 +72,16 @@ async function username(request, response) {
   if (request.method !== "POST") return response.status(405).json({ error: "Method not allowed" });
 
   const proxyToken = process.env.PROXY_TOKEN;
-  if (!isAuthorized(request.headers["x-proxy-token"], proxyToken)) return response.status(401).json({ error: "Unauthorized" });
+  const suppliedToken = proxyTokenHeader(request.headers);
+  const tokenMatch = isAuthorized(suppliedToken, proxyToken);
+  if (!tokenMatch) {
+    console.warn("getcontact username proxy authorization failed", {
+      envPresent: Boolean(proxyToken),
+      headerPresent: Boolean(suppliedToken),
+      tokenMatch,
+    });
+    return response.status(401).json({ error: "Unauthorized" });
+  }
 
   const contentType = request.headers["content-type"] || "";
   if (!contentType.toLowerCase().startsWith("application/json")) return response.status(415).json({ error: "Content-Type must be application/json" });

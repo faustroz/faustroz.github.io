@@ -9,7 +9,10 @@ test("username proxy targets only the username adapter with server-side credenti
   assert.match(source, /"X-Adapter-Token": adapterToken/);
   assert.match(source, /Host: UPSTREAM_VIRTUAL_HOST/);
   assert.match(source, /const proxyToken = process\.env\.PROXY_TOKEN/);
-  assert.match(source, /request\.headers\["x-proxy-token"\]/);
+  assert.match(source, /name\.toLowerCase\(\) === "x-proxy-token"/);
+  assert.match(source, /envPresent: Boolean\(proxyToken\)/);
+  assert.match(source, /headerPresent: Boolean\(suppliedToken\)/);
+  assert.match(source, /tokenMatch,/);
   assert.match(source, /upstream\.end\(body\)/);
   assert.match(source, /response\.setHeader\("Cache-Control", "no-store"\)/);
   assert.doesNotMatch(source, /console\.(?:warn|error)\([^\n]*body/);
