@@ -14,6 +14,7 @@ import {
   Settings,
   WalletCards,
   Phone,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -27,7 +28,7 @@ const primaryModules = HUB_MODULES.filter(({ id }) =>
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["settings", "insights", "vault", "academic", "trash", "phone-lookup"].includes(id)
+  ["settings", "insights", "vault", "academic", "trash", "osint"].includes(id)
 );
 
 const primaryIcons = {
@@ -43,13 +44,14 @@ const secondaryIcons = {
   vault: FolderKanban,
   academic: GraduationCap,
   trash: X,
-  "phone-lookup": Phone,
+  osint: Search,
 };
 
 export default function HubNavigation() {
   const pathname = usePathname();
   const active = resolveActiveNav(pathname);
   const [open, setOpen] = useState(false);
+  const [osintOpen, setOsintOpen] = useState(() => pathname.startsWith("/phone-lookup"));
   const [searchOpen, setSearchOpen] = useState(false);
   const triggerRef = useRef(null);
   const closeRef = useRef(null);
@@ -81,6 +83,7 @@ export default function HubNavigation() {
 
   useEffect(() => {
     setOpen(false);
+    setOsintOpen(pathname.startsWith("/phone-lookup"));
   }, [pathname]);
 
   useEffect(() => {
@@ -104,18 +107,47 @@ export default function HubNavigation() {
         </Link>
 
         <nav className="hub-desktop-nav" aria-label="Primary navigation">
-          {HUB_MODULES.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              aria-current={
-                active === item.id || pathname === item.href ? "page" : undefined
-              }
-            >
-              <span>{item.number}</span>
-              {item.label}
-            </Link>
-          ))}
+          {HUB_MODULES.map((item) => {
+            if (!item.children) {
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  aria-current={active === item.id || pathname === item.href ? "page" : undefined}
+                >
+                  <span>{item.number}</span>
+                  {item.label}
+                </Link>
+              );
+            }
+
+            const hasActiveChild = item.children.some((child) => pathname.startsWith(child.href));
+            return (
+              <div className="hub-desktop-nav-group" key={item.id}>
+                <button
+                  type="button"
+                  aria-current={hasActiveChild ? "page" : undefined}
+                  aria-expanded={osintOpen}
+                  aria-controls="osint-submenu"
+                  onClick={() => setOsintOpen((value) => !value)}
+                >
+                  <span>{item.number}</span>
+                  {item.label}
+                  <ChevronDown aria-hidden="true" />
+                </button>
+                {osintOpen && (
+                  <div className="hub-desktop-nav-submenu" id="osint-submenu">
+                    {item.children.map((child) => (
+                      <Link key={child.id} href={child.href} aria-current={pathname.startsWith(child.href) ? "page" : undefined}>
+                        <Phone aria-hidden="true" />
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="hub-system-status" aria-label="System controls">
@@ -185,6 +217,22 @@ export default function HubNavigation() {
             <div className="hub-sheet-links">
               {secondaryModules.map((item) => {
                 const Icon = secondaryIcons[item.id];
+                if (item.children) {
+                  return (
+                    <div className="hub-sheet-group" key={item.id}>
+                      <div className="hub-sheet-group-label"><Icon aria-hidden="true" /><strong>{item.label}</strong></div>
+                      <div className="hub-sheet-submenu">
+                        {item.children.map((child) => (
+                          <Link key={child.id} href={child.href} onClick={() => setOpen(false)}>
+                            <span>{item.number}</span>
+                            <Phone aria-hidden="true" />
+                            <strong>{child.label}</strong>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <Link key={item.id} href={item.href} onClick={() => setOpen(false)}>
                     <span>{item.number}</span>

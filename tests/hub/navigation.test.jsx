@@ -26,7 +26,7 @@ describe("Hub navigation contract", () => {
       ["vault", "/vault"],
       ["academic", "/academic"],
       ["trash", "/trash"],
-      ["phone-lookup", "/phone-lookup"],
+      ["osint", undefined],
     ]);
   });
 
@@ -114,6 +114,7 @@ describe("HubNavigation", () => {
     const dialog = screen.getByRole("dialog", { name: /more navigation/i });
     expect(dialog).toBeVisible();
     expect(within(dialog).queryByRole("link", { name: /ai memory/i })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: /phone lookup/i })).toBeVisible();
 
     await user.keyboard("{Escape}");
 
