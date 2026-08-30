@@ -341,6 +341,12 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-ledger-controls button.is-active { border-color:var(--hub-accent); color:var(--hub-ink); background:var(--hub-accent); }
 .hub-ledger-controls strong { margin-left:auto; padding:.45rem 0; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; letter-spacing:.07em; }
 @media (max-width: 540px) { .hub-ledger-controls { display:grid; grid-template-columns:1fr auto; } .hub-ledger-controls label:nth-of-type(n + 2) { grid-column:1 / -1; } .hub-ledger-controls label { min-width:0; } .hub-ledger-controls strong { margin:0; } }
+.hub-phone-lookup { display:grid; gap:1rem; padding:clamp(1rem,3vw,1.5rem); border:1px solid var(--hub-line); background:var(--hub-panel); }
+.hub-phone-input { display:grid; grid-template-columns:minmax(0,1fr) 2.8rem; align-items:end; gap:.7rem; }
+.hub-phone-input label { display:grid; gap:.45rem; }.hub-phone-input label span,.hub-phone-result span { color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; letter-spacing:.1em; }.hub-phone-input input { min-height:3rem; padding:0 .8rem; border:1px solid var(--hub-line); color:var(--hub-text); background:var(--hub-panel-raised); font:1rem var(--font-geist-mono),monospace; }.hub-phone-input > svg { width:2.8rem;height:3rem;padding:.7rem;border:1px solid var(--hub-line);color:var(--hub-accent); }
+.hub-phone-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; }.hub-phone-actions button { display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:2.75rem;border:1px solid var(--hub-line);color:var(--hub-text);background:var(--hub-panel-raised);font:.7rem var(--font-geist-mono),monospace;cursor:pointer; }.hub-phone-actions button:first-child { color:var(--hub-ink);background:var(--hub-accent);border-color:var(--hub-accent); }.hub-phone-actions button:disabled { opacity:.6;cursor:wait; }
+.hub-phone-result { display:grid;gap:.45rem;padding:1rem;border:1px solid var(--hub-line-bright);background:var(--hub-accent-soft); }.hub-phone-result strong { font-size:1.1rem; }.hub-phone-result p,.hub-phone-note { margin:0;color:var(--hub-muted);font-size:.82rem;line-height:1.6; }.hub-phone-note { font-family:var(--font-geist-mono),monospace;font-size:.67rem; }
+@media (max-width:420px) { .hub-phone-actions { grid-template-columns:1fr; } }
 
 /* Compact mobile record sheet: retains context around the form instead of
    turning every entry into an edge-to-edge bottom drawer. */

@@ -18,6 +18,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 015 | `015-expense-account-linking.sql` | Exact account links, atomic Quick Expense writes, replay protection | 011, 012, 014 |
 | 016 | `016-cashflow-soft-delete-balance.sql` | Correct balance reversal on delete and restore | 012, 015 |
 | 017 | `017-income-account-provider-filter.sql` | Exact Income account links and provider-level Finance filters | 015, 016 |
+| 018 | `018-phone-lookup-rate-limit.sql` | Phone Lookup server-side quota enforcement | Supabase Auth |
 
 ## Safety notes
 

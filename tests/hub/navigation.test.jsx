@@ -27,6 +27,7 @@ describe("Hub navigation contract", () => {
       ["vault", "/vault"],
       ["academic", "/academic"],
       ["trash", "/trash"],
+      ["phone-lookup", "/phone-lookup"],
     ]);
   });
 
@@ -40,6 +41,7 @@ describe("Hub navigation contract", () => {
     ["/memory", "more"],
     ["/settings", "more"],
     ["/insights", "more"],
+    ["/phone-lookup", "more"],
     ["/about", null],
   ])("resolves %s to %s", (pathname, expected) => {
     expect(resolveActiveNav(pathname)).toBe(expected);

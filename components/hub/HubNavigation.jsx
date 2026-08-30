@@ -14,6 +14,7 @@ import {
   Search,
   Settings,
   WalletCards,
+  Phone,
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -27,7 +28,7 @@ const primaryModules = HUB_MODULES.filter(({ id }) =>
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["memory", "settings", "insights", "vault", "academic", "trash"].includes(id)
+  ["memory", "settings", "insights", "vault", "academic", "trash", "phone-lookup"].includes(id)
 );
 
 const primaryIcons = {
@@ -44,6 +45,7 @@ const secondaryIcons = {
   vault: FolderKanban,
   academic: GraduationCap,
   trash: X,
+  "phone-lookup": Phone,
 };
 
 export default function HubNavigation() {
