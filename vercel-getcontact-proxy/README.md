@@ -25,3 +25,4 @@ curl --request POST 'https://4allx-getcontact-proxy.vercel.app/api/lookup' \
 ```
 
 The proxy sends the upstream request with `Host: lookup4allx.anjas.id`, the server-only `X-Adapter-Token`, and `Content-Type: application/json`. It never caches response data or logs either secret.
+
