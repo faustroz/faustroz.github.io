@@ -5,6 +5,16 @@ const UPSTREAM_HOST = "194.15.36.113";
 const UPSTREAM_PATH = "/cgi-bin/username.py";
 const UPSTREAM_VIRTUAL_HOST = "lookup4allx.anjas.id";
 const MAX_BODY_BYTES = 1024 * 1024;
+// Vercel Hobby without Fluid Compute permits at most 60 seconds. Keep a five
+// second response margin so this proxy can return a useful timeout response.
+const USERNAME_UPSTREAM_TIMEOUT_MS = 55_000;
+
+class UpstreamTimeoutError extends Error {
+  constructor() {
+    super("Upstream request timed out");
+    this.name = "UpstreamTimeoutError";
+  }
+}
 
 function isAuthorized(value, secret) {
   if (typeof value !== "string" || !secret) return false;
@@ -50,7 +60,7 @@ function requestUpstream(body, adapterToken) {
         "Content-Type": "application/json",
         "Content-Length": body.length,
       },
-      timeout: 10_000,
+      timeout: USERNAME_UPSTREAM_TIMEOUT_MS,
     }, (response) => {
       const chunks = [];
       response.on("data", (chunk) => chunks.push(chunk));
@@ -61,7 +71,7 @@ function requestUpstream(body, adapterToken) {
       }));
     });
 
-    upstream.on("timeout", () => upstream.destroy(new Error("Upstream request timed out")));
+    upstream.on("timeout", () => upstream.destroy(new UpstreamTimeoutError()));
     upstream.on("error", reject);
     upstream.end(body);
   });
@@ -110,6 +120,10 @@ async function username(request, response) {
     response.setHeader("Content-Type", upstream.contentType);
     return response.send(upstream.body);
   } catch (error) {
+    if (error instanceof UpstreamTimeoutError) {
+      console.warn("getcontact username proxy upstream timeout", { topSites: requestPayload?.topSites });
+      return response.status(504).json({ error: "Username lookup timed out at the proxy. Try a lower site count." });
+    }
     console.error("getcontact username proxy upstream network error", { message: error instanceof Error ? error.message : "Unknown network error" });
     return response.status(502).json({ error: "Upstream adapter request failed" });
   }

@@ -6,6 +6,8 @@ const source = await readFile("vercel-getcontact-proxy/api/username.js", "utf8")
 
 test("username proxy targets only the username adapter with server-side credentials", () => {
   assert.match(source, /const UPSTREAM_PATH = "\/cgi-bin\/username\.py"/);
+  assert.match(source, /const USERNAME_UPSTREAM_TIMEOUT_MS = 55_000/);
+  assert.match(source, /return response\.status\(504\)\.json\(\{ error: "Username lookup timed out at the proxy\. Try a lower site count\." \}\)/);
   assert.match(source, /"X-Adapter-Token": adapterToken/);
   assert.match(source, /Host: UPSTREAM_VIRTUAL_HOST/);
   assert.match(source, /const proxyToken = process\.env\.PROXY_TOKEN/);
