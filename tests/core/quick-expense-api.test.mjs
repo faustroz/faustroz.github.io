@@ -15,6 +15,9 @@ test("Quick Expense API keeps device keys hashed and writes only owner-scoped fi
   assert.match(handler, /x-quick-expense-key/);
   assert.match(config, /\[functions\.quick-expense\][\s\S]*verify_jwt = false/);
   assert.match(handler, /eq\("user_id", key\.user_id\)/);
+  assert.match(handler, /eq\("bank_name", account\)/);
+  assert.match(handler, /title,/);
+  assert.match(handler, /bank_account_name: accountRow\.name/);
   assert.match(handler, /from\("expenses"\)\.insert/);
   assert.match(handler, /bank_account_name: account/);
   assert.match(handler, /device_timestamp/);

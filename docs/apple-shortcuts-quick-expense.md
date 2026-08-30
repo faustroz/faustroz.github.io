@@ -23,21 +23,25 @@ This Shortcut sends a single expense to the private 4allx Finance system. It use
 ## Build the iPhone Shortcut
 
 1. Open **Shortcuts** → **+** → rename it **Quick Expense**.
-2. Add **Choose from Menu**. Add one menu item for each existing expense category, for example `Food`, `Transport`, and `General`.
+2. Add **Choose from Menu**. Add one menu item for each expense category: `Transport`, `Makanan & Minuman`, `Date Night`, and `Laundry`.
 3. Inside every category branch, add **Set Variable**: name it `Category`, value equal to that branch's category text.
-4. After the menu, add **Ask for Input** → prompt `Amount` → input type **Number**. Set Variable `Amount` to the result.
-5. Add another **Choose from Menu**. Add one menu item for each existing bank account name. Inside each branch, **Set Variable** `Account` to that account name.
-6. Add **Current Date**. Then add **Format Date** → format **ISO 8601**. Set Variable `Device Timestamp` to the formatted result. This is the iPhone's local timestamp and is used for `spent_on` automatically.
-7. Add **Dictionary** with these entries:
+4. Add **Ask for Input** → prompt `Item Name` → input type **Text**. Set Variable `Item Name` to the result.
+5. Add **Ask for Input** → prompt `Amount` → input type **Number**. Set Variable `Amount` to the result.
+6. Add another **Choose from Menu**. Add one menu item for each bank/provider: `BNI`, `MANDIRI`, `JAGO`, and `CASH`. Inside each branch, **Set Variable** `Account` to that provider text.
+7. Add **Current Date**. Then add **Format Date** → format **ISO 8601**. Set Variable `Device Timestamp` to the formatted result. This is the iPhone's local timestamp and is used for `spent_on` automatically.
+   
+   The Shortcut selects `bank_accounts.bank_name` (the provider); the function resolves the matching internal account name so the existing balance trigger remains correct.
+8. Add **Dictionary** with these entries:
 
    | Key | Value |
    | --- | --- |
+   | `title` | `Item Name` variable |
    | `category` | `Category` variable |
    | `amount` | `Amount` variable |
    | `account` | `Account` variable |
    | `device_timestamp` | `Device Timestamp` variable |
 
-8. Add **Get Contents of URL**:
+9. Add **Get Contents of URL**:
    - URL: `https://<your-project-ref>.supabase.co/functions/v1/quick-expense`
    - Method: `POST`
    - Request Body: `JSON`
@@ -45,20 +49,21 @@ This Shortcut sends a single expense to the private 4allx Finance system. It use
    - Headers:
      - `x-quick-expense-key`: the `key` returned during setup
      - `Content-Type`: `application/json`
-9. Add **Get Dictionary Value** from the response using key `expense`, then **Show Notification**: `Expense saved`.
-10. Open the Shortcut details → enable **Use with Back Tap** if shown, or map it in iPhone **Settings → Accessibility → Touch → Back Tap → Double Tap → Quick Expense**.
+10. Add **Get Dictionary Value** from the response using key `expense`, then **Show Notification**: `Expense saved`.
+11. Map it in iPhone **Settings → Accessibility → Touch → Back Tap → Double Tap → Quick Expense**.
 
-The resulting flow is: **Double Tap → Category → Amount → Account → Save**.
+The resulting flow is: **Double Back Tap → Category → Item Name → Amount → Account → automatic device date/time → Save**.
 
 ## Request JSON
 
 ```json
 {
-  "category": "Food",
+  "title": "Kopi pagi",
+  "category": "Makanan & Minuman",
   "amount": 25000,
-  "account": "BCA",
+  "account": "JAGO",
   "device_timestamp": "2026-08-30T14:30:00+07:00"
 }
 ```
 
-`category` must be an existing expense/both category (or `General`), and `account` must be an existing bank account owned by the key's user. Invalid, revoked, expired, or foreign values are rejected.
+`category` must be an existing expense/both category (or `General`). `account` is matched to the owned bank/provider value in `bank_accounts.bank_name`; invalid, revoked, expired, or foreign values are rejected.

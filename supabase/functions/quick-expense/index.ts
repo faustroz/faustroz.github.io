@@ -67,11 +67,12 @@ async function createExpense(request: Request, body: Record<string, unknown>) {
   const rawKey = request.headers.get("x-quick-expense-key")?.trim();
   if (!rawKey || rawKey.length !== 64) return json({ error: "Unauthorized" }, 401);
 
+  const title = cleanText(body.title, 160);
   const category = cleanText(body.category, 80);
   const account = cleanText(body.account, 120);
   const amount = expenseAmount(body.amount);
   const spentOn = expenseDate(body.device_timestamp);
-  if (!category || !account || amount === null || !spentOn) return json({ error: "category, amount, account, and device_timestamp are required" }, 400);
+  if (!title || !category || !account || amount === null || !spentOn) return json({ error: "title, category, amount, account, and device_timestamp are required" }, 400);
 
   // Service role is server-only. It is used only after authenticating the
   // scoped device key, and every lookup/write is explicitly bound to user_id.
@@ -81,17 +82,19 @@ async function createExpense(request: Request, body: Record<string, unknown>) {
 
   const [{ data: categoryRow }, { data: accountRow }] = await Promise.all([
     admin.from("finance_categories").select("id").eq("user_id", key.user_id).eq("name", category).in("kind", ["expense", "both"]).maybeSingle(),
-    admin.from("bank_accounts").select("id").eq("user_id", key.user_id).eq("name", account).maybeSingle(),
+    admin.from("bank_accounts").select("id,name").eq("user_id", key.user_id).eq("bank_name", account).maybeSingle(),
   ]);
   if (!categoryRow && category !== "General") return json({ error: "Unknown expense category" }, 400);
   if (!accountRow) return json({ error: "Unknown bank account" }, 400);
 
   const { data: expense, error } = await admin.from("expenses").insert({
     user_id: key.user_id,
-    title: `Quick expense / ${category}`,
+    title,
     amount,
     category,
-    bank_account_name: account,
+    // The Shortcut selects the bank/provider, while the balance trigger uses
+    // the account's internal name stored in bank_accounts.name.
+    bank_account_name: accountRow.name,
     spent_on: spentOn,
     notes: `iPhone Back Tap · ${body.device_timestamp}`,
   }).select("id,title,amount,category,bank_account_name,spent_on").single();
