@@ -14,9 +14,11 @@ import {
   deleteTransaction,
   getManualPrices,
   getPriceHistory,
+  getMarketPrices,
   savePriceSnapshot,
+  setMarketPrices,
 } from '@/lib/portfolio/storage';
-import { fetchAllPrices } from '@/lib/portfolio/priceService';
+import { fetchAllPrices, marketPriceSnapshot, withLastKnownPrices } from '@/lib/portfolio/priceService';
 import { calcPortfolioSummary } from '@/lib/portfolio/calculations';
 
 const REFRESH_INTERVAL_MS = 120 * 1000; // 2 menit (sebelumnya 60s)
@@ -75,12 +77,16 @@ export default function PortfolioTrackerPage() {
     }
     const assets = Object.values(assetMap);
     const manualPrices = await getManualPrices();
+    let storedPrices = {};
+    try { storedPrices = await getMarketPrices(); } catch (error) { console.warn('Price cache read failed:', error.message); }
 
     try {
       const newPrices = await fetchAllPrices(assets, manualPrices);
-      setPrices(newPrices);
+      const resolvedPrices = withLastKnownPrices(newPrices, storedPrices, assets);
+      setPrices(resolvedPrices);
+      try { await setMarketPrices({ ...storedPrices, ...marketPriceSnapshot(newPrices) }); } catch (error) { console.warn('Price cache write failed:', error.message); }
 
-      const newSummary = calcPortfolioSummary(currentTxs, newPrices);
+      const newSummary = calcPortfolioSummary(currentTxs, resolvedPrices);
       setSummary(newSummary);
 
       // Save price snapshot for trend chart
