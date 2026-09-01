@@ -2,30 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Github,
-  ChartNoAxesCombined,
-  Home,
-  Mail,
-  Menu,
-  Search,
-  Settings,
-  WalletCards,
-  X,
-} from "lucide-react";
+import { ChartNoAxesCombined, Home, Search, Settings, WalletCards, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { HUB_MODULES, resolveActiveNav } from "@/lib/hub/navigation.mjs";
 import GlobalSearch from "@/components/hub/GlobalSearch";
 import QuickAdd from "@/components/hub/QuickAdd";
 import NotificationCenter from "@/components/hub/NotificationCenter";
 
-const primaryModules = HUB_MODULES.filter(({ id }) =>
-  ["home", "finance"].includes(id)
-);
-
-const secondaryModules = HUB_MODULES.filter(({ id }) =>
-  ["settings", "insights", "vault", "academic", "trash", "osint"].includes(id)
-);
+const mobileSections = [
+  { id: "workspace", label: "Workspace", heading: "Workspace routes", ids: ["finance", "academic", "vault", "osint", "insights"], icon: WalletCards },
+  { id: "system", label: "System", heading: "System routes", ids: ["trash", "settings"], icon: Settings },
+];
 
 const desktopSections = [
   { label: "HOME", ids: ["home"] },
@@ -33,12 +20,8 @@ const desktopSections = [
   { label: "SYSTEM", ids: ["trash", "settings"] },
 ];
 
-const primaryIcons = {
-  home: Home,
-  finance: WalletCards,
-};
-
 const secondaryIcons = {
+  finance: WalletCards,
   settings: Settings,
   insights: ChartNoAxesCombined,
   vault: WalletCards,
@@ -50,14 +33,15 @@ const secondaryIcons = {
 export default function HubNavigation() {
   const pathname = usePathname();
   const active = resolveActiveNav(pathname);
-  const [open, setOpen] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const triggerRef = useRef(null);
+  const triggerRefs = useRef({});
   const closeRef = useRef(null);
+  const open = Boolean(mobileSheet);
 
   const closeSheet = (restoreFocus = false) => {
-    if (restoreFocus) triggerRef.current?.focus();
-    setOpen(false);
+    if (restoreFocus && mobileSheet) triggerRefs.current[mobileSheet]?.focus();
+    setMobileSheet(null);
   };
 
   useEffect(() => {
@@ -73,22 +57,25 @@ export default function HubNavigation() {
     if (!open) return undefined;
 
     const closeOnEscape = (event) => {
-      if (event.key === "Escape") closeSheet(true);
+      if (event.key === "Escape") {
+        if (mobileSheet) triggerRefs.current[mobileSheet]?.focus();
+        setMobileSheet(null);
+      }
     };
 
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, mobileSheet]);
 
   useEffect(() => {
-    setOpen(false);
+    setMobileSheet(null);
   }, [pathname]);
 
   useEffect(() => {
     const openSearch = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen(false);
+        setMobileSheet(null);
         setSearchOpen(true);
       }
     };
@@ -123,7 +110,7 @@ export default function HubNavigation() {
         <div className="hub-system-status" aria-label="System controls">
           <QuickAdd />
           <NotificationCenter />
-          <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setOpen(false); setSearchOpen(true); }}>
+          <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setMobileSheet(null); setSearchOpen(true); }}>
             <Search aria-hidden="true" /><span>SEARCH</span>
           </button>
           <i aria-hidden="true" />
@@ -133,31 +120,27 @@ export default function HubNavigation() {
       </header>
 
       <nav className="hub-mobile-dock" aria-label="Mobile navigation">
-        {primaryModules.map((item) => {
-          const Icon = primaryIcons[item.id];
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              aria-current={active === item.id ? "page" : undefined}
-            >
-              <Icon aria-hidden="true" />
-              <span>{item.label}</span>
-            </Link>
-          );
+        <Link href="/hub" aria-current={active === "home" ? "page" : undefined}>
+          <Home aria-hidden="true" />
+          <span>Home</span>
+        </Link>
+        {mobileSections.map((section) => {
+          const Icon = section.icon;
+          const isActive = section.ids.includes(active);
+          return <button
+            key={section.id}
+            ref={(node) => { triggerRefs.current[section.id] = node; }}
+            type="button"
+            className={isActive ? "is-active" : undefined}
+            aria-label={`Open ${section.label} navigation`}
+            aria-current={isActive ? "page" : undefined}
+            aria-expanded={mobileSheet === section.id}
+            onClick={() => setMobileSheet(section.id)}
+          >
+            <Icon aria-hidden="true" />
+            <span>{section.label}</span>
+          </button>;
         })}
-
-        <button
-          ref={triggerRef}
-          type="button"
-          className={active === "more" || active === "osint" ? "is-active" : undefined}
-          aria-label="Open more navigation"
-          aria-expanded={open}
-          onClick={() => setOpen(true)}
-        >
-          <Menu aria-hidden="true" />
-          <span>More</span>
-        </button>
       </nav>
 
       {open && (
@@ -166,18 +149,18 @@ export default function HubNavigation() {
             className="hub-more-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="More navigation"
+            aria-label={`${mobileSheet === "workspace" ? "Workspace" : "System"} navigation`}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="hub-sheet-heading">
               <div>
                 <span>COMMAND DIRECTORY</span>
-                <h2>More routes</h2>
+                <h2>{mobileSections.find(({ id }) => id === mobileSheet)?.heading}</h2>
               </div>
               <button
                 ref={closeRef}
                 type="button"
-                aria-label="Close more navigation"
+                aria-label="Close navigation"
                 onClick={() => closeSheet(true)}
               >
                 <X aria-hidden="true" />
@@ -185,26 +168,18 @@ export default function HubNavigation() {
             </div>
 
             <div className="hub-sheet-links">
-              {secondaryModules.map((item) => {
+              {mobileSections.find(({ id }) => id === mobileSheet)?.ids.map((id) => {
+                const item = HUB_MODULES.find((module) => module.id === id);
+                if (!item) return null;
                 const Icon = secondaryIcons[item.id];
                 return (
-                  <Link key={item.id} href={item.href} onClick={() => setOpen(false)}>
+                  <Link key={item.id} href={item.href} aria-current={active === item.id ? "page" : undefined} onClick={() => setMobileSheet(null)}>
                     <span>{item.number}</span>
                     <Icon aria-hidden="true" />
                     <strong>{item.label}</strong>
                   </Link>
                 );
               })}
-              <a href="https://github.com/faustroz" target="_blank" rel="noreferrer">
-                <span>EXT</span>
-                <Github aria-hidden="true" />
-                <strong>GitHub</strong>
-              </a>
-              <a href="mailto:ferdydiatmika171@gmail.com">
-                <span>MSG</span>
-                <Mail aria-hidden="true" />
-                <strong>Email</strong>
-              </a>
             </div>
           </section>
         </div>

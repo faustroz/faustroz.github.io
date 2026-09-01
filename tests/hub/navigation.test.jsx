@@ -35,8 +35,8 @@ describe("Hub navigation contract", () => {
     ["/finance/portfolio/history", "finance"],
     ["/study", null],
     ["/projects", null],
-    ["/settings", "more"],
-    ["/insights", "more"],
+    ["/settings", "settings"],
+    ["/insights", "insights"],
     ["/osint", "osint"],
     ["/phone-lookup", "osint"],
     ["/about", null],
@@ -77,7 +77,7 @@ describe("HubNavigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("marks nested Finance as active in desktop and mobile navigation", () => {
+  it("marks nested Finance as active in desktop and the Workspace mobile control", () => {
     render(<HubNavigation />);
 
     const desktop = screen.getByRole("navigation", {
@@ -91,7 +91,7 @@ describe("HubNavigation", () => {
       "aria-current",
       "page"
     );
-    expect(within(mobile).getByRole("link", { name: /finance/i })).toHaveAttribute(
+    expect(within(mobile).getByRole("button", { name: /open workspace navigation/i })).toHaveAttribute(
       "aria-current",
       "page"
     );
@@ -106,7 +106,7 @@ describe("HubNavigation", () => {
     expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/Trash.*Settings/);
   });
 
-  it("opens More, closes with Escape, and restores trigger focus", async () => {
+  it("opens Workspace, highlights its current route, and restores trigger focus", async () => {
     const user = userEvent.setup();
     render(<HubNavigation />);
 
@@ -114,20 +114,20 @@ describe("HubNavigation", () => {
       name: /mobile navigation/i,
     });
     const trigger = within(mobile).getByRole("button", {
-      name: /open more navigation/i,
+      name: /open workspace navigation/i,
     });
 
     await user.click(trigger);
 
-    const dialog = screen.getByRole("dialog", { name: /more navigation/i });
+    const dialog = screen.getByRole("dialog", { name: /workspace navigation/i });
     expect(dialog).toBeVisible();
-    expect(within(dialog).queryByRole("link", { name: /ai memory/i })).not.toBeInTheDocument();
     expect(within(dialog).getByRole("link", { name: /osint/i })).toBeVisible();
+    expect(within(dialog).getByRole("link", { name: /finance/i })).toHaveAttribute("aria-current", "page");
 
     await user.keyboard("{Escape}");
 
     expect(
-      screen.queryByRole("dialog", { name: /more navigation/i })
+      screen.queryByRole("dialog", { name: /workspace navigation/i })
     ).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
