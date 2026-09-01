@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { generateUsernameVariations, pivotHref } from "../../lib/hub/osint.mjs";
+import { buildFootprintGraph, generateUsernameVariations, pivotHref } from "../../lib/hub/osint.mjs";
 
 const [migration, graph, cases, save, variations, phone, username] = await Promise.all([
   readFile("supabase/migrations/024-osint-cases.sql", "utf8"),
@@ -40,16 +40,33 @@ test("graph labels confidence and avoids identity claims", () => {
   assert.match(graph, /Confirmed fact/);
   assert.match(graph, /Possible match/);
   assert.match(graph, /Uncertain/);
-  assert.match(graph, /do not prove that identifiers belong to the same person/);
+  assert.match(graph, /Username similarity alone never establishes identity ownership/);
+  assert.match(graph, /ZoomIn/);
+  assert.match(graph, /onPointerMove/);
   assert.equal(pivotHref({ finding_type: "phone", value: "+6281" }), "/phone-lookup?phone=%2B6281");
 });
 
-test("case workspace has timeline, relationship, JSON export, and permanent deletion", () => {
+test("graph model merges duplicates and explains provider relationships", () => {
+  const finding = { finding_type: "profile", label: "GitHub / @4allx", value: "https://github.com/4allx", url: "https://github.com/4allx", source: "username_lookup", confidence: "possible", metadata: { username: "4allx", platform: "GitHub" } };
+  const model = buildFootprintGraph([finding, { ...finding }], "Current session");
+  assert.equal(model.root.label, "@4allx");
+  assert.equal(model.mergedCount, 1);
+  assert.ok(model.nodes.some((node) => node.kind === "platform" && node.label === "GitHub"));
+  assert.ok(model.edges.some((edge) => /lookup provider checked GitHub/.test(edge.reason)));
+});
+
+test("case workspace has four views, JSON export, selection removal, and permanent deletion", () => {
+  assert.match(cases, /OVERVIEW/);
+  assert.match(cases, /FINDINGS/);
   assert.match(cases, /TIMELINE/);
-  assert.match(cases, /RELATIONSHIPS/);
+  assert.match(cases, /GRAPH/);
   assert.match(cases, /JSON\.stringify/);
   assert.match(cases, /Permanently delete/);
+  assert.match(cases, /REMOVE FROM CASE/);
+  assert.match(cases, /\.in\("id", selected\)/);
   assert.match(cases, /\.delete\(\)/);
   assert.match(variations, /current\.length < 5/);
   assert.match(variations, /topSites: 20/);
+  assert.match(variations, /SELECT ALL/);
+  assert.match(variations, /statusLabel/);
 });
