@@ -14,6 +14,7 @@ test("ledger controls filter an owner-visible ledger by month and sort date or a
   assert.deepEqual(filterAndSortLedger(rows, { ...config, month: "2026-08", sort: "date-desc" }).map(({ id }) => id), ["b", "a"]);
   assert.deepEqual(filterAndSortLedger(rows, { ...config, month: "all", sort: "amount-desc" }).map(({ id }) => id), ["c", "a", "b"]);
   assert.deepEqual(filterAndSortLedger(rows, { ...config, month: "2026-08", sort: "amount-asc" }).map(({ id }) => id), ["b", "a"]);
+  assert.deepEqual(filterAndSortLedger(rows, { ...config, month: "2026-08", day: "2026-08-02", sort: "date-desc" }).map(({ id }) => id), ["a"]);
 });
 
 test("ledger controls filter exact account records by bank provider", () => {

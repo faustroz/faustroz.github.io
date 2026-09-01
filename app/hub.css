@@ -398,6 +398,12 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 
 /* Keep the Drive upload control inside the flat technical surface. */
 .hub-vault-drive .hub-vault-upload { color:var(--hub-text); background:var(--hub-panel-raised); font:.68rem "IBM Plex Mono",var(--font-geist-mono),monospace; font-weight:400; }
+
+/* Finance ledger: make date-level filtering and category budget runway legible. */
+.hub-budget-period { display:block; margin-top:.28rem; color:var(--hub-muted); font:.54rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.02em; white-space:nowrap; }
+.hub-budget-meter { display:block; width:100%; height:.28rem; margin-top:.48rem; overflow:hidden; background:var(--hub-line); }.hub-budget-meter b { display:block; height:100%; min-width:2px; background:var(--hub-accent); }.hub-budget-over strong { color:var(--hub-danger); }.hub-budget-over .hub-budget-meter b { background:var(--hub-danger); }
+@media (max-width:540px) { .hub-ledger-controls label:first-child { grid-column:1; } .hub-ledger-controls label:has(input[type="date"]) { grid-column:1 / -1; } .hub-budget-period { white-space:normal; } }
+@media (max-width:767px) { .hub-ledger-controls input,.hub-ledger-controls select { font-size:16px; } }
 @media (max-width:767px) { .hub-quick-add-trigger span { display:none; } .hub-quick-add-trigger { order:-1; } .hub-system-status { gap:.35rem; } .hub-vault-controls { width:100%; } .hub-vault-upload { flex:1; justify-content:center; } }
 
 .hub-more-sheet {

@@ -39,6 +39,37 @@ function displayValue(field, value) {
   return value || "—";
 }
 
+const formatCurrency = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0);
+const localDate = (value) => new Date(`${value}T00:00:00`);
+const dateKey = (value) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+
+function advanceBudgetPeriod(date, period) {
+  const next = new Date(date);
+  if (period === "weekly") next.setDate(next.getDate() + 7);
+  if (period === "monthly") {
+    const day = next.getDate();
+    next.setDate(1); next.setMonth(next.getMonth() + 1);
+    next.setDate(Math.min(day, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()));
+  }
+  if (period === "yearly") next.setFullYear(next.getFullYear() + 1);
+  return next;
+}
+
+function budgetProgress(budget, expenses) {
+  const limit = Number(budget.limit_amount || 0);
+  const period = ["weekly", "monthly", "yearly"].includes(budget.period) ? budget.period : "monthly";
+  const firstStart = budget.starts_on ? localDate(budget.starts_on) : null;
+  const today = localDate(dateKey(new Date()));
+  if (!firstStart || firstStart > today) return { spent: 0, remaining: limit, percent: 0, periodLabel: "UPCOMING" };
+  let start = firstStart;
+  let next = advanceBudgetPeriod(start, period);
+  while (next <= today) { start = next; next = advanceBudgetPeriod(start, period); }
+  const startKey = dateKey(start);
+  const endKey = dateKey(next);
+  const spent = expenses.filter((expense) => expense.category === budget.name && expense.spent_on >= startKey && expense.spent_on < endKey).reduce((total, expense) => total + Number(expense.amount || 0), 0);
+  return { spent, remaining: limit - spent, percent: limit > 0 ? Math.min(100, (spent / limit) * 100) : 0, periodLabel: `${startKey} — ${endKey}` };
+}
+
 export default function CrudPanel({ table, title, description, fields, orderBy, ledger, onRecordsChange }) {
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
@@ -53,11 +84,14 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
   const [formOpen, setFormOpen] = useState(false);
   const [lookups, setLookups] = useState({});
   const [ledgerMonth, setLedgerMonth] = useState(() => currentLedgerMonth());
+  const [ledgerDay, setLedgerDay] = useState("");
   const [ledgerSort, setLedgerSort] = useState("date-desc");
   const [ledgerProvider, setLedgerProvider] = useState("all");
   const [ledgerAccounts, setLedgerAccounts] = useState([]);
+  const [budgetExpenses, setBudgetExpenses] = useState([]);
   const providerByAccountId = useMemo(() => Object.fromEntries(ledgerAccounts.map((account) => [account.id, account.bank_name])), [ledgerAccounts]);
-  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(records, { ...ledger, month: ledgerMonth, provider: ledgerProvider, providerForRecord: (record) => providerByAccountId[record[ledger.accountField]], sort: ledgerSort }) : records, [ledger, ledgerMonth, ledgerProvider, ledgerSort, providerByAccountId, records]);
+  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(records, { ...ledger, month: ledgerMonth, day: ledgerDay, provider: ledgerProvider, providerForRecord: (record) => providerByAccountId[record[ledger.accountField]], sort: ledgerSort }) : records, [ledger, ledgerMonth, ledgerDay, ledgerProvider, ledgerSort, providerByAccountId, records]);
+  const budgetProgressById = useMemo(() => table === "budgets" ? Object.fromEntries(records.map((budget) => [budget.id, budgetProgress(budget, budgetExpenses)])) : {}, [table, records, budgetExpenses]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -85,6 +119,17 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
     });
     return () => { active = false; };
   }, [ledger]);
+
+  useEffect(() => {
+    if (table !== "budgets") { setBudgetExpenses([]); return undefined; }
+    let active = true;
+    requireSupabase().from("expenses").select("category,amount,spent_on").is("deleted_at", null).then(({ data, error }) => {
+      if (!active) return;
+      if (error) setError(error.message);
+      else setBudgetExpenses(data || []);
+    });
+    return () => { active = false; };
+  }, [table]);
 
   useEffect(() => {
     const lookupFields = fields.filter((field) => field.type === "lookup");
@@ -185,8 +230,10 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
       </header>
 
       {ledger && <div className="hub-ledger-controls" aria-label={`${title} filters and sort order`}>
-        <label><span>MONTH</span><input type="month" value={ledgerMonth === "all" ? "" : ledgerMonth} onChange={(event) => setLedgerMonth(event.target.value || "all")} /></label>
-        <button type="button" className={ledgerMonth === "all" ? "is-active" : undefined} onClick={() => setLedgerMonth("all")}>ALL TIME</button>
+        <label><span>MONTH</span><input type="month" value={ledgerMonth === "all" ? "" : ledgerMonth} onChange={(event) => { setLedgerMonth(event.target.value || "all"); setLedgerDay(""); }} /></label>
+        <button type="button" className={ledgerMonth === "all" ? "is-active" : undefined} onClick={() => { setLedgerMonth("all"); setLedgerDay(""); }}>ALL TIME</button>
+        <label><span>EXACT DATE</span><input type="date" value={ledgerDay} onChange={(event) => { const day = event.target.value; setLedgerDay(day); if (day) setLedgerMonth(day.slice(0, 7)); }} /></label>
+        {ledgerDay && <button type="button" onClick={() => setLedgerDay("")}>CLEAR DATE</button>}
         <label><span>PROVIDER</span><select value={ledgerProvider} onChange={(event) => setLedgerProvider(event.target.value)}><option value="all">All banks & cash</option>{[...new Set(ledgerAccounts.map((account) => account.bank_name))].map((provider) => <option key={provider} value={provider}>{provider}</option>)}</select></label>
         <label><span>SORT</span><select value={ledgerSort} onChange={(event) => setLedgerSort(event.target.value)}><option value="date-desc">Date · newest</option><option value="date-asc">Date · oldest</option><option value="amount-desc">Amount · highest</option><option value="amount-asc">Amount · lowest</option></select></label>
         <strong>{visibleRecords.length} {visibleRecords.length === 1 ? "ENTRY" : "ENTRIES"}</strong>
@@ -245,6 +292,10 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
                   const lookupLabel = match && field.displayLookupLabel ? field.lookup.label.map((key) => match[key]).filter(Boolean).join(" · ") : (field.fallbackField && record[field.fallbackField]) || displayValue(field, record[field.name]);
                   return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color && <i style={{ backgroundColor: color }} aria-hidden="true" />}{lookupLabel}</strong></div>;
                 })}
+                {table === "budgets" && (() => {
+                  const progress = budgetProgressById[record.id];
+                  return <><div><span>SPENT</span><strong>{formatCurrency(progress.spent)}</strong><small className="hub-budget-period">{progress.periodLabel}</small></div><div className={progress.remaining < 0 ? "hub-budget-over" : undefined}><span>REMAINING</span><strong>{formatCurrency(progress.remaining)}</strong><i className="hub-budget-meter" aria-label={`${progress.percent.toFixed(0)}% of budget used`}><b style={{ width: `${progress.percent}%` }} /></i></div></>;
+                })()}
               </div>
               <div className="hub-record-actions">
                 <button type="button" onClick={() => edit(record)} aria-label={`Edit ${record.title || record.name || "record"}`}><Pencil /></button>
