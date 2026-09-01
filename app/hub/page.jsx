@@ -44,28 +44,6 @@ export default function HubHome() {
 
         <div className="hub-reveal hub-reveal--2">
           <ModuleCard
-            label="Study"
-            status="PRIVATE"
-            href="/study"
-            title="Learning operations, measured."
-            description="Topics and visible progress for focused study cycles."
-            variant="study"
-          />
-        </div>
-
-        <div className="hub-reveal hub-reveal--3">
-          <ModuleCard
-            label="Projects"
-            status="PRIVATE"
-            href="/projects"
-            title="Execution, not exhibition."
-            description="Projects, tasks, delivery progress, and changelog records in an owner-only workspace."
-            variant="projects"
-          />
-        </div>
-
-        <div className="hub-reveal hub-reveal--4">
-          <ModuleCard
             label="Settings"
             status="PRIVATE"
             href="/settings"

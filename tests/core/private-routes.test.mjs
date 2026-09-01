@@ -6,8 +6,6 @@ test("Phase 4 module routes are private while public pages stay open", () => {
   for (const route of [
     "/finance",
     "/finance/portfolio",
-    "/study",
-    "/projects",
     "/settings",
     "/insights",
     "/osint",

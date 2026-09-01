@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CircleDollarSign, GraduationCap, ListChecks, RefreshCw } from "lucide-react";
+import { CircleDollarSign, RefreshCw } from "lucide-react";
 import { createOperationsService } from "@/lib/hub/operations.mjs";
 import { supabase } from "@/lib/supabase/client";
 
@@ -36,18 +36,12 @@ export default function OperationsInsights() {
   if (state.loading) return <div className="hub-data-state"><RefreshCw className="hub-spin" /> READING REAL OPERATING DATA</div>;
   if (state.error || !state.snapshot) return <div className="hub-data-error" role="alert">{state.error || "No authenticated insight data available."}</div>;
 
-  const { finance, study, projects, empty } = state.snapshot;
+  const { finance } = state.snapshot;
   const noExpenses = finance.expenseCount === 0;
   return (
     <div className="hub-insights-grid">
       <InsightCard icon={CircleDollarSign} eyebrow="FINANCE / CURRENT MONTH" title={noExpenses ? "No expense data." : formatIDR(finance.expenseTotal)}>
         {noExpenses ? <p>Record an expense to start this view.</p> : <dl><div><dt>Expenses</dt><dd>{finance.expenseCount}</dd></div><div><dt>Budgets</dt><dd>{finance.budgetCount}</dd></div><div><dt>Active subscriptions</dt><dd>{finance.activeSubscriptions}</dd></div></dl>}
-      </InsightCard>
-      <InsightCard icon={GraduationCap} eyebrow="STUDY / REAL PROGRESS" title={empty.study ? "No study records." : `${study.averageProgress}% topic progress`}>
-        {empty.study ? <p>Create a topic to start this view.</p> : <><div className="hub-insight-meter"><i style={{ width: `${study.averageProgress}%` }} /></div><dl><div><dt>Topics</dt><dd>{study.topicCount}</dd></div></dl></>}
-      </InsightCard>
-      <InsightCard icon={ListChecks} eyebrow="PROJECTS / DELIVERY SIGNAL" title={empty.projects ? "No project records." : `${projects.taskCompletion}% task completion`}>
-        {empty.projects ? <p>Create a project, task, or changelog entry to start this view.</p> : <><div className="hub-insight-meter"><i style={{ width: `${projects.taskCompletion}%` }} /></div><dl><div><dt>Projects</dt><dd>{projects.projectCount}</dd></div><div><dt>Active</dt><dd>{projects.activeProjectCount}</dd></div><div><dt>Open tasks</dt><dd>{projects.openTaskCount}</dd></div></dl></>}
       </InsightCard>
     </div>
   );

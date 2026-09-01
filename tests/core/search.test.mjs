@@ -10,7 +10,7 @@ import {
 test("search source contract covers every private operational module", () => {
   assert.deepEqual(
     [...new Set(SEARCH_SOURCES.map(({ group }) => group))],
-    ["Finance", "Study", "Projects", "Documents"]
+    ["Finance", "Academic", "Documents"]
   );
   assert.ok(SEARCH_SOURCES.some(({ label }) => label === "Portfolio"));
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "vault_documents"));
@@ -31,10 +31,7 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
   const records = {
     expenses: [{ id: "e1", title: "Cloud hosting", category: "Tools", notes: "Annual server" }],
     budgets: [], subscriptions: [],
-    study_topics: [{ id: "s1", title: "Cloud architecture", subject: "Systems", status: "active" }],
-    study_exams: [], study_flashcards: [],
-    hub_projects: [{ id: "p1", name: "Hub refresh", description: "Cloud navigation", status: "active" }],
-    project_tasks: [], project_changelog: [],
+    academic_records: [{ id: "a1", course_name: "Cloud architecture", semester: "1", block: "Blok 1", grade: "A" }],
   };
   const queriedTables = [];
   const search = createGlobalSearchService({
@@ -52,10 +49,9 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
 
   const result = await search.search("CLOU");
   assert.equal(result.authenticated, true);
-  assert.deepEqual(result.groups.map(({ group }) => group), ["Finance", "Study", "Projects"]);
+  assert.deepEqual(result.groups.map(({ group }) => group), ["Finance", "Academic"]);
   assert.equal(result.groups[0].results[0].title, "Cloud hosting");
   assert.equal(result.groups[1].results[0].title, "Cloud architecture");
-  assert.equal(result.groups[2].results[0].title, "Hub refresh");
   assert.equal(result.groups[0].results[0].href, "/finance?channel=expenses&record=e1");
   assert.equal(queriedTables.includes("ai_memory_entries"), false);
 });

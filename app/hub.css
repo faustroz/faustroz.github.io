@@ -1445,10 +1445,6 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   grid-column: span 4;
 }
 
-.hub-module-card--study {
-  background: linear-gradient(145deg, rgba(100, 239, 173, 0.06), transparent 48%), rgba(14, 32, 26, 0.76);
-}
-
 .hub-auth-state,
 .hub-data-state {
   display: flex;
@@ -2340,8 +2336,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   background: var(--hub-panel);
 }
 
-.hub-shell:not(.hub-shell--finance) .hub-module-card--finance,
-.hub-shell:not(.hub-shell--finance) .hub-module-card--study {
+.hub-shell:not(.hub-shell--finance) .hub-module-card--finance {
   background: var(--hub-panel);
 }
 

@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  FolderKanban,
   Github,
-  GraduationCap,
   ChartNoAxesCombined,
   Home,
   Mail,
@@ -22,7 +20,7 @@ import QuickAdd from "@/components/hub/QuickAdd";
 import NotificationCenter from "@/components/hub/NotificationCenter";
 
 const primaryModules = HUB_MODULES.filter(({ id }) =>
-  ["home", "finance", "study", "projects"].includes(id)
+  ["home", "finance"].includes(id)
 );
 
 const secondaryModules = HUB_MODULES.filter(({ id }) =>
@@ -32,15 +30,13 @@ const secondaryModules = HUB_MODULES.filter(({ id }) =>
 const primaryIcons = {
   home: Home,
   finance: WalletCards,
-  study: GraduationCap,
-  projects: FolderKanban,
 };
 
 const secondaryIcons = {
   settings: Settings,
   insights: ChartNoAxesCombined,
-  vault: FolderKanban,
-  academic: GraduationCap,
+  vault: WalletCards,
+  academic: ChartNoAxesCombined,
   trash: X,
   osint: Search,
 };

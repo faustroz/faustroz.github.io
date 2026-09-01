@@ -7,7 +7,7 @@ export const viewport = {
 export const metadata = {
   title: "Personal Hub — Ferdy Diatmika",
   description:
-    "Ferdy Diatmika's personal command center for finance, projects, and profile.",
+    "Ferdy Diatmika's private personal command center for finance, records, and utilities.",
   manifest: "/hub-manifest.webmanifest",
   appleWebApp: {
     capable: true,
