@@ -15,12 +15,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("Hub navigation contract", () => {
-  it("keeps the agreed canonical route order", () => {
+  it("keeps the current canonical route order", () => {
     expect(HUB_MODULES.map(({ id, href }) => [id, href])).toEqual([
       ["home", "/hub"],
       ["finance", "/finance"],
-      ["study", "/study"],
-      ["projects", "/projects"],
       ["settings", "/settings"],
       ["insights", "/insights"],
       ["vault", "/vault"],
@@ -35,8 +33,8 @@ describe("Hub navigation contract", () => {
     ["/hub", "home"],
     ["/finance/portfolio", "finance"],
     ["/finance/portfolio/history", "finance"],
-    ["/study", "study"],
-    ["/projects", "projects"],
+    ["/study", null],
+    ["/projects", null],
     ["/settings", "more"],
     ["/insights", "more"],
     ["/osint", "osint"],
@@ -97,6 +95,15 @@ describe("HubNavigation", () => {
       "aria-current",
       "page"
     );
+  });
+
+  it("groups desktop links into the requested sidebar sections", () => {
+    render(<HubNavigation />);
+    const desktop = screen.getByRole("navigation", { name: /primary navigation/i });
+
+    expect(within(desktop).getByLabelText("HOME")).toHaveTextContent(/Home/);
+    expect(within(desktop).getByLabelText("WORKSPACE")).toHaveTextContent(/Finance.*Academic.*Vault.*OSINT.*Insights/);
+    expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/Trash.*Settings/);
   });
 
   it("opens More, closes with Escape, and restores trigger focus", async () => {

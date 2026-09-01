@@ -27,6 +27,12 @@ const secondaryModules = HUB_MODULES.filter(({ id }) =>
   ["settings", "insights", "vault", "academic", "trash", "osint"].includes(id)
 );
 
+const desktopSections = [
+  { label: "HOME", ids: ["home"] },
+  { label: "WORKSPACE", ids: ["finance", "academic", "vault", "osint", "insights"] },
+  { label: "SYSTEM", ids: ["trash", "settings"] },
+];
+
 const primaryIcons = {
   home: Home,
   finance: WalletCards,
@@ -99,15 +105,18 @@ export default function HubNavigation() {
         </Link>
 
         <nav className="hub-desktop-nav" aria-label="Primary navigation">
-          {HUB_MODULES.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              aria-current={active === item.id || pathname === item.href ? "page" : undefined}
-            >
-              <span>{item.number}</span>
-              {item.label}
-            </Link>
+          {desktopSections.map((section) => (
+            <section className="hub-nav-section" key={section.label} aria-label={section.label}>
+              <span className="hub-nav-section-label">{section.label}</span>
+              {section.ids.map((id) => {
+                const item = HUB_MODULES.find((module) => module.id === id);
+                if (!item) return null;
+                return <Link key={item.id} href={item.href} aria-current={active === item.id || pathname === item.href ? "page" : undefined}>
+                  <span>{item.number}</span>
+                  {item.label}
+                </Link>;
+              })}
+            </section>
           ))}
         </nav>
 
