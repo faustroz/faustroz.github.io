@@ -54,6 +54,7 @@ export default function OperationsSummary() {
   }
 
   const { snapshot } = state;
+  const focus = snapshot.currentFocus;
   return (
     <section className="hub-operations" data-testid="authenticated-operations">
       <div className="hub-operations-head"><div><h2>Only what needs attention.</h2></div><Link href="/insights"><ChartNoAxesCombined aria-hidden="true" /> View insights</Link></div>
@@ -63,7 +64,7 @@ export default function OperationsSummary() {
       </div>
 
       <div className="hub-operations-detail">
-        <article className="hub-current-focus"><span>Current focus</span><h3>Finance is ready.</h3><p>Use balances, budget limits, and transactions to keep your cashflow current.</p></article>
+        <article className="hub-current-focus"><span>Current focus</span>{focus ? <><h3>{focus.title}</h3><p>{focus.source} · {focus.detail}</p></> : <><h3>No current signal.</h3><p>There is no meaningful private activity to review yet.</p></>}</article>
         <article className="hub-recent-activity"><span>Recent activity</span>{snapshot.recentActivity.length ? <ol>{snapshot.recentActivity.map((item) => <li key={item.id}><i aria-hidden="true" /><div><strong>{item.title}</strong><small>{item.source} · {new Date(item.updatedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}</small></div></li>)}</ol> : <p>No private records updated yet.</p>}</article>
       </div>
     </section>
