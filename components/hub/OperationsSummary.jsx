@@ -60,7 +60,7 @@ export default function OperationsSummary() {
 
       <div className="hub-operation-grid">
         {snapshot.empty.finance ? <EmptySummary label="Finance" href="/finance" /> : <Link className="hub-operation-card" href="/finance"><CircleDollarSign aria-hidden="true" /><span>Finance · current month</span><strong>{formatIDR(snapshot.finance.expenseTotal)}</strong><small>{snapshot.finance.expenseCount} expenses · {snapshot.finance.activeSubscriptions} active subscriptions</small></Link>}
-        {snapshot.empty.study ? <EmptySummary label="Study" href="/study" /> : <Link className="hub-operation-card" href="/study"><GraduationCap aria-hidden="true" /><span>Study · topic progress</span><strong>{snapshot.study.averageProgress}%</strong><small>{snapshot.study.topicCount} topics · {snapshot.study.flashcardCount} flashcards</small></Link>}
+        {snapshot.empty.study ? <EmptySummary label="Study" href="/study" /> : <Link className="hub-operation-card" href="/study"><GraduationCap aria-hidden="true" /><span>Study · topic progress</span><strong>{snapshot.study.averageProgress}%</strong><small>{snapshot.study.topicCount} topics</small></Link>}
         {snapshot.empty.projects ? <EmptySummary label="Projects" href="/projects" /> : <Link className="hub-operation-card" href="/projects"><Activity aria-hidden="true" /><span>Projects · open queue</span><strong>{snapshot.projects.openTaskCount}</strong><small>{snapshot.projects.activeProjectCount} active · {snapshot.projects.taskCompletion}% tasks complete</small></Link>}
       </div>
 

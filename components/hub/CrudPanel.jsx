@@ -70,7 +70,7 @@ function budgetProgress(budget, expenses) {
   return { spent, remaining: limit - spent, percent: limit > 0 ? Math.min(100, (spent / limit) * 100) : 0, periodLabel: `${startKey} — ${endKey}` };
 }
 
-export default function CrudPanel({ table, title, description, fields, orderBy, ledger, onRecordsChange }) {
+export default function CrudPanel({ table, title, description, fields, orderBy, ledger, filter, onRecordsChange }) {
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
     [table, orderBy]
@@ -89,8 +89,11 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
   const [ledgerProvider, setLedgerProvider] = useState("all");
   const [ledgerAccounts, setLedgerAccounts] = useState([]);
   const [budgetExpenses, setBudgetExpenses] = useState([]);
+  const [recordFilterValue, setRecordFilterValue] = useState("all");
   const providerByAccountId = useMemo(() => Object.fromEntries(ledgerAccounts.map((account) => [account.id, account.bank_name])), [ledgerAccounts]);
-  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(records, { ...ledger, month: ledgerMonth, day: ledgerDay, provider: ledgerProvider, providerForRecord: (record) => providerByAccountId[record[ledger.accountField]], sort: ledgerSort }) : records, [ledger, ledgerMonth, ledgerDay, ledgerProvider, ledgerSort, providerByAccountId, records]);
+  const filterOptions = useMemo(() => filter ? [...new Set(records.map((record) => String(record[filter.field] || "").trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right, undefined, { numeric: true })) : [], [filter, records]);
+  const filteredRecords = useMemo(() => !filter || recordFilterValue === "all" ? records : records.filter((record) => String(record[filter.field] || "") === recordFilterValue), [filter, recordFilterValue, records]);
+  const visibleRecords = useMemo(() => ledger ? filterAndSortLedger(filteredRecords, { ...ledger, month: ledgerMonth, day: ledgerDay, provider: ledgerProvider, providerForRecord: (record) => providerByAccountId[record[ledger.accountField]], sort: ledgerSort }) : filteredRecords, [ledger, ledgerMonth, ledgerDay, ledgerProvider, ledgerSort, providerByAccountId, filteredRecords]);
   const budgetProgressById = useMemo(() => table === "budgets" ? Object.fromEntries(records.map((budget) => [budget.id, budgetProgress(budget, budgetExpenses)])) : {}, [table, records, budgetExpenses]);
 
   const load = useCallback(async () => {
@@ -228,6 +231,11 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
         <div><span>DATA CHANNEL / {table.toUpperCase()}</span><h2>{title}</h2><p>{description}</p></div>
         <button type="button" onClick={() => { reset(); setFormOpen(true); }}><Plus aria-hidden="true" /> NEW ENTRY</button>
       </header>
+
+      {filter && <div className="hub-ledger-controls" aria-label={`${title} filters`}>
+        <label><span>{filter.label}</span><select value={recordFilterValue} onChange={(event) => setRecordFilterValue(event.target.value)}><option value="all">All semesters</option>{filterOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+        <strong>{visibleRecords.length} {visibleRecords.length === 1 ? "RECORD" : "RECORDS"}</strong>
+      </div>}
 
       {ledger && <div className="hub-ledger-controls" aria-label={`${title} filters and sort order`}>
         <label><span>MONTH</span><input type="month" value={ledgerMonth === "all" ? "" : ledgerMonth} onChange={(event) => { setLedgerMonth(event.target.value || "all"); setLedgerDay(""); }} /></label>

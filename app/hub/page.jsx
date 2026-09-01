@@ -48,7 +48,7 @@ export default function HubHome() {
             status="PRIVATE"
             href="/study"
             title="Learning operations, measured."
-            description="Topics, exams, flashcards, and visible progress for focused study cycles."
+            description="Topics and visible progress for focused study cycles."
             variant="study"
           />
         </div>
@@ -70,7 +70,7 @@ export default function HubHome() {
             status="PRIVATE"
             href="/settings"
             title="Control the operator layer."
-            description="Account status, privacy controls, and integration placeholders."
+            description="Account status and privacy controls."
             variant="settings"
           />
         </div>

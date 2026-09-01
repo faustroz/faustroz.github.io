@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Webhook } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
-const providers = [["github", "GitHub"], ["google_calendar", "Google Calendar"]];
+const providers = [["github", "GitHub"]];
 export default function IntegrationPanel() {
   const [status, setStatus] = useState("");
   const check = async (provider) => { setStatus(`CHECKING ${provider.toUpperCase()}…`); const { data, error } = await requireSupabase().functions.invoke("integrations", { body: { provider, action: "status" } }); setStatus(error ? error.message : data.configured ? `${provider.toUpperCase()} SECRET DETECTED / COMPLETE PROVIDER SETUP TO CONNECT` : `${provider.toUpperCase()} NOT CONFIGURED IN SUPABASE SECRETS`); };

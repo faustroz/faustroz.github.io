@@ -44,7 +44,7 @@ export default function OperationsInsights() {
         {noExpenses ? <p>Record an expense to start this view.</p> : <dl><div><dt>Expenses</dt><dd>{finance.expenseCount}</dd></div><div><dt>Budgets</dt><dd>{finance.budgetCount}</dd></div><div><dt>Active subscriptions</dt><dd>{finance.activeSubscriptions}</dd></div></dl>}
       </InsightCard>
       <InsightCard icon={GraduationCap} eyebrow="STUDY / REAL PROGRESS" title={empty.study ? "No study records." : `${study.averageProgress}% topic progress`}>
-        {empty.study ? <p>Create a topic, exam, or flashcard to start this view.</p> : <><div className="hub-insight-meter"><i style={{ width: `${study.averageProgress}%` }} /></div><dl><div><dt>Topics</dt><dd>{study.topicCount}</dd></div><div><dt>Exams</dt><dd>{study.examCount}</dd></div><div><dt>Flashcards</dt><dd>{study.flashcardCount}</dd></div></dl></>}
+        {empty.study ? <p>Create a topic to start this view.</p> : <><div className="hub-insight-meter"><i style={{ width: `${study.averageProgress}%` }} /></div><dl><div><dt>Topics</dt><dd>{study.topicCount}</dd></div></dl></>}
       </InsightCard>
       <InsightCard icon={ListChecks} eyebrow="PROJECTS / DELIVERY SIGNAL" title={empty.projects ? "No project records." : `${projects.taskCompletion}% task completion`}>
         {empty.projects ? <p>Create a project, task, or changelog entry to start this view.</p> : <><div className="hub-insight-meter"><i style={{ width: `${projects.taskCompletion}%` }} /></div><dl><div><dt>Projects</dt><dd>{projects.projectCount}</dd></div><div><dt>Active</dt><dd>{projects.activeProjectCount}</dd></div><div><dt>Open tasks</dt><dd>{projects.openTaskCount}</dd></div></dl></>}

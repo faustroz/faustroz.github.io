@@ -1,6 +1,6 @@
 # Personal Hub Edge Functions
 
-Deploy `integrations` and `notifications` with the Supabase CLI. Set GitHub and Google secrets in Supabase only; do not place them in `.env` with a `NEXT_PUBLIC_` prefix. AI provider integration is intentionally deferred.
+Deploy `integrations` and `notifications` with the Supabase CLI. Set the GitHub secret in Supabase only; do not place it in `.env` with a `NEXT_PUBLIC_` prefix. AI provider integration is intentionally deferred.
 
 `integrations` accepts an authenticated user token and returns provider configuration status only. Complete OAuth callback hosting/configuration before enabling provider data sync.
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound, LogOut, Save, ShieldCheck, Webhook } from "lucide-react";
+import { KeyRound, LogOut, Save, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 export default function SettingsPanel() {
@@ -67,16 +67,6 @@ export default function SettingsPanel() {
         </label>
         <button type="button" onClick={save}><Save /> SAVE PRIVACY</button>
         {status && <p className="hub-settings-status">{status}</p>}
-      </section>
-
-      <section className="hub-settings-card hub-settings-card--wide">
-        <span>INTEGRATIONS / PLACEHOLDERS</span>
-        <Webhook aria-hidden="true" />
-        <h2>Future API channels</h2>
-        <div className="hub-integration-list">
-          <div><strong>Calendar Sync</strong><span>NOT CONNECTED</span><code>OAuth provider placeholder</code></div>
-          <div><strong>Finance Import</strong><span>NOT CONNECTED</span><code>Read-only provider placeholder</code></div>
-        </div>
       </section>
     </div>
   );
