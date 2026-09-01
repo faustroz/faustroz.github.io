@@ -64,7 +64,7 @@ export default function GlobalSearch({ open, onClose }) {
         </header>
         <label className="hub-search-input">
           <Search aria-hidden="true" />
-          <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search finance, academic records, documents" autoComplete="off" />
+          <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search finance, academic, vault, system" autoComplete="off" />
           {state.loading && <LoaderCircle className="hub-spin" aria-label="Searching" />}
         </label>
         <p className="hub-search-hint">TYPE AT LEAST 2 CHARACTERS · OWNER-ONLY RESULTS</p>

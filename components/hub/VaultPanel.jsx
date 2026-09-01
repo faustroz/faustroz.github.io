@@ -8,6 +8,9 @@ const safeName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "-");
 const cleanName = (value) => value.trim().replace(/\s+/g, " ").slice(0, 80);
 const formatSize = (bytes) => bytes < 1048576 ? `${Math.max(1, Math.ceil(bytes / 1024))} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 const shortDate = (value) => value ? new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value)) : "—";
+const SEARCH_TEXT_LIMIT = 32768;
+const searchableFile = (file) => file.type.startsWith("text/") || /\.(txt|md|markdown)$/i.test(file.name);
+const extractSearchText = async (file) => searchableFile(file) ? (await file.text()).slice(0, SEARCH_TEXT_LIMIT) : "";
 
 function iconFor(document) {
   if (document.mime_type?.startsWith("image/")) return FileImage;
@@ -55,7 +58,7 @@ export default function VaultPanel() {
   const currentFolders = folders.filter((folder) => folder.parent_id === activeFolderId);
   const currentDocs = docs.filter((document) => document.folder_id === activeFolderId);
   const visibleFolders = searching ? folders.filter((folder) => folder.name.toLowerCase().includes(needle)) : currentFolders;
-  const visibleDocs = searching ? docs.filter((document) => `${document.file_name} ${document.folder || ""} ${(document.tags || []).join(" ")}`.toLowerCase().includes(needle)) : currentDocs;
+  const visibleDocs = searching ? docs.filter((document) => `${document.file_name} ${document.folder || ""} ${(document.tags || []).join(" ")} ${document.search_text || ""}`.toLowerCase().includes(needle)) : currentDocs;
   const usedBytes = docs.reduce((total, document) => total + Number(document.byte_size || 0), 0);
 
   const openFolder = (id) => { setActiveFolderId(id); setQuery(""); setMenuId(null); };
@@ -90,10 +93,18 @@ export default function VaultPanel() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sign in required.");
       const storagePath = `${user.id}/${crypto.randomUUID()}-${safeName(file.name)}`;
+      const searchText = await extractSearchText(file);
       const { error: storageError } = await supabase.storage.from("document-vault").upload(storagePath, file, { contentType: file.type, upsert: false });
       if (storageError) throw storageError;
       const currentFolder = activeFolderId ? folderById.get(activeFolderId) : null;
-      const { error } = await supabase.from("vault_documents").insert({ storage_path: storagePath, file_name: file.name, mime_type: file.type || "application/octet-stream", byte_size: file.size, folder_id: activeFolderId, folder: currentFolder?.name || "" });
+      const payload = { storage_path: storagePath, file_name: file.name, mime_type: file.type || "application/octet-stream", byte_size: file.size, folder_id: activeFolderId, folder: currentFolder?.name || "" };
+      if (searchText) payload.search_text = searchText;
+      let { error } = await supabase.from("vault_documents").insert(payload);
+      // Keep uploads working during a staggered GitHub Pages / migration rollout.
+      if (error && searchText && /search_text/i.test(`${error.message || ""} ${error.details || ""}`)) {
+        delete payload.search_text;
+        ({ error } = await supabase.from("vault_documents").insert(payload));
+      }
       if (error) { await supabase.storage.from("document-vault").remove([storagePath]); throw error; }
       await load();
     } catch (error) { setStatus(error.message); } finally { setUploading(false); event.target.value = ""; }

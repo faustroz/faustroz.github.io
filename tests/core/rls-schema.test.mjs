@@ -31,4 +31,5 @@ test("Phase 4 schema enables owner-scoped RLS for every private table", async ()
   assert.match(sql, /for update to authenticated using/);
   assert.match(sql, /for delete to authenticated using/);
   assert.match(sql, /revoke all on public\.portfolio_tracker_store from anon/);
+  assert.doesNotMatch(sql, /portfolio owner[^;]+using \(true\)/s);
 });

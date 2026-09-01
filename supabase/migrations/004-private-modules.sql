@@ -172,8 +172,10 @@ grant select, insert, update, delete on public.project_changelog to authenticate
 grant select, insert, update, delete on public.ai_memory_entries to authenticated;
 grant select, insert, update, delete on public.user_settings to authenticated;
 
--- Preserve the existing Portfolio storage shape and data while removing anon access.
--- This assumes the Personal Hub has a single authenticated owner account.
+-- Legacy Study, Projects, and AI Memory tables above remain owner-scoped for
+-- backup/database compatibility. Active Hub runtime no longer uses them.
+-- Portfolio ownership is finalized by 023-global-search-portfolio-owner.sql;
+-- fresh databases created from the current 000 migration are already scoped.
 alter table public.portfolio_tracker_store enable row level security;
 drop policy if exists "portfolio tracker public read" on public.portfolio_tracker_store;
 drop policy if exists "portfolio tracker public insert" on public.portfolio_tracker_store;
@@ -183,9 +185,9 @@ drop policy if exists "portfolio owner read" on public.portfolio_tracker_store;
 drop policy if exists "portfolio owner insert" on public.portfolio_tracker_store;
 drop policy if exists "portfolio owner update" on public.portfolio_tracker_store;
 drop policy if exists "portfolio owner delete" on public.portfolio_tracker_store;
-create policy "portfolio owner read" on public.portfolio_tracker_store for select to authenticated using (true);
-create policy "portfolio owner insert" on public.portfolio_tracker_store for insert to authenticated with check (true);
-create policy "portfolio owner update" on public.portfolio_tracker_store for update to authenticated using (true) with check (true);
-create policy "portfolio owner delete" on public.portfolio_tracker_store for delete to authenticated using (true);
+create policy "portfolio owner read" on public.portfolio_tracker_store for select to authenticated using (auth.uid() = user_id);
+create policy "portfolio owner insert" on public.portfolio_tracker_store for insert to authenticated with check (auth.uid() = user_id);
+create policy "portfolio owner update" on public.portfolio_tracker_store for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "portfolio owner delete" on public.portfolio_tracker_store for delete to authenticated using (auth.uid() = user_id);
 grant select, insert, update, delete on public.portfolio_tracker_store to authenticated;
 revoke all on public.portfolio_tracker_store from anon;

@@ -2,9 +2,9 @@
 
 [![Deploy](https://github.com/faustroz/faustroz.github.io/actions/workflows/nextjs.yml/badge.svg)](https://github.com/faustroz/faustroz.github.io/actions/workflows/nextjs.yml)
 
-The public root remains Ferdy Diatmika's portfolio. A separate Night Operations Personal Hub provides access to private finance tooling, projects, and profile modules.
+The public root remains Ferdy Diatmika's portfolio. A separate flat-technical Personal Hub provides authenticated access to private finance, academic, document, insight, and OSINT tools.
 
-The Night Operations system applies to `/hub` and its modules; the public landing page at `/` intentionally retains its original portfolio design. The previous module design is documented in `docs/design-backups/pre-night-operations-finance.md`.
+The private Hub visual system applies to `/hub` and its modules; the public landing page at `/` intentionally retains its original portfolio design. Earlier visual references remain archived under `docs/design-backups/`.
 
 ## Live URL
 
@@ -18,13 +18,15 @@ https://faustroz.github.io/
 | `/hub` | Privacy-first Personal Hub dashboard |
 | `/finance/portfolio` | Existing Supabase-backed Portfolio Tracker |
 | `/finance` | Private expenses, budgets, and subscriptions workspace |
-| `/study` | Private topics, exams, flashcards, and progress workspace |
-| `/projects` | Private projects, tasks, progress, and changelog workspace |
-| `/memory` | Private, API-ready AI context and memory entries |
-| `/settings` | Account, privacy, and integration placeholders |
-| `/insights` | Lightweight authenticated Finance, Study, and Projects analytics |
+| `/academic` | Private grades, credits, semester, and IP/IPK records |
+| `/vault` | Private document drive with owner-scoped Storage |
+| `/osint` | Non-persistent Phone and Username Intelligence tools |
+| `/phone-lookup` | Compatibility route for private Phone Lookup |
+| `/insights` | Real-data Finance, Academic, and Vault insights |
+| `/trash` | Recovery and permanent deletion for active Hub records |
+| `/settings` | Account, privacy, backup, and system controls |
 
-Legacy `/portfolio-tracker` remains available as a compatibility page that sends users to `/finance/portfolio`.
+Legacy `/portfolio-tracker`, `/study`, and `/projects` remain compatibility redirects. Retired Study, Projects, and AI Memory database tables are not used by active runtime features, but remain owner-scoped so old data can still be exported/restored safely.
 
 ## Architecture
 
@@ -34,7 +36,9 @@ app/
 ├── hub/                           # Personal Hub dashboard and metadata
 ├── hub.css                        # Night Operations design system
 ├── finance/portfolio/             # Isolated Portfolio Tracker module
-├── projects/                      # Canonical project archive
+├── academic/                      # Active Academic records
+├── vault/                         # Active Document Vault
+├── osint/                         # Non-persistent private lookups
 └── portfolio-tracker/             # Legacy compatibility route
 
 components/
@@ -77,14 +81,14 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-The public Hub dashboard performs no private Supabase data query. After an authenticated Supabase session is present, `/hub` loads lightweight Finance, Study, Projects, and AI Memory summaries, plus Current Focus and Recent Activity. Private routes require an authenticated session; Portfolio keeps its existing internal gate after the shared account gate.
+Before authentication, the Hub performs no private table search or summary query. With an authenticated owner session, `/hub` loads real Finance, Academic, Vault, and system activity. Global Search covers active private records and indexed text/Markdown Vault content; OSINT results are intentionally never persisted or searched.
 
 ## Database
 
 1. Enable Email authentication in Supabase and create the private owner account.
 2. Run the SQL files in [`supabase/migrations`](supabase/migrations) in numerical order. See its README for the exact sequence and prerequisites.
 
-Every Hub-owned table defaults `user_id` to `auth.uid()` and applies owner-only select, insert, update, and delete policies. AI Memory stores structured context only; it makes no external API calls.
+Every active Hub table defaults `user_id` to `auth.uid()` and applies owner-only policies. Portfolio storage is keyed by `(user_id, key)`. Vault objects are private and their path prefix must match the authenticated owner ID. Provider secrets remain server-side in Supabase/Vercel environments.
 
 ## Verification
 

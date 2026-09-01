@@ -10,10 +10,13 @@ import {
 test("search source contract covers every private operational module", () => {
   assert.deepEqual(
     [...new Set(SEARCH_SOURCES.map(({ group }) => group))],
-    ["Finance", "Academic", "Documents"]
+    ["Finance", "Academic", "Documents", "System"]
   );
   assert.ok(SEARCH_SOURCES.some(({ label }) => label === "Portfolio"));
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "vault_documents"));
+  assert.ok(SEARCH_SOURCES.some(({ table }) => table === "vault_folders"));
+  assert.ok(SEARCH_SOURCES.some(({ table }) => table === "hub_notifications"));
+  assert.equal(SEARCH_SOURCES.some(({ group }) => group === "OSINT"), false);
 });
 
 test("public global search never queries private tables", async () => {
@@ -39,10 +42,14 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
     from(table) {
       queriedTables.push(table);
       return {
-        select: () => ({
-          is: () => ({ limit: async () => ({ data: records[table] || [], error: null }) }),
-          eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
-        }),
+        select: () => {
+          const query = {
+            is: () => query,
+            limit: async () => ({ data: records[table] || [], error: null }),
+            eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+          };
+          return query;
+        },
       };
     },
   });
@@ -54,6 +61,15 @@ test("authenticated search is partial, case-insensitive, and groups owner-visibl
   assert.equal(result.groups[1].results[0].title, "Cloud architecture");
   assert.equal(result.groups[0].results[0].href, "/finance?channel=expenses&record=e1");
   assert.equal(queriedTables.includes("ai_memory_entries"), false);
+});
+
+test("Vault document content is searchable when a private text projection exists", () => {
+  const groups = deriveSearchGroups({
+    vault_documents: [{ id: "v1", file_name: "notes.md", folder: "Academic", tags: [], mime_type: "text/markdown", search_text: "Cardiovascular physiology review" }],
+  }, "vascular PHYS");
+
+  assert.equal(groups[0].group, "Documents");
+  assert.equal(groups[0].results[0].title, "notes.md");
 });
 
 test("short authenticated search does not fetch records", async () => {
