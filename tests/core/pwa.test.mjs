@@ -31,4 +31,7 @@ test("Hub mobile polish protects safe areas, dock, and form keyboard behavior", 
   assert.match(css, /env\(safe-area-inset-bottom\)/);
   assert.match(css, /body:has\(.hub-auth-form input:focus/);
   assert.match(css, /font-size: 1rem/);
+  assert.match(css, /iOS Safari zooms focused form controls below 16px/);
+  assert.match(css, /\.hub-crud-modal input:not\(\[type="checkbox"\]\):not\(\[type="color"\]\)/);
+  assert.match(css, /font-size: 16px !important/);
 });

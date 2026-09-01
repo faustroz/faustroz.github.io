@@ -2555,4 +2555,16 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
     border-radius: 16px !important;
     box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.58) !important;
   }
+
+  /* iOS Safari zooms focused form controls below 16px. Keep text inputs at
+     the native readable size inside every modal, without disabling user zoom. */
+  .hub-crud-modal input:not([type="checkbox"]):not([type="color"]),
+  .hub-crud-modal select,
+  .hub-crud-modal textarea,
+  .hub-vault-dialog input,
+  .hub-vault-dialog select,
+  .hub-vault-menu select,
+  .hub-search-dialog input {
+    font-size: 16px !important;
+  }
 }
