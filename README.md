@@ -20,7 +20,7 @@ https://faustroz.github.io/
 | `/finance` | Private expenses, budgets, and subscriptions workspace |
 | `/academic` | Private grades, credits, semester, and IP/IPK records |
 | `/vault` | Private document drive with owner-scoped Storage |
-| `/osint` | Non-persistent Phone and Username Intelligence tools |
+| `/osint` | Ephemeral Phone/Username tools, relationship graph, username variations, and explicit owner-private Cases |
 | `/phone-lookup` | Compatibility route for private Phone Lookup |
 | `/insights` | Real-data Finance, Academic, and Vault insights |
 | `/trash` | Recovery and permanent deletion for active Hub records |
@@ -81,7 +81,7 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Before authentication, the Hub performs no private table search or summary query. With an authenticated owner session, `/hub` loads real Finance, Academic, Vault, and system activity. Global Search covers active private records and indexed text/Markdown Vault content; OSINT results are intentionally never persisted or searched.
+Before authentication, the Hub performs no private table search or summary query. With an authenticated owner session, `/hub` loads real Finance, Academic, Vault, and system activity. Global Search covers active private records and indexed text/Markdown Vault content. OSINT lookup results are never persisted or searched; only findings explicitly added to an owner-private Case are stored.
 
 ## Database
 
