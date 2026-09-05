@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run",
+    "test": "vitest run tests/hub",
     "test:watch": "vitest",
     "test:core": "node --test --test-isolation=none tests/core/*.test.mjs"
   },

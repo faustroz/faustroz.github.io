@@ -399,6 +399,148 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   }
 }
 
+/* Trading monitoring — read-only operational telemetry. */
+.hub-trading-card {
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  border: 1px solid var(--hub-line);
+  border-radius: 10px;
+  color: var(--hub-text);
+  background: var(--hub-panel);
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.hub-trading-card:hover { border-color: var(--hub-line-bright); background: var(--hub-panel-raised); }
+.hub-trading-card:focus-visible { outline: 2px solid var(--hub-accent); outline-offset: 3px; }
+.hub-trading-card-head,
+.hub-trading-card-head > div,
+.hub-trading-card-action,
+.hub-trading-overview-head,
+.hub-trading-overview-head > div { display: flex; align-items: center; }
+.hub-trading-card-head { justify-content: space-between; gap: 1rem; }
+.hub-trading-card-head > div { gap: 0.6rem; }
+.hub-trading-card-head > div:last-child { justify-content: flex-end; }
+.hub-trading-card-head svg { width: 1rem; color: var(--hub-muted); }
+.hub-trading-card-head span,
+.hub-trading-card-head strong,
+.hub-trading-card-action,
+.hub-trading-card-metrics span,
+.hub-trading-card-metrics dt,
+.hub-trading-overview-head span,
+.hub-trading-mode span,
+.hub-trading-metric dt {
+  font-family: "IBM Plex Mono", var(--font-geist-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+}
+.hub-trading-card-head strong { color: var(--hub-muted); font-weight: 500; }
+.hub-trading-status { display: inline-flex; align-items: center; gap: 0.42rem; color: var(--hub-muted); font: 600 0.6rem "IBM Plex Mono", var(--font-geist-mono), monospace; letter-spacing: 0.04em; }
+.hub-trading-status i { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; }
+.hub-trading-status--online { color: #22c55e; }
+.hub-trading-status--degraded,
+.hub-trading-status--stale,
+.hub-trading-status--checking,
+.hub-trading-status--private { color: var(--hub-muted); }
+.hub-trading-status--offline { color: var(--hub-danger); }
+.hub-trading-card-metrics { display: grid; grid-template-columns: minmax(12rem, 0.75fr) minmax(0, 1.25fr); gap: 1rem; align-items: end; }
+.hub-trading-card-primary { display: grid; gap: 0.3rem; }
+.hub-trading-card-primary span,
+.hub-trading-card-metrics dt { color: var(--hub-muted); }
+.hub-trading-card-primary strong { font: 400 clamp(2rem, 4vw, 3.2rem)/1 var(--hub-display); letter-spacing: -0.03em; }
+.hub-trading-card-metrics dl { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; border-left: 1px solid var(--hub-line); }
+.hub-trading-card-metrics dl div { display: grid; gap: 0.35rem; min-width: 0; padding: 0.4rem 0.75rem; border-right: 1px solid var(--hub-line); }
+.hub-trading-card-metrics dl div:last-child { border-right: 0; }
+.hub-trading-card-metrics dd { margin: 0; overflow-wrap: anywhere; font-size: 0.8rem; font-weight: 600; }
+.hub-trading-card-empty { display: grid; gap: 0.35rem; min-height: 4rem; align-content: center; }
+.hub-trading-card-empty strong { font-size: 0.9rem; }
+.hub-trading-card-empty span { color: var(--hub-muted); font-size: 0.72rem; }
+.hub-trading-card-action { justify-content: space-between; padding-top: 0.8rem; border-top: 1px solid var(--hub-line); color: var(--hub-muted); }
+.hub-trading-card-action svg { width: 0.9rem; }
+
+.hub-trading-page { padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom))); }
+.hub-trading-dashboard { display: grid; gap: 1rem; }
+.hub-trading-overview,
+.hub-trading-panel,
+.hub-trading-unavailable { border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-panel); }
+.hub-trading-overview { padding: 1.25rem; }
+.hub-trading-overview-head { justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--hub-line); }
+.hub-trading-overview-head > div { gap: 0.75rem; }
+.hub-trading-overview-head > div > span { color: var(--hub-muted); }
+.hub-trading-overview-head button,
+.hub-trading-unavailable button {
+  display: inline-flex;
+  min-height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--hub-line-bright);
+  border-radius: 6px;
+  color: var(--hub-text);
+  background: var(--hub-panel-raised);
+  font: 600 0.68rem "Manrope", var(--font-geist-sans), sans-serif;
+  cursor: pointer;
+}
+.hub-trading-overview-head button:disabled { cursor: wait; opacity: 0.55; }
+.hub-trading-overview-head button svg { width: 0.9rem; }
+.hub-trading-stale { margin: 1rem 0 0; padding: 0.7rem 0.8rem; border: 1px solid var(--hub-line-bright); color: var(--hub-muted); font-size: 0.72rem; }
+.hub-trading-mode { display: grid; gap: 0.35rem; padding: 1.25rem 0; }
+.hub-trading-mode span { color: var(--hub-muted); }
+.hub-trading-mode strong { font: 500 clamp(1.8rem, 4vw, 3rem)/1 var(--hub-display); letter-spacing: -0.03em; }
+.hub-trading-mode small { max-width: 42rem; color: var(--hub-muted); font-size: 0.7rem; line-height: 1.5; }
+.hub-trading-overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--hub-line); }
+.hub-trading-overview-grid .hub-trading-metric { padding: 0.85rem 0.75rem 0 0; }
+.hub-trading-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.hub-trading-panel { min-width: 0; padding: 1.25rem; }
+.hub-trading-panel--wide { grid-column: 1 / -1; }
+.hub-trading-panel > header { display: flex; align-items: center; gap: 0.65rem; padding-bottom: 1rem; border-bottom: 1px solid var(--hub-line); }
+.hub-trading-panel > header svg { width: 1rem; color: var(--hub-muted); }
+.hub-trading-panel h2 { margin: 0; font: 500 1rem "Manrope", var(--font-geist-sans), sans-serif; }
+.hub-trading-panel dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.hub-trading-panel--wide dl { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.hub-trading-metric { display: grid; min-width: 0; gap: 0.35rem; padding: 0.85rem 0.75rem 0.85rem 0; border-bottom: 1px solid var(--hub-line); }
+.hub-trading-metric:nth-last-child(-n + 2) { border-bottom: 0; }
+.hub-trading-metric dt { color: var(--hub-muted); }
+.hub-trading-metric dd { margin: 0; overflow-wrap: anywhere; font-size: 0.84rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hub-trading-metric--danger dd { color: var(--hub-danger); }
+.hub-trading-panel > p { margin: 1rem 0 0; color: var(--hub-muted); font-size: 0.68rem; line-height: 1.5; }
+.hub-trading-unavailable { display: flex; gap: 1rem; align-items: center; padding: 1.25rem; }
+.hub-trading-unavailable > svg { width: 1.2rem; color: var(--hub-danger); }
+.hub-trading-unavailable > div { flex: 1; }
+.hub-trading-unavailable span { color: var(--hub-danger); font: 0.6rem "IBM Plex Mono", var(--font-geist-mono), monospace; }
+.hub-trading-unavailable h2 { margin: 0.25rem 0; font: 500 1.35rem var(--hub-display); }
+.hub-trading-unavailable p { margin: 0; color: var(--hub-muted); font-size: 0.74rem; }
+
+@media (max-width: 900px) {
+  .hub-trading-card-metrics { grid-template-columns: 1fr; }
+  .hub-trading-card-metrics dl { border-top: 1px solid var(--hub-line); border-left: 0; padding-top: 0.75rem; }
+  .hub-trading-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hub-trading-panel--wide dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .hub-trading-card { margin: 1rem 0; padding: 1rem; }
+  .hub-trading-card-head { align-items: flex-start; }
+  .hub-trading-card-head > div:last-child { display: grid; justify-items: end; }
+  .hub-trading-card-primary strong { font-size: 2rem; }
+  .hub-trading-card-metrics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hub-trading-card-metrics dl div { border-right: 0; border-bottom: 1px solid var(--hub-line); }
+  .hub-trading-card-metrics dl div:last-child { border-bottom: 0; }
+  .hub-trading-grid { grid-template-columns: 1fr; }
+  .hub-trading-panel--wide { grid-column: auto; }
+  .hub-trading-panel--wide dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hub-trading-overview-head { align-items: flex-start; }
+  .hub-trading-overview-head > div { display: grid; gap: 0.4rem; }
+  .hub-trading-overview-head button { min-width: 6.8rem; }
+  .hub-trading-overview-grid { grid-template-columns: 1fr; }
+  .hub-trading-overview-grid .hub-trading-metric { padding-right: 0; }
+  .hub-trading-overview-grid .hub-trading-metric:last-child { border-bottom: 0; }
+  .hub-trading-unavailable { align-items: flex-start; flex-wrap: wrap; }
+  .hub-trading-unavailable button { width: 100%; }
+}
+
 /* Keep the Drive upload control inside the flat technical surface. */
 .hub-vault-drive .hub-vault-upload { color:var(--hub-text); background:var(--hub-panel-raised); font:.68rem "IBM Plex Mono",var(--font-geist-mono),monospace; font-weight:400; }
 

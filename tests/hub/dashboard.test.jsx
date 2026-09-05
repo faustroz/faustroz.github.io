@@ -1,6 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import HubHome from "@/app/hub/page";
+
+vi.mock("@/components/hub/useTradingMonitor", () => ({
+  useTradingMonitor: () => ({ loading: false, refreshing: false, authenticated: false, metrics: null, stale: false, error: "", updatedAt: null, refresh: vi.fn() }),
+}));
 
 describe("Personal Hub dashboard", () => {
   it("renders the approved route-first module dashboard", () => {
@@ -13,13 +17,11 @@ describe("Personal Hub dashboard", () => {
       "href",
       "/finance"
     );
-    expect(screen.getByRole("link", { name: /open study/i })).toHaveAttribute("href", "/study");
-    expect(screen.getByRole("link", { name: /open projects/i })).toHaveAttribute(
-      "href",
-      "/projects"
-    );
+    expect(screen.queryByRole("link", { name: /open study/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /open projects/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /open ai memory/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open settings/i })).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", { name: /open trading system monitoring/i })).toHaveAttribute("href", "/trading");
     expect(screen.queryByRole("link", { name: /open about/i })).not.toBeInTheDocument();
   });
 

@@ -39,6 +39,7 @@ describe("Hub navigation contract", () => {
     ["/insights", "insights"],
     ["/osint", "osint"],
     ["/phone-lookup", "osint"],
+    ["/trading", "home"],
     ["/about", null],
   ])("resolves %s to %s", (pathname, expected) => {
     expect(resolveActiveNav(pathname)).toBe(expected);

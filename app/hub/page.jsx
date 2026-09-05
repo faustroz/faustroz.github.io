@@ -1,6 +1,7 @@
 import { LockKeyhole } from "lucide-react";
 import ModuleCard from "@/components/hub/ModuleCard";
 import OperationsSummary from "@/components/hub/OperationsSummary";
+import TradingMonitorCard from "@/components/hub/TradingMonitorCard";
 import { HUB_PROFILE } from "@/lib/hub/content.mjs";
 
 export default function HubHome() {
@@ -26,6 +27,8 @@ export default function HubHome() {
       </section>
 
       <OperationsSummary />
+
+      <TradingMonitorCard />
 
       <section className="hub-module-grid" aria-label="Personal Hub modules">
         <div className="hub-reveal hub-reveal--1">
