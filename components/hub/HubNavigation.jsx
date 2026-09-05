@@ -20,6 +20,15 @@ const desktopSections = [
   { label: "SYSTEM", ids: ["trash", "settings"] },
 ];
 
+const routeDisplayNumbers = Object.freeze(Object.fromEntries(
+  desktopSections
+    .filter(({ label }) => label !== "HOME")
+    .flatMap(({ ids }) => ids)
+    .map((id, index) => [id, String(index + 1).padStart(2, "0")])
+));
+
+const displayNumber = (item) => routeDisplayNumbers[item.id] || item.number;
+
 const secondaryIcons = {
   finance: WalletCards,
   settings: Settings,
@@ -99,7 +108,7 @@ export default function HubNavigation() {
                 const item = HUB_MODULES.find((module) => module.id === id);
                 if (!item) return null;
                 return <Link key={item.id} href={item.href} aria-current={active === item.id || pathname === item.href ? "page" : undefined}>
-                  <span>{item.number}</span>
+                  <span>{displayNumber(item)}</span>
                   {item.label}
                 </Link>;
               })}
@@ -174,7 +183,7 @@ export default function HubNavigation() {
                 const Icon = secondaryIcons[item.id];
                 return (
                   <Link key={item.id} href={item.href} aria-current={active === item.id ? "page" : undefined} onClick={() => setMobileSheet(null)}>
-                    <span>{item.number}</span>
+                    <span>{displayNumber(item)}</span>
                     <Icon aria-hidden="true" />
                     <strong>{item.label}</strong>
                   </Link>

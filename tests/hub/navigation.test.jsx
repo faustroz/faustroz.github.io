@@ -106,6 +106,23 @@ describe("HubNavigation", () => {
     expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/Trash.*Settings/);
   });
 
+  it("numbers visible Workspace and System routes sequentially", async () => {
+    const user = userEvent.setup();
+    render(<HubNavigation />);
+    const desktop = screen.getByRole("navigation", { name: /primary navigation/i });
+
+    expect(within(desktop).getByLabelText("WORKSPACE")).toHaveTextContent(/01.*Finance.*02.*Academic.*03.*Vault.*04.*OSINT.*05.*Insights/);
+    expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/06.*Trash.*07.*Settings/);
+
+    const mobile = screen.getByRole("navigation", { name: /mobile navigation/i });
+    await user.click(within(mobile).getByRole("button", { name: /open workspace navigation/i }));
+    expect(screen.getByRole("dialog", { name: /workspace navigation/i })).toHaveTextContent(/01.*Finance.*02.*Academic.*03.*Vault.*04.*OSINT.*05.*Insights/);
+
+    await user.keyboard("{Escape}");
+    await user.click(within(mobile).getByRole("button", { name: /open system navigation/i }));
+    expect(screen.getByRole("dialog", { name: /system navigation/i })).toHaveTextContent(/06.*Trash.*07.*Settings/);
+  });
+
   it("opens Workspace, highlights its current route, and restores trigger focus", async () => {
     const user = userEvent.setup();
     render(<HubNavigation />);
