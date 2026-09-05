@@ -25,6 +25,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 022 | `022-vault-drive-structure.sql` | Nested Vault folders and owner-safe document links | 019 |
 | 023 | `023-global-search-portfolio-owner.sql` | Vault content search projection and owner-scoped Portfolio keys/RLS | 022 |
 | 024 | `024-osint-cases.sql` | Owner-private OSINT cases and manually saved findings | 004 |
+| 025 | `025-quick-income-api.sql` | Replay-safe Quick Income using existing account balance triggers | 017 |
 
 ## Safety notes
 
