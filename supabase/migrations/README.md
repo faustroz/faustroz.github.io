@@ -26,6 +26,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 023 | `023-global-search-portfolio-owner.sql` | Vault content search projection and owner-scoped Portfolio keys/RLS | 022 |
 | 024 | `024-osint-cases.sql` | Owner-private OSINT cases and manually saved findings | 004 |
 | 025 | `025-quick-income-api.sql` | Replay-safe Quick Income using existing account balance triggers | 017 |
+| 026 | `026-exact-cashflow-account-balances.sql` | Restore exact account-id updates for Income and safe unique-name legacy fallback | 020, 025 |
 
 ## Safety notes
 

@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [handler, migration, incomeLinking, docs] = await Promise.all([
+const [handler, migration, incomeLinking, balanceRepair, docs] = await Promise.all([
   readFile(new URL("../../supabase/functions/quick-expense/index.ts", import.meta.url), "utf8"),
   readFile(new URL("../../supabase/migrations/025-quick-income-api.sql", import.meta.url), "utf8"),
   readFile(new URL("../../supabase/migrations/017-income-account-provider-filter.sql", import.meta.url), "utf8"),
+  readFile(new URL("../../supabase/migrations/026-exact-cashflow-account-balances.sql", import.meta.url), "utf8"),
   readFile(new URL("../../docs/apple-shortcuts-quick-expense.md", import.meta.url), "utf8"),
 ]);
 
@@ -24,7 +25,8 @@ test("Quick Income is atomic and replay-safe through the existing Finance trigge
   assert.match(migration, /insert into public\.income_entries/);
   assert.match(migration, /bank_account_id/);
   assert.match(incomeLinking, /sync_income_bank_balance after insert or update or delete/);
-  assert.match(incomeLinking, /new\.bank_account_id[\s\S]*new\.amount/);
+  assert.match(balanceRepair, /new\.bank_account_id, new\.bank_account_name, new\.amount/);
+  assert.doesNotMatch(balanceRepair.match(/elsif tg_table_name = 'income_entries' then([\s\S]*?)end if;\n  end if;/)?.[1] || "", /, null,/);
 });
 
 test("legacy Expense remains the default and both payloads are documented", () => {

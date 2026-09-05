@@ -19,6 +19,7 @@ The required migration order for a fresh project is:
 2. `015-expense-account-linking.sql`
 3. `017-income-account-provider-filter.sql`
 4. `025-quick-income-api.sql`
+5. `026-exact-cashflow-account-balances.sql`
 
 The function authenticates the device key internally because the iPhone Shortcut does not maintain a Supabase user JWT. Supabase keeps `SUPABASE_SERVICE_ROLE_KEY` server-side.
 
