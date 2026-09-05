@@ -13,15 +13,23 @@ test("finance exposes private balances and category-specific budget configuratio
   assert.equal(budgets.fields.find(({ name }) => name === "name").label, "Expense category");
   assert.equal(expenses.fields.find(({ name }) => name === "category").type, "lookup");
   assert.equal(expenses.fields.find(({ name }) => name === "bank_account_id").lookup.table, "bank_accounts");
-  assert.equal(FINANCE_CHANNELS.find(({ id }) => id === "categories").fields.find(({ name }) => name === "color").type, "color");
+  assert.ok(FINANCE_CHANNELS.find(({ id }) => id === "categories").sections.every(({ fields }) => fields.find(({ name }) => name === "color").type === "color"));
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "bank_accounts"));
 });
 
 test("finance has owner-private income and custom category channels", () => {
   const income = FINANCE_CHANNELS.find(({ id }) => id === "income");
   const categories = FINANCE_CHANNELS.find(({ id }) => id === "categories");
+  const expenseCategories = categories.sections.find(({ id }) => id === "expense-categories");
+  const incomeCategories = categories.sections.find(({ id }) => id === "income-categories");
   assert.equal(income.table, "income_entries");
-  assert.equal(categories.table, "finance_categories");
+  assert.equal(expenseCategories.table, "finance_categories");
+  assert.deepEqual(expenseCategories.recordScope, { kind: "expense" });
+  assert.deepEqual(expenseCategories.fixedValues, { kind: "expense" });
+  assert.deepEqual(incomeCategories.recordScope, { kind: "income" });
+  assert.deepEqual(incomeCategories.fixedValues, { kind: "income" });
+  assert.ok(!expenseCategories.fields.some(({ name }) => name === "kind"));
+  assert.ok(!incomeCategories.fields.some(({ name }) => name === "kind"));
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "income_entries"));
   assert.ok(SEARCH_SOURCES.some(({ table }) => table === "finance_categories"));
 });

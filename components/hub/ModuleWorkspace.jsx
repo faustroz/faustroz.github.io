@@ -24,7 +24,11 @@ export default function ModuleWorkspace({ channels }) {
           </button>
         ))}
       </nav>
-      <CrudPanel {...channel} />
+      {channel.sections ? (
+        <div className="hub-crud-sections">
+          {channel.sections.map((section) => <CrudPanel key={section.id} {...section} />)}
+        </div>
+      ) : <CrudPanel {...channel} />}
     </>
   );
 }

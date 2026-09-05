@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { createCrudRepository } from "@/lib/hub/crud.mjs";
 import { currentLedgerMonth, filterAndSortLedger } from "@/lib/hub/ledger.mjs";
 import { requireSupabase } from "@/lib/supabase/client";
@@ -42,6 +43,42 @@ function displayValue(field, value) {
 const formatCurrency = (value) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0);
 const localDate = (value) => new Date(`${value}T00:00:00`);
 const dateKey = (value) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+const neutralLabelColor = "#a1a1aa";
+
+function safeLabelColor(value) {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : neutralLabelColor;
+}
+
+function ColorLookupSelect({ field, rows, value, onChange, autoFocus }) {
+  const selected = rows.find((row) => row[field.lookup.value] === value);
+  const labelFor = (row) => field.lookup.label.map((key) => row[key]).filter(Boolean).join(" · ");
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button type="button" className="hub-color-select" autoFocus={autoFocus}>
+          {selected ? <><i style={{ backgroundColor: safeLabelColor(selected.label_color || selected.color) }} aria-hidden="true" /><span>{labelFor(selected)}</span></> : <span>{value ? `${value} (archived)` : field.optional ? "Not assigned" : "Select an option"}</span>}
+          <ChevronDown className="hub-color-select-caret" aria-hidden="true" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className="hub-color-select-menu" align="start" sideOffset={6}>
+          {field.optional && <DropdownMenu.Item className="hub-color-select-option" onSelect={() => onChange("")}><span>Not assigned</span></DropdownMenu.Item>}
+          {rows.map((row) => {
+            const optionValue = row[field.lookup.value];
+            return (
+              <DropdownMenu.Item key={`${field.name}-${optionValue}`} className="hub-color-select-option" onSelect={() => onChange(optionValue)}>
+                <i style={{ backgroundColor: safeLabelColor(row.label_color || row.color) }} aria-hidden="true" />
+                <span>{labelFor(row)}</span>
+                {optionValue === value && <Check aria-hidden="true" />}
+              </DropdownMenu.Item>
+            );
+          })}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
 
 function advanceBudgetPeriod(date, period) {
   const next = new Date(date);
@@ -70,7 +107,7 @@ function budgetProgress(budget, expenses) {
   return { spent, remaining: limit - spent, percent: limit > 0 ? Math.min(100, (spent / limit) * 100) : 0, periodLabel: `${startKey} — ${endKey}` };
 }
 
-export default function CrudPanel({ table, title, description, fields, orderBy, ledger, filter, onRecordsChange }) {
+export default function CrudPanel({ table, title, description, fields, orderBy, ledger, filter, recordScope, fixedValues, onRecordsChange }) {
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
     [table, orderBy]
@@ -100,7 +137,10 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
     setLoading(true);
     setError("");
     try {
-      const nextRecords = await repository.list();
+      const allRecords = await repository.list();
+      const nextRecords = recordScope
+        ? allRecords.filter((record) => Object.entries(recordScope).every(([key, value]) => record[key] === value))
+        : allRecords;
       setRecords(nextRecords);
       onRecordsChange?.(nextRecords);
     } catch (nextError) {
@@ -108,7 +148,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
     } finally {
       setLoading(false);
     }
-  }, [repository, onRecordsChange]);
+  }, [repository, recordScope, onRecordsChange]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -202,7 +242,9 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
     setSaving(true);
     setError("");
     try {
-      const values = normalizeForm(fields, form);
+      const missingField = fields.find((field) => field.required && field.type !== "computed" && (form[field.name] === "" || form[field.name] === null || form[field.name] === undefined));
+      if (missingField) throw new Error(`${missingField.label} is required.`);
+      const values = { ...normalizeForm(fields, form), ...(fixedValues || {}) };
       if (editingId) await repository.update(editingId, values);
       else await repository.create(values);
       reset();
@@ -257,6 +299,8 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
                 <span>{field.label}</span>
                 {field.type === "textarea" ? (
                   <textarea autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })} />
+                ) : field.type === "lookup" && field.lookup.include?.some((column) => ["color", "label_color"].includes(column)) ? (
+                  <ColorLookupSelect autoFocus={index === 0} field={field} rows={lookups[field.name] || []} value={form[field.name]} onChange={(value) => setForm({ ...form, [field.name]: value })} />
                 ) : field.type === "lookup" ? (
                   <select autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}>
                     <option value="">{field.optional ? "Not assigned" : "Select an option"}</option>
