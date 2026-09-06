@@ -46,7 +46,7 @@ export default function TradingMonitorDashboard() {
           <div><span>System status</span><strong className={`hub-trading-status hub-trading-status--${visibleStatus.toLowerCase()}`}><i aria-hidden="true" />{visibleStatus}</strong></div>
           <button type="button" onClick={state.refresh} disabled={state.refreshing}><RefreshCw className={state.refreshing ? "hub-spin" : undefined} aria-hidden="true" />{state.refreshing ? "Refreshing…" : "Refresh"}</button>
         </div>
-        {state.stale && <p className="hub-trading-stale" role="status">Connection issue. Showing the last valid monitoring snapshot.</p>}
+        {visibleStatus === "STALE" && <p className="hub-trading-stale" role="status">{state.stale ? "Connection issue. Showing the last valid monitoring snapshot." : "The last successful cycle is older than two minutes. Monitoring is stale."}</p>}
         <div className="hub-trading-mode"><span>Mode</span><strong>{metrics.mode === "PAPER" ? "PAPER TRADING" : metrics.mode || "—"}</strong><small>{metrics.mode === "PAPER" ? "Simulated execution only. Values are not real-money returns." : "Monitoring only. No execution controls are available."}</small></div>
         <dl className="hub-trading-overview-grid">
           <Metric label="Uptime" value={formatUptime(metrics.uptimeSeconds)} />

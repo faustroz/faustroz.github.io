@@ -5,17 +5,20 @@ import {
   calculateRateLimitRate,
   createTradingMonitorService,
   deriveTradingStatus,
+  isMonitoringSnapshotStale,
+  monitoringStaleAfterMs,
   parseTradingMetrics,
   tradingMonitorFailure,
 } from "../../lib/hub/trading-monitor.mjs";
 
+const now = Date.now();
 const validMetrics = {
   uptimeSeconds: 130.126,
   rssBytes: 112185344,
   heapUsedBytes: 23981984,
   cycles: 6,
   cycleFailures: 0,
-  lastSuccessfulCycleAt: "2026-09-05T13:43:45.445Z",
+  lastSuccessfulCycleAt: new Date(now - 1_000).toISOString(),
   lastCycleDurationMs: 8026,
   staleDataBlocks: 0,
   providerFailures: 0,
@@ -34,6 +37,15 @@ const validMetrics = {
   weeklyLatch: false,
   providerHttp: { requests: 96, retries: 39, rateLimits: 39, failures: 0 },
 };
+const healthyCurrentHealth = {
+  ready: true,
+  providerReady: true,
+  marketDataFresh: true,
+  financialStateReady: true,
+  recoveryComplete: true,
+  orchestratorReady: true,
+  entryPermission: true,
+};
 
 test("valid monitoring data is sanitized without losing legitimate zero values", () => {
   const metrics = parseTradingMetrics({ ...validMetrics, ignoredSecret: "never-return-this" });
@@ -44,10 +56,51 @@ test("valid monitoring data is sanitized without losing legitimate zero values",
   assert.equal(deriveTradingStatus(metrics), "ONLINE");
 });
 
-test("readiness failures produce DEGRADED without judging trading quality", () => {
+test("legacy fallback preserves the former conservative readiness classifier", () => {
   assert.equal(deriveTradingStatus({ ...validMetrics, marketDataFresh: false }), "DEGRADED");
   assert.equal(deriveTradingStatus({ ...validMetrics, cycleFailures: 1 }), "DEGRADED");
   assert.equal(deriveTradingStatus(null), "OFFLINE");
+});
+
+test("A and I: healthy currentHealth stays ONLINE despite historical counters in PAPER mode", () => {
+  const metrics = parseTradingMetrics({
+    ...validMetrics,
+    mode: "PAPER",
+    cycleFailures: 7,
+    providerFailures: 3,
+    staleDataBlocks: 4,
+    providerHttp: { requests: 20, retries: 8, rateLimits: 2, failures: 2, recoveries: 2, providersInCooldown: 0 },
+    currentHealth: healthyCurrentHealth,
+  });
+  assert.equal(metrics.providerHttp.recoveries, undefined);
+  assert.equal(deriveTradingStatus(metrics, now), "ONLINE");
+});
+
+test("B through E: unhealthy current readiness conditions are DEGRADED", () => {
+  assert.equal(deriveTradingStatus(parseTradingMetrics({ ...validMetrics, currentHealth: { ...healthyCurrentHealth, providerReady: false } }), now), "DEGRADED");
+  assert.equal(deriveTradingStatus(parseTradingMetrics({ ...validMetrics, currentHealth: { ...healthyCurrentHealth, marketDataFresh: false } }), now), "DEGRADED");
+  assert.equal(deriveTradingStatus(parseTradingMetrics({ ...validMetrics, currentHealth: { ...healthyCurrentHealth, databaseReady: false } }), now), "DEGRADED");
+  assert.equal(deriveTradingStatus(parseTradingMetrics({ ...validMetrics, currentHealth: { ...healthyCurrentHealth, reconciliationReady: false } }), now), "DEGRADED");
+});
+
+test("F: an old successful cycle is STALE", () => {
+  const staleMetrics = parseTradingMetrics({
+    ...validMetrics,
+    lastSuccessfulCycleAt: new Date(now - monitoringStaleAfterMs - 1).toISOString(),
+    currentHealth: healthyCurrentHealth,
+  });
+  assert.equal(isMonitoringSnapshotStale(staleMetrics, now), true);
+  assert.equal(deriveTradingStatus(staleMetrics, now), "STALE");
+});
+
+test("G: no usable Raznar response remains OFFLINE", () => {
+  const next = tradingMonitorFailure({ loading: true, refreshing: false, authenticated: true, metrics: null, stale: false, error: "", updatedAt: null }, "Upstream unavailable");
+  assert.equal(deriveTradingStatus(next.metrics, now), "OFFLINE");
+  assert.equal(next.stale, false);
+});
+
+test("H: malformed currentHealth fails safely and can never be ONLINE", () => {
+  assert.throws(() => parseTradingMetrics({ ...validMetrics, currentHealth: { ...healthyCurrentHealth, recoveryComplete: "yes" } }), /Invalid trading monitoring response/);
 });
 
 test("malformed and unexpected monitoring payloads are rejected", () => {
@@ -100,9 +153,12 @@ test("Edge Function covers auth, bounded timeout, upstream errors, and schema re
   assert.match(source, /timedOut \? 504 : 502/);
   assert.match(source, /malformed-json/);
   assert.match(source, /unexpected-schema/);
+  assert.match(source, /sanitizeCurrentHealth/);
+  assert.match(source, /currentHealthRequired/);
   assert.match(source, /Deno\.env\.get\("TRADING_MONITOR_URL"\)/);
   assert.match(source, /Deno\.env\.get\("TRADING_MONITOR_TOKEN"\)/);
   assert.doesNotMatch(source, /NEXT_PUBLIC_TRADING/);
+  assert.doesNotMatch(source, /searchParams/);
 });
 
 test("monitoring polling is immediate, visibility-aware, and overlap-safe", async () => {

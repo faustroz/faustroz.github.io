@@ -12,10 +12,20 @@ const timeoutMs = 8_000;
 const maximumBodyLength = 65_536;
 const readinessFields = ["providerReady", "marketDataFresh", "reconciliationReady", "databaseReady"] as const;
 const nonNegativeFields = ["uptimeSeconds", "rssBytes", "heapUsedBytes", "cycles", "cycleFailures", "lastCycleDurationMs", "staleDataBlocks", "providerFailures", "signalProposals", "riskApprovals", "riskRejections", "openPositions"] as const;
+const currentHealthRequired = ["ready", "providerReady", "marketDataFresh", "financialStateReady", "recoveryComplete", "orchestratorReady", "entryPermission"] as const;
+const currentHealthOptional = ["databaseReady", "reconciliationReady"] as const;
 
 type JsonRecord = Record<string, unknown>;
 const isRecord = (value: unknown): value is JsonRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const validNonNegative = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+function sanitizeCurrentHealth(input: unknown) {
+  if (!isRecord(input) || !currentHealthRequired.every((field) => typeof input[field] === "boolean")) throw new Error("current-health");
+  const output: JsonRecord = {};
+  for (const field of currentHealthRequired) output[field] = input[field];
+  for (const field of currentHealthOptional) if (typeof input[field] === "boolean") output[field] = input[field];
+  return output;
+}
 
 function sanitizeMetrics(input: unknown) {
   if (!isRecord(input)) throw new Error("schema");
@@ -33,6 +43,17 @@ function sanitizeMetrics(input: unknown) {
     const nested: JsonRecord = {};
     for (const field of fields) if (validNonNegative(sourceGroup[field])) nested[field] = sourceGroup[field];
     if (Object.keys(nested).length) output[group] = nested;
+  }
+
+  if (Object.hasOwn(input, "currentHealth")) {
+    const currentHealth = sanitizeCurrentHealth(input.currentHealth);
+    output.currentHealth = currentHealth;
+    // The existing UI reads these bounded fields. Mirror their current-health
+    // equivalents so the visible pipeline cannot be held back by old flags.
+    output.providerReady = currentHealth.providerReady;
+    output.marketDataFresh = currentHealth.marketDataFresh;
+    output.databaseReady = currentHealth.databaseReady ?? currentHealth.financialStateReady;
+    output.reconciliationReady = currentHealth.reconciliationReady ?? currentHealth.recoveryComplete;
   }
 
   if (!readinessFields.every((field) => typeof output[field] === "boolean") || typeof output.mode !== "string") throw new Error("schema");
