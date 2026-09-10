@@ -107,7 +107,7 @@ function budgetProgress(budget, expenses) {
   return { spent, remaining: limit - spent, percent: limit > 0 ? Math.min(100, (spent / limit) * 100) : 0, periodLabel: `${startKey} — ${endKey}` };
 }
 
-export default function CrudPanel({ table, title, description, fields, orderBy, ledger, filter, recordScope, fixedValues, onRecordsChange }) {
+export default function CrudPanel({ table, title, description, fields, displayFields, orderBy, ledger, filter, recordScope, fixedValues, onRecordsChange }) {
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
     [table, orderBy]
@@ -261,7 +261,11 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
     setError("");
     try {
       await repository.remove(record.id);
-      setRecords((current) => current.filter(({ id }) => id !== record.id));
+      setRecords((current) => {
+        const nextRecords = current.filter(({ id }) => id !== record.id);
+        onRecordsChange?.(nextRecords);
+        return nextRecords;
+      });
     } catch (nextError) {
       setError(nextError.message);
     }
@@ -338,7 +342,7 @@ export default function CrudPanel({ table, title, description, fields, orderBy, 
             <article className="hub-record" key={record.id}>
               <div className="hub-record-index">{String(index + 1).padStart(2, "0")}</div>
               <div className="hub-record-values">
-                {fields.slice(0, 5).map((field) => {
+                {(displayFields ? fields.filter((field) => displayFields.includes(field.name)) : fields.slice(0, 5)).map((field) => {
                   const match = field.type === "lookup" ? (lookups[field.name] || []).find((row) => row[field.lookup.value] === record[field.name]) : null;
                   const color = field.type === "color" ? record[field.name] : match?.color;
                   const lookupLabel = match && field.displayLookupLabel ? field.lookup.label.map((key) => match[key]).filter(Boolean).join(" · ") : (field.fallbackField && record[field.fallbackField]) || displayValue(field, record[field.name]);

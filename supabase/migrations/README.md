@@ -27,6 +27,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 024 | `024-osint-cases.sql` | Owner-private OSINT cases and manually saved findings | 004 |
 | 025 | `025-quick-income-api.sql` | Replay-safe Quick Income using existing account balance triggers | 017 |
 | 026 | `026-exact-cashflow-account-balances.sql` | Restore exact account-id updates for Income and safe unique-name legacy fallback | 020, 025 |
+| 027 | `027-academic-mku-records.sql` | Owner-private Mata Kuliah Umum records and Trash retention | 012 |
 
 ## Safety notes
 

@@ -355,6 +355,32 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-academic-guide ul { display:grid; gap:.4rem; margin:.9rem 0 0; padding:0; list-style:none; }
 .hub-academic-guide li { display:grid; gap:.2rem; padding-top:.45rem; border-top:1px solid var(--hub-line); color:var(--hub-muted); font:.66rem/1.45 "IBM Plex Mono",monospace; }
 .hub-academic-guide li b { font-size:.68rem; }
+.hub-ospe-calculator { display:grid; gap:1rem; margin:0 0 1rem; padding:1rem; border:1px solid var(--hub-line); border-radius:10px; background:var(--hub-panel); }
+.hub-ospe-calculator > header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.hub-ospe-calculator header span,.hub-ospe-inputs label > span,.hub-ospe-results dt,.hub-mku-summary > span { color:var(--hub-muted); font:.62rem "IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase; }
+.hub-ospe-calculator h2 { margin:.35rem 0 0; font:500 clamp(1.35rem,2.5vw,1.8rem)/1 "Bricolage Grotesque",sans-serif; letter-spacing:-.03em; }
+.hub-ospe-calculator header p,.hub-mku-summary p { margin:.4rem 0 0; color:var(--hub-muted); font-size:.8rem; line-height:1.55; }
+.hub-ospe-calculator > header > b { padding:.4rem .55rem; border:1px solid var(--hub-line); color:var(--hub-text); font:.68rem "IBM Plex Mono",monospace; white-space:nowrap; }
+.hub-ospe-inputs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }
+.hub-ospe-inputs label { display:grid; gap:.45rem; }
+.hub-ospe-inputs label > span { display:flex; gap:.35rem; align-items:baseline; }
+.hub-ospe-inputs small { color:var(--hub-muted); font:inherit; letter-spacing:0; text-transform:none; }
+.hub-ospe-inputs input { min-height:2.8rem; padding:0 .75rem; border:1px solid var(--hub-line); border-radius:6px; color:var(--hub-text); background:var(--hub-panel-raised); font:1rem var(--font-geist-mono),monospace; }
+.hub-ospe-inputs input:focus { outline:2px solid var(--hub-accent); outline-offset:2px; }
+.hub-ospe-results { display:grid; gap:.7rem; padding-top:.85rem; border-top:1px solid var(--hub-line); }
+.hub-ospe-results dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; margin:0; }
+.hub-ospe-results dl div { display:grid; gap:.3rem; min-width:0; }
+.hub-ospe-results dd { margin:0; color:var(--hub-text); font:600 1.05rem var(--font-geist-mono),monospace; font-variant-numeric:tabular-nums; }
+.hub-ospe-status,.hub-ospe-empty { margin:0; color:var(--hub-muted); font-size:.82rem; line-height:1.5; }
+.hub-ospe-status { padding:.65rem .7rem; border:1px solid var(--hub-line); background:var(--hub-panel-raised); }
+.hub-ospe-status b { color:var(--hub-text); font-family:var(--font-geist-mono),monospace; }
+.hub-ospe-status.is-pass,.hub-ospe-final .is-pass { color:#22c55e; }
+.hub-ospe-status.is-danger,.hub-ospe-final .is-danger { color:var(--hub-danger); }
+.hub-ospe-final { padding-top:.7rem; border-top:1px solid var(--hub-line); }
+.hub-mku-summary { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:1rem; align-items:baseline; margin:1.5rem 0 1rem; padding:1rem; border:1px solid var(--hub-line); border-radius:10px; background:var(--hub-panel); }
+.hub-mku-summary strong { color:var(--hub-text); font:600 clamp(1.5rem,3vw,2rem) "Bricolage Grotesque",sans-serif; letter-spacing:-.03em; }
+.hub-mku-summary p { grid-column:1 / -1; }
+@media (max-width:540px) { .hub-ospe-inputs,.hub-ospe-results dl { grid-template-columns:1fr; }.hub-ospe-calculator > header { flex-direction:column; }.hub-mku-summary { grid-template-columns:1fr; gap:.3rem; } }
 .hub-ledger-controls { display:flex; flex-wrap:wrap; align-items:end; gap:.55rem; margin:0 0 1rem; padding:.75rem; border:1px solid var(--hub-line); background:var(--hub-panel); }
 .hub-ledger-controls label { display:grid; gap:.3rem; min-width:8.8rem; }
 .hub-ledger-controls label span { color:var(--hub-muted); font:.58rem var(--font-geist-mono),monospace; letter-spacing:.1em; }
