@@ -31,3 +31,13 @@ test("MKU records are isolated from medical block assessments and owner scoped",
   assert.match(sql, /deleted_at/);
   assert.doesNotMatch(sql, /calculate_academic_block_grade/);
 });
+
+test("Academic UI keeps MKU in the shared IP summary and switches only the entry fields", async () => {
+  const panel = await readFile(new URL("../../components/hub/AcademicPanel.jsx", import.meta.url), "utf8");
+  assert.match(panel, /const allRecords = \[\.\.\.records, \.\.\.mkuRecords\]/);
+  assert.match(panel, /IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama/);
+  assert.match(panel, /BLOK KEDOKTERAN/);
+  assert.match(panel, /MATA KULIAH UMUM/);
+  assert.match(panel, /hidden=\{recordType !== "medical"\}/);
+  assert.match(panel, /hidden=\{recordType !== "mku"\}/);
+});

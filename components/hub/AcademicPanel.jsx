@@ -33,23 +33,23 @@ function OspeCalculator() {
 export default function AcademicPanel() {
   const [records, setRecords] = useState([]);
   const [mkuRecords, setMkuRecords] = useState([]);
-  const credits = records.reduce((sum, row) => sum + Number(row.credits || 0), 0);
-  const ipk = credits ? records.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / credits : 0;
-  const bySemester = [...new Set(records.map((row) => row.semester))].map((semester) => {
-    const rows = records.filter((row) => row.semester === semester);
+  const [recordType, setRecordType] = useState("medical");
+  const allRecords = [...records, ...mkuRecords];
+  const credits = allRecords.reduce((sum, row) => sum + Number(row.credits || 0), 0);
+  const ipk = credits ? allRecords.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / credits : 0;
+  const bySemester = [...new Set(allRecords.map((row) => row.semester))].map((semester) => {
+    const rows = allRecords.filter((row) => row.semester === semester);
     const total = rows.reduce((sum, row) => sum + Number(row.credits || 0), 0);
     return { semester, ip: total ? rows.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / total : 0 };
   });
-  const mkuCredits = mkuRecords.reduce((sum, row) => sum + Number(row.credits || 0), 0);
-  const mkuIp = mkuCredits ? mkuRecords.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / mkuCredits : null;
-  const mkuSemesters = new Set(mkuRecords.map((record) => record.semester)).size;
-
   return <>
     <section className="hub-academic-summary"><article><span>IPK / CUMULATIVE</span><strong>{ipk.toFixed(2)}</strong></article><article><span>SKS / CREDITS</span><strong>{credits}</strong></article><article><span>SEMESTERS</span><strong>{bySemester.length}</strong></article>{bySemester.map((item) => <article key={item.semester}><span>IP {item.semester}</span><strong>{item.ip.toFixed(2)}</strong></article>)}</section>
-    <section className="hub-academic-guide"><header><span>BLOCK GRADING / AUTOMATIC</span><p>Enter each applicable component score (0–100). The selected block determines its weighting and calculates the final score, grade, IP, and IPK.</p></header><div>{guide.map(([range, grade, point]) => <span key={grade}>{range} <b>{grade}</b> / {point}</span>)}</div><ul>{weights.map(([block, distribution]) => <li key={block}><b>{block}</b><span>{distribution}</span></li>)}</ul></section>
-    <OspeCalculator />
-    <CrudPanel {...ACADEMIC_CHANNELS[0]} onRecordsChange={setRecords} />
-    <section className="hub-mku-summary" aria-label="Mata Kuliah Umum summary"><span>IP MKU</span><strong>{mkuIp === null ? "—" : mkuIp.toFixed(2)}</strong><p>{mkuRecords.length ? `${mkuRecords.length} course${mkuRecords.length === 1 ? "" : "s"} across ${mkuSemesters} semester${mkuSemesters === 1 ? "" : "s"}.` : "Add an MKU record to calculate IP MKU."}</p></section>
-    <CrudPanel {...ACADEMIC_CHANNELS[1]} onRecordsChange={setMkuRecords} />
+    <section className="hub-academic-record-type" aria-label="Academic record type">
+      <div><span>RECORD TYPE</span><p>IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p></div>
+      <div role="tablist" aria-label="Academic record options"><button type="button" role="tab" aria-selected={recordType === "medical"} className={recordType === "medical" ? "is-active" : undefined} onClick={() => setRecordType("medical")}>BLOK KEDOKTERAN</button><button type="button" role="tab" aria-selected={recordType === "mku"} className={recordType === "mku" ? "is-active" : undefined} onClick={() => setRecordType("mku")}>MATA KULIAH UMUM</button></div>
+    </section>
+    {recordType === "medical" && <><section className="hub-academic-guide"><header><span>BLOCK GRADING / AUTOMATIC</span><p>Enter each applicable component score (0–100). The selected block determines its weighting and calculates the final score, grade, IP, and IPK.</p></header><div>{guide.map(([range, grade, point]) => <span key={grade}>{range} <b>{grade}</b> / {point}</span>)}</div><ul>{weights.map(([block, distribution]) => <li key={block}><b>{block}</b><span>{distribution}</span></li>)}</ul></section><OspeCalculator /></>}
+    <div hidden={recordType !== "medical"}><CrudPanel {...ACADEMIC_CHANNELS[0]} onRecordsChange={setRecords} /></div>
+    <div hidden={recordType !== "mku"}><CrudPanel {...ACADEMIC_CHANNELS[1]} onRecordsChange={setMkuRecords} /></div>
   </>;
 }

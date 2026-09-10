@@ -2958,3 +2958,18 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
     font-size: 0.96rem;
   }
 }
+
+/* Academic records share one IP summary; the selected record type only
+   changes the fields used for the next entry. */
+.hub-academic-record-type { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0 0 1rem; padding:1rem; border:1px solid var(--hub-line); border-radius:10px; background:var(--hub-panel); }
+.hub-academic-record-type > div:first-child span { display:block; color:var(--hub-muted); font:.62rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.08em; }
+.hub-academic-record-type p { margin:.35rem 0 0; color:var(--hub-muted); font-size:.8rem; line-height:1.45; }
+.hub-academic-record-type [role="tablist"] { display:flex; flex:0 0 auto; gap:.35rem; padding:.25rem; border:1px solid var(--hub-line); border-radius:7px; }
+.hub-academic-record-type button { min-height:2rem; padding:.45rem .6rem; border:0; border-radius:4px; color:var(--hub-muted); background:transparent; font:.62rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.04em; cursor:pointer; }
+.hub-academic-record-type button.is-active { color:var(--hub-text); background:var(--hub-surface); }
+
+@media (max-width:540px) {
+  .hub-academic-record-type { align-items:stretch; flex-direction:column; }
+  .hub-academic-record-type [role="tablist"] { width:100%; }
+  .hub-academic-record-type button { flex:1; padding-inline:.35rem; font-size:.58rem; }
+}
