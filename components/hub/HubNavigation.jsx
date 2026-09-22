@@ -117,8 +117,10 @@ export default function HubNavigation() {
         </nav>
 
         <div className="hub-system-status" aria-label="System controls">
-          <QuickAdd />
-          <NotificationCenter />
+          <div className="hub-primary-actions" role="group" aria-label="Quick actions">
+            <QuickAdd />
+            <NotificationCenter />
+          </div>
           <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setMobileSheet(null); setSearchOpen(true); }}>
             <Search aria-hidden="true" /><span>SEARCH</span>
           </button>

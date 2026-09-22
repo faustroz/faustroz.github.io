@@ -320,10 +320,13 @@ body {
 @media (max-width:700px) { .hub-vault-drive-head { align-items:stretch; flex-direction:column; }.hub-vault-drive-actions { justify-content:stretch; }.hub-vault-drive-actions > * { flex:1; }.hub-vault-toolbar { grid-template-columns:minmax(0,1fr) auto; }.hub-vault-search { grid-column:1 / -1; grid-row:2; }.hub-vault-file { grid-template-columns:minmax(0,1fr) 2.2rem; }.hub-vault-file-meta { display:none; }.hub-vault-browser--grid .hub-vault-file { grid-template-columns:1fr; }.hub-vault-browser--grid .hub-vault-file-meta { display:flex; }.hub-vault-folder-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 /* Phase 8 operational controls */
-.hub-quick-add-trigger, .hub-notification-center > button { display:inline-flex; align-items:center; justify-content:center; gap:.35rem; min-width:2.25rem; min-height:2.25rem; border:1px solid var(--hub-line); color:var(--hub-text); background:var(--hub-panel-raised); font:inherit; cursor:pointer; }
-.hub-quick-add-trigger svg, .hub-notification-center svg { width:1rem; height:1rem; }
-.hub-notification-center { position:relative; }
-.hub-notification-center > button { position:relative; }
+.hub-primary-actions { display:flex; align-items:stretch; gap:.4rem; }
+.hub-quick-add-trigger, .hub-notification-center > button { display:inline-flex; align-items:center; justify-content:center; gap:.38rem; height:2.5rem; min-width:2.5rem; padding:0 .72rem; border:1px solid var(--hub-line); border-radius:6px; color:var(--hub-text); background:var(--hub-panel-raised); font:600 .62rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.06em; line-height:1; cursor:pointer; }
+.hub-quick-add-trigger svg, .hub-notification-center svg { flex:0 0 auto; width:.95rem; height:.95rem; stroke-width:1.8; }
+.hub-notification-center { position:relative; display:flex; }
+.hub-notification-center > button { position:relative; width:2.5rem; padding:0; }
+.hub-quick-add-trigger:hover, .hub-notification-center > button:hover { border-color:var(--hub-line-bright); background:rgba(255,255,255,.055); }
+.hub-quick-add-trigger:focus-visible, .hub-notification-center > button:focus-visible { outline:2px solid var(--hub-accent); outline-offset:2px; }
 .hub-notification-center b { position:absolute; top:-.35rem; right:-.35rem; display:grid; place-items:center; min-width:1rem; height:1rem; border-radius:99px; color:#080808; background:#22c55e; font-size:.55rem; }
 .hub-notification-center section { position:absolute; z-index:130; top:calc(100% + .5rem); right:0; width:min(20rem, calc(100vw - 2rem)); max-height:22rem; overflow:auto; border:1px solid var(--hub-line-bright); border-radius:8px; background:var(--hub-panel); box-shadow:0 1.5rem 4rem rgba(0,0,0,.4); }
 .hub-notification-center section header { display:flex; justify-content:space-between; gap:.5rem; padding:.75rem; border-bottom:1px solid var(--hub-line); font:.6rem "IBM Plex Mono",monospace; }
@@ -575,7 +578,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-budget-meter { display:block; width:100%; height:.28rem; margin-top:.48rem; overflow:hidden; background:var(--hub-line); }.hub-budget-meter b { display:block; height:100%; min-width:2px; background:var(--hub-accent); }.hub-budget-over strong { color:var(--hub-danger); }.hub-budget-over .hub-budget-meter b { background:var(--hub-danger); }
 @media (max-width:540px) { .hub-ledger-controls label:first-child { grid-column:1; } .hub-ledger-controls label:has(input[type="date"]) { grid-column:1 / -1; } .hub-budget-period { white-space:normal; } }
 @media (max-width:767px) { .hub-ledger-controls input,.hub-ledger-controls select { font-size:16px; } }
-@media (max-width:767px) { .hub-quick-add-trigger span { display:none; } .hub-quick-add-trigger { order:-1; } .hub-system-status { gap:.35rem; } .hub-vault-controls { width:100%; } .hub-vault-upload { flex:1; justify-content:center; } }
+@media (max-width:767px) { .hub-quick-add-trigger span { display:none; } .hub-primary-actions { order:-1; gap:.3rem; } .hub-quick-add-trigger { width:2.5rem; padding:0; } .hub-system-status { gap:.35rem; } .hub-vault-controls { width:100%; } .hub-vault-upload { flex:1; justify-content:center; } }
 
 /* OSINT workspace: evidence-aware, compact, and deliberately non-theatrical. */
 .hub-osint-workspace { display:grid; gap:1rem; }
@@ -2785,6 +2788,11 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-finance-last-updated span { color:var(--hub-muted); font:.56rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.08em; }
 .hub-finance-last-updated strong { overflow:hidden; color:var(--hub-text); font:.74rem "Manrope",var(--font-geist-sans),sans-serif; text-overflow:ellipsis; white-space:nowrap; }
 .hub-finance-last-updated small { overflow:hidden; max-width:26rem; color:var(--hub-muted); font:.66rem "Manrope",var(--font-geist-sans),sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+
+@media (min-width:768px) {
+  .hub-shell:not(.hub-shell--finance) .hub-primary-actions { display:grid; grid-template-columns:minmax(0,1fr) 2.5rem; width:100%; }
+  .hub-shell:not(.hub-shell--finance) .hub-quick-add-trigger { width:100%; }
+}
 
 @media (min-width: 768px) {
   .hub-shell:not(.hub-shell--finance) .hub-header {
