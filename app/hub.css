@@ -2779,6 +2779,13 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   background: rgba(255, 255, 255, 0.045);
 }
 
+.hub-finance-last-updated { display:flex; align-items:center; gap:.7rem; width:max-content; max-width:100%; margin:-.45rem 0 1rem; padding:.58rem .72rem; border:1px solid var(--hub-line); border-radius:7px; color:var(--hub-muted); background:var(--hub-panel); }
+.hub-finance-last-updated > svg { flex:0 0 auto; width:1rem; height:1rem; color:var(--hub-accent); }
+.hub-finance-last-updated > div { display:grid; min-width:0; gap:.06rem; }
+.hub-finance-last-updated span { color:var(--hub-muted); font:.56rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.08em; }
+.hub-finance-last-updated strong { overflow:hidden; color:var(--hub-text); font:.74rem "Manrope",var(--font-geist-sans),sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+.hub-finance-last-updated small { overflow:hidden; max-width:26rem; color:var(--hub-muted); font:.66rem "Manrope",var(--font-geist-sans),sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+
 @media (min-width: 768px) {
   .hub-shell:not(.hub-shell--finance) .hub-header {
     border-color: var(--hub-line);
