@@ -153,6 +153,15 @@ export default function CrudPanel({ table, title, description, fields, displayFi
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
+    const client = requireSupabase();
+    const channel = client
+      .channel(`hub-crud-${table}`)
+      .on("postgres_changes", { event: "*", schema: "public", table }, () => { load(); })
+      .subscribe();
+    return () => { client.removeChannel(channel); };
+  }, [load, table]);
+
+  useEffect(() => {
     if (!ledger?.accountField) return undefined;
     let active = true;
     requireSupabase().from("bank_accounts").select("id,bank_name").is("deleted_at", null).order("bank_name").then(({ data, error }) => {
