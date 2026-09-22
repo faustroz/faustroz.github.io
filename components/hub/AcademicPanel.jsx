@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import CrudPanel from "@/components/hub/CrudPanel";
-import { calculateOspeScore, GRADE_POINTS } from "@/lib/hub/academic.mjs";
+import { calculateAcademicTarget, calculateOspeScore, GRADE_POINTS } from "@/lib/hub/academic.mjs";
 import { ACADEMIC_CHANNELS } from "@/lib/hub/module-config.mjs";
 
 const guide = [["75–100", "A", "4"], ["70–74", "B+", "3.5"], ["66–69", "B", "3"], ["60–65", "C+", "2.5"], ["55–59", "C", "2"], ["40–54", "D", "1"], ["0–39", "E", "0"]];
@@ -30,6 +30,29 @@ function OspeCalculator() {
   </section>;
 }
 
+function AcademicTargetCalculator({ records }) {
+  const semesters = [...new Set(records.map((record) => String(record.semester || "").trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
+  const [selectedSemester, setSelectedSemester] = useState("");
+  const [targetIp, setTargetIp] = useState("3.50");
+  const [remainingCredits, setRemainingCredits] = useState("4");
+  const semester = semesters.includes(selectedSemester) ? selectedSemester : semesters[0] || "";
+  const semesterRecords = records.filter((record) => String(record.semester || "") === semester);
+  const result = calculateAcademicTarget(semesterRecords, Number(targetIp), Number(remainingCredits));
+
+  return <section className="hub-academic-target" aria-labelledby="academic-target-title">
+    <header><div><span>ACADEMIC TARGET</span><h2 id="academic-target-title">Target IP semester.</h2><p>Hitung rata-rata bobot minimum untuk sisa SKS dari nilai Blok dan MKU yang sudah tercatat.</p></div><b>MAX 4.00</b></header>
+    <div className="hub-academic-target-inputs">
+      <label><span>Semester</span><select value={semester} onChange={(event) => setSelectedSemester(event.target.value)} disabled={!semesters.length}>{semesters.length ? semesters.map((item) => <option key={item} value={item}>{item}</option>) : <option value="">Belum ada semester</option>}</select></label>
+      <label><span>Target IP</span><input type="number" inputMode="decimal" min="0" max="4" step="0.01" value={targetIp} onChange={(event) => setTargetIp(event.target.value)} /></label>
+      <label><span>Sisa SKS yang direncanakan</span><input type="number" inputMode="decimal" min="0.5" step="0.5" value={remainingCredits} onChange={(event) => setRemainingCredits(event.target.value)} /></label>
+    </div>
+    {!result ? <p className="hub-ospe-empty">Masukkan target IP 0–4 dan sisa SKS yang valid.</p> : <div className="hub-academic-target-results" aria-live="polite">
+      <dl><div><dt>IP saat ini</dt><dd>{result.currentIp === null ? "Belum ada nilai" : result.currentIp.toFixed(2)}</dd></div><div><dt>SKS tercatat</dt><dd>{result.currentCredits}</dd></div><div><dt>Proyeksi total SKS</dt><dd>{result.projectedCredits}</dd></div></dl>
+      {result.alreadySecured ? <p className="hub-ospe-status is-pass">Target sudah aman berdasarkan nilai yang tercatat.</p> : !result.achievable ? <p className="hub-ospe-status is-danger">Target tidak dapat dicapai pada sisa SKS ini meskipun seluruh nilai mendapat bobot 4.00.</p> : <p className="hub-ospe-status">Butuh rata-rata bobot minimal <b>{result.requiredAverage.toFixed(2)}</b>{result.recommendedGrade ? ` · target nilai setidaknya ${result.recommendedGrade}` : ""}.</p>}
+    </div>}
+  </section>;
+}
+
 export default function AcademicPanel() {
   const [records, setRecords] = useState([]);
   const [mkuRecords, setMkuRecords] = useState([]);
@@ -44,6 +67,7 @@ export default function AcademicPanel() {
   });
   return <>
     <section className="hub-academic-summary"><article><span>IPK / CUMULATIVE</span><strong>{ipk.toFixed(2)}</strong></article><article><span>SKS / CREDITS</span><strong>{credits}</strong></article><article><span>SEMESTERS</span><strong>{bySemester.length}</strong></article>{bySemester.map((item) => <article key={item.semester}><span>IP {item.semester}</span><strong>{item.ip.toFixed(2)}</strong></article>)}</section>
+    <AcademicTargetCalculator records={allRecords} />
     <section className="hub-academic-record-type" aria-label="Academic record type">
       <div><span>RECORD TYPE</span><p>IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p></div>
       <div role="tablist" aria-label="Academic record options"><button type="button" role="tab" aria-selected={recordType === "medical"} className={recordType === "medical" ? "is-active" : undefined} onClick={() => setRecordType("medical")}>BLOK KEDOKTERAN</button><button type="button" role="tab" aria-selected={recordType === "mku"} className={recordType === "mku" ? "is-active" : undefined} onClick={() => setRecordType("mku")}>MATA KULIAH UMUM</button></div>

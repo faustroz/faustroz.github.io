@@ -33,7 +33,7 @@ function normalizeForm(fields, form) {
 function displayValue(field, value) {
   if (field.type === "checkbox") return value ? "ACTIVE" : "PAUSED";
   if (field.type === "tags") return Array.isArray(value) ? value.join(" / ") : "—";
-  if (field.type === "number" && field.format === "currency") {
+  if (field.format === "currency") {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0);
   }
   if (field.suffix && value !== null && value !== undefined && value !== "") return `${value}${field.suffix}`;
