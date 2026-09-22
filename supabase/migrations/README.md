@@ -30,6 +30,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 027 | `027-academic-mku-records.sql` | Owner-private Mata Kuliah Umum records and Trash retention | 012 |
 | 028 | `028-finance-transfers-reconciliation.sql` | Atomic account transfers and owner-private balance reconciliation snapshots | 026, 027 |
 | 029 | `029-live-bank-reconciliation.sql` | Live account-balance reconciliation sync, existing-row backfill, and realtime publication | 028 |
+| 030 | `030-retire-bank-reconciliation.sql` | Retire Bank Reconciliation triggers/realtime while preserving owner data for backups | 029 |
 
 ## Safety notes
 

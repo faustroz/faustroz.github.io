@@ -4,17 +4,17 @@ import test from "node:test";
 import { FINANCE_CHANNELS } from "../../lib/hub/module-config.mjs";
 
 const migrationUrl = new URL("../../supabase/migrations/028-finance-transfers-reconciliation.sql", import.meta.url);
-const liveMigrationUrl = new URL("../../supabase/migrations/029-live-bank-reconciliation.sql", import.meta.url);
-const crudPanelUrl = new URL("../../components/hub/CrudPanel.jsx", import.meta.url);
+const retireMigrationUrl = new URL("../../supabase/migrations/030-retire-bank-reconciliation.sql", import.meta.url);
+const searchUrl = new URL("../../lib/hub/search.mjs", import.meta.url);
+const trashUrl = new URL("../../components/hub/TrashPanel.jsx", import.meta.url);
+const backupUrl = new URL("../../components/hub/BackupPanel.jsx", import.meta.url);
 
-test("Finance exposes transfer and reconciliation channels with exact account ids", () => {
+test("Finance exposes account transfers and retires reconciliation from active channels", () => {
   const transfers = FINANCE_CHANNELS.find(({ id }) => id === "transfers");
-  const reconciliation = FINANCE_CHANNELS.find(({ id }) => id === "reconciliation");
   assert.equal(transfers.table, "bank_transfers");
   assert.equal(transfers.fields.find(({ name }) => name === "from_account_id").lookup.value, "id");
   assert.equal(transfers.fields.find(({ name }) => name === "to_account_id").lookup.value, "id");
-  assert.equal(reconciliation.table, "bank_account_reconciliations");
-  assert.ok(reconciliation.fields.some(({ name, type }) => name === "difference" && type === "computed"));
+  assert.equal(FINANCE_CHANNELS.some(({ id }) => id === "reconciliation"), false);
 });
 
 test("account transfers are owner-scoped, atomic, reversible, and account-specific", async () => {
@@ -32,31 +32,17 @@ test("account transfers are owner-scoped, atomic, reversible, and account-specif
   assert.match(sql, /revoke all on function public\.apply_bank_transfer_balance/);
 });
 
-test("reconciliation initially snapshots only the authenticated owner's exact account balance", async () => {
-  const sql = await readFile(migrationUrl, "utf8");
-  assert.match(sql, /statement_balance - ledger_balance/);
-  assert.match(sql, /account\.id = new\.bank_account_id/);
-  assert.match(sql, /account\.user_id = new\.user_id/);
-  assert.match(sql, /new\.ledger_balance := old\.ledger_balance/);
-});
-
-test("active reconciliation follows only its exact owner's account balance", async () => {
-  const sql = await readFile(liveMigrationUrl, "utf8");
-  assert.match(sql, /after update of balance on public\.bank_accounts/);
-  assert.match(sql, /reconciliation\.user_id = new\.user_id/);
-  assert.match(sql, /reconciliation\.bank_account_id = new\.id/);
-  assert.match(sql, /reconciliation\.deleted_at is null/);
-  assert.match(sql, /set ledger_balance = new\.balance/);
-  assert.doesNotMatch(sql, /new\.ledger_balance := old\.ledger_balance/);
-  assert.match(sql, /reconciliation\.ledger_balance is distinct from account\.balance/);
-});
-
-test("reconciliation UI subscribes to owner-filtered realtime row changes", async () => {
-  const [sql, panel] = await Promise.all([
-    readFile(liveMigrationUrl, "utf8"),
-    readFile(crudPanelUrl, "utf8"),
+test("retired reconciliation is absent from active UI while legacy backup data stays safe", async () => {
+  const [sql, search, trash, backup] = await Promise.all([
+    readFile(retireMigrationUrl, "utf8"),
+    readFile(searchUrl, "utf8"),
+    readFile(trashUrl, "utf8"),
+    readFile(backupUrl, "utf8"),
   ]);
-  assert.match(sql, /alter publication supabase_realtime add table public\.bank_account_reconciliations/);
-  assert.match(panel, /\.on\("postgres_changes", \{ event: "\*", schema: "public", table \}/);
-  assert.match(panel, /client\.removeChannel\(channel\)/);
+  assert.match(sql, /drop trigger if exists sync_bank_reconciliation_balance on public\.bank_accounts/);
+  assert.match(sql, /alter publication supabase_realtime drop table public\.bank_account_reconciliations/);
+  assert.doesNotMatch(search, /table: "bank_account_reconciliations"/);
+  assert.doesNotMatch(trash, /bank_account_reconciliations/);
+  assert.match(backup, /LEGACY_COMPAT_TABLES = \["bank_account_reconciliations"/);
+  assert.match(backup, /table === "bank_account_reconciliations" \? record/);
 });
