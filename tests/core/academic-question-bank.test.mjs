@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  createPracticeSession,
   createQuestionRepository,
   extractFilterOptions,
   filterQuestions,
+  parseCsv,
+  shuffleQuestionOptions,
+  validateCsvRows,
   validateQuestionPayload,
 } from "../../lib/hub/question-bank.mjs";
 
@@ -75,12 +79,6 @@ test("validateQuestionPayload validates single-choice MCQs with 5 options (A-E)"
     () => validateQuestionPayload({ ...valid, correct_answer: "Z" }),
     /Correct answer must be one of: A, B, C, D, E/
   );
-
-  // Test invalid difficulty
-  assert.throws(
-    () => validateQuestionPayload({ ...valid, difficulty: "impossible" }),
-    /Difficulty must be one of: easy, medium, hard/
-  );
 });
 
 test("filterQuestions and extractFilterOptions work accurately on question collections", () => {
@@ -132,6 +130,88 @@ test("filterQuestions and extractFilterOptions work accurately on question colle
   assert.equal(block5[0].id, "q2");
 });
 
+test("shuffleQuestionOptions randomizes options while preserving correct answer identity", () => {
+  const question = {
+    id: "q-shuffle",
+    question_text: "Gold standard test for acute coronary syndrome",
+    options: {
+      A: "Troponin I/T",
+      B: "Chest X-ray",
+      C: "Echocardiogram",
+      D: "CBC",
+      E: "Urinalysis",
+    },
+    correct_answer: "A",
+  };
+
+  const expectedCorrectText = "Troponin I/T";
+
+  // Run multiple shuffle iterations
+  for (let i = 0; i < 20; i++) {
+    const shuffled = shuffleQuestionOptions(question);
+    const newCorrectLetter = shuffled.shuffledCorrectAnswer;
+
+    assert.ok(["A", "B", "C", "D", "E"].includes(newCorrectLetter));
+    // Verify that whatever position newCorrectLetter is at, its value is the original correct option text!
+    assert.equal(shuffled.shuffledOptions[newCorrectLetter], expectedCorrectText);
+
+    // Verify all 5 option values are preserved
+    const values = Object.values(shuffled.shuffledOptions).sort();
+    const originalValues = Object.values(question.options).sort();
+    assert.deepEqual(values, originalValues);
+  }
+});
+
+test("createPracticeSession shuffles questions and initializes stable session questions", () => {
+  const questions = [
+    { id: "1", question_text: "Q1", options: { A: "1A", B: "1B", C: "1C", D: "1D", E: "1E" }, correct_answer: "B" },
+    { id: "2", question_text: "Q2", options: { A: "2A", B: "2B", C: "2C", D: "2D", E: "2E" }, correct_answer: "C" },
+    { id: "3", question_text: "Q3", options: { A: "3A", B: "3B", C: "3C", D: "3D", E: "3E" }, correct_answer: "D" },
+  ];
+
+  const session = createPracticeSession(questions);
+  assert.equal(session.length, 3);
+  for (const item of session) {
+    assert.ok(item.shuffledOptions);
+    assert.ok(item.shuffledCorrectAnswer);
+    const expected = item.options[item.correct_answer];
+    assert.equal(item.shuffledOptions[item.shuffledCorrectAnswer], expected);
+  }
+});
+
+test("parseCsv and validateCsvRows correctly handle RFC-4180 CSV with quotes and validation", () => {
+  const validCsv = `question,option_a,option_b,option_c,option_d,option_e,answer,explanation,block,topic
+"Pasien sesak, wheezing positif. Terapi awal?","Salbutamol inhalasi","Antibiotik","Antihistamin","Kortikosteroid oral","Oksigen saja","A","SABA adalah lini pertama asma akut.","Blok 8","Respirasi"
+"Demam 5 hari, trombositopenia. Uji torniket positif.","DHF","Tifoid","Malaria","Leptospirosis","Campak","A","","Blok 3","Tropis"`;
+
+  const parsed = parseCsv(validCsv);
+  assert.equal(parsed.length, 3);
+  assert.equal(parsed[1][0], "Pasien sesak, wheezing positif. Terapi awal?");
+  assert.equal(parsed[1][1], "Salbutamol inhalasi");
+
+  const validated = validateCsvRows(validCsv);
+  assert.equal(validated.errors.length, 0);
+  assert.equal(validated.valid.length, 2);
+  assert.equal(validated.valid[0].correct_answer, "A");
+  assert.equal(validated.valid[0].options.A, "Salbutamol inhalasi");
+  assert.equal(validated.valid[0].block, "Blok 8");
+
+  // Invalid CSV: Missing columns and invalid answers
+  const invalidCsv = `question,option_a,option_b,option_c,option_d,option_e,answer
+"Pertanyaan tanpa opsi C","A","B","","D","E","A"
+"Pertanyaan dengan kunci Z","A","B","C","D","E","Z"
+"","A","B","C","D","E","B"`;
+
+  const invalidResult = validateCsvRows(invalidCsv);
+  assert.equal(invalidResult.errors.length, 3);
+  assert.equal(invalidResult.errors[0].rowNumber, 2);
+  assert.match(invalidResult.errors[0].reason, /Missing option\(s\): C/);
+  assert.equal(invalidResult.errors[1].rowNumber, 3);
+  assert.match(invalidResult.errors[1].reason, /Invalid answer 'Z'/);
+  assert.equal(invalidResult.errors[2].rowNumber, 4);
+  assert.match(invalidResult.errors[2].reason, /Question text is empty/);
+});
+
 test("createQuestionRepository delegates to Supabase with proper checks", async () => {
   let queriedTable = "";
   let queryParams = {};
@@ -166,7 +246,13 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
                     single: async () => ({ data: { id: val, question_text: "Single" }, error: null }),
                   };
                 },
+                order() {
+                  return Promise.resolve({ data: [], error: null });
+                },
               };
+            },
+            order() {
+              return Promise.resolve({ data: [], error: null });
             },
           };
         },
@@ -217,6 +303,16 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   assert.equal(created.id, "new-id");
   assert.equal(inserted.correct_answer, "B");
 
+  // Record attempt
+  const attempt = await repo.recordAttempt({
+    question_id: "q1",
+    selected_answer: "B",
+    is_correct: true,
+    time_spent_seconds: 12,
+  });
+  assert.equal(inserted.question_id, "q1");
+  assert.equal(inserted.is_correct, true);
+
   // Soft delete question
   await repo.remove("q1");
   assert.ok(updated.deleted_at);
@@ -225,4 +321,3 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   const toggled = await repo.toggleBookmark("q1", false);
   assert.equal(toggled.is_bookmarked, true);
 });
-

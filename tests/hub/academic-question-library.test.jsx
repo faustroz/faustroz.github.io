@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/client", () => {
       is: () => ({
         order: () => Promise.resolve({ data: [], error: null }),
       }),
+      order: () => Promise.resolve({ data: [], error: null }),
     }),
     channel: () => ({
       on: () => ({
@@ -31,8 +32,8 @@ vi.mock("@/lib/supabase/client", () => {
   };
 });
 
-describe("AcademicPanel and QuestionLibrary integration", () => {
-  it("renders Academic workspace and switches between Record & Targets and Question Bank", async () => {
+describe("AcademicPanel and QuestionBank redesign integration", () => {
+  it("renders Academic workspace and navigates Question Bank modes without difficulty or exam mode", async () => {
     render(<AcademicPanel />);
 
     // Default view is RECORD & TARGETS
@@ -45,8 +46,33 @@ describe("AcademicPanel and QuestionLibrary integration", () => {
     fireEvent.click(questionBankTab);
 
     expect(questionBankTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("heading", { name: /question library/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /new question/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /question library & practice/i })).toBeInTheDocument();
+
+    // Practice mode is active by default
+    expect(screen.getByRole("tab", { name: /practice/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: /mulai latihan/i })).toBeInTheDocument();
+
+    // Switch to LIBRARY tab
+    const libraryTab = screen.getByRole("tab", { name: /library/i });
+    fireEvent.click(libraryTab);
+    expect(libraryTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: /tambah soal/i })).toBeInTheDocument();
+
+    // Verify difficulty is NOT present in UI
+    expect(screen.queryByText(/difficulty/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/kesulitan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/exam mode/i)).not.toBeInTheDocument();
+
+    // Switch to MISTAKES tab
+    const mistakesTab = screen.getByRole("tab", { name: /mistakes/i });
+    fireEvent.click(mistakesTab);
+    expect(mistakesTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/soal yang pernah dijawab salah/i)).toBeInTheDocument();
+
+    // Switch to CSV IMPORT tab
+    const importTab = screen.getByRole("tab", { name: /csv import/i });
+    fireEvent.click(importTab);
+    expect(importTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: /unduh template csv/i })).toBeInTheDocument();
   });
 });
-
