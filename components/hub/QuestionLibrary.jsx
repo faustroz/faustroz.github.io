@@ -12,7 +12,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  Filter,
   FileSpreadsheet,
   Pencil,
   Play,
@@ -56,6 +55,7 @@ export default function QuestionLibrary() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notification, setNotification] = useState("");
 
   // Library filters
   const [search, setSearch] = useState("");
@@ -72,6 +72,13 @@ export default function QuestionLibrary() {
 
   // Hidden/revealed answers in library cards
   const [revealedAnswers, setRevealedAnswers] = useState({});
+
+  // ---------------------------------------------------------------------------
+  // BULK DELETE BY TOPIC MODAL STATE
+  // ---------------------------------------------------------------------------
+  const [topicDeleteOpen, setTopicDeleteOpen] = useState(false);
+  const [deletingTopic, setDeletingTopic] = useState(false);
+  const [deleteTopicError, setDeleteTopicError] = useState("");
 
   // ---------------------------------------------------------------------------
   // PRACTICE MODE STATE
@@ -170,6 +177,16 @@ export default function QuestionLibrary() {
     setBookmarkedOnly(false);
   };
 
+  // Questions matching current block & topic for bulk delete
+  const matchingTopicQuestions = useMemo(() => {
+    if (!topicFilter) return [];
+    return questions.filter((q) => {
+      if (q.topic !== topicFilter) return false;
+      if (blockFilter && q.block !== blockFilter) return false;
+      return true;
+    });
+  }, [questions, blockFilter, topicFilter]);
+
   // ---------------------------------------------------------------------------
   // PRACTICE HANDLERS
   // ---------------------------------------------------------------------------
@@ -248,7 +265,7 @@ export default function QuestionLibrary() {
   };
 
   // ---------------------------------------------------------------------------
-  // LIBRARY CRUD HANDLERS
+  // LIBRARY CRUD & BULK DELETE HANDLERS
   // ---------------------------------------------------------------------------
   const openCreateForm = () => {
     setEditingId(null);
@@ -325,8 +342,37 @@ export default function QuestionLibrary() {
     try {
       await repository.remove(question.id);
       setQuestions((prev) => prev.filter((q) => q.id !== question.id));
+      setNotification("1 soal berhasil dipindahkan ke Trash.");
+      setTimeout(() => setNotification(""), 4000);
     } catch (err) {
       setError(err.message || "Failed to delete question.");
+    }
+  };
+
+  const handleExecuteDeleteTopic = async () => {
+    if (!repository || !topicFilter || deletingTopic) return;
+    setDeletingTopic(true);
+    setDeleteTopicError("");
+
+    try {
+      const result = await repository.removeByTopic({
+        block: blockFilter || undefined,
+        topic: topicFilter,
+      });
+
+      const deletedCount = result.deletedCount;
+      const deletedIdsSet = new Set(result.deletedIds);
+
+      // Remove deleted questions from active questions state
+      setQuestions((prev) => prev.filter((q) => !deletedIdsSet.has(q.id)));
+
+      setTopicDeleteOpen(false);
+      setNotification(`Berhasil memindahkan ${deletedCount} soal di topik "${topicFilter}" ke Trash.`);
+      setTimeout(() => setNotification(""), 5000);
+    } catch (err) {
+      setDeleteTopicError(err.message || "Gagal menghapus soal di topik ini.");
+    } finally {
+      setDeletingTopic(false);
     }
   };
 
@@ -369,18 +415,18 @@ export default function QuestionLibrary() {
   };
 
   const handleExecuteImport = async () => {
-    if (!repository || !importPreview || !importPreview.valid.length) return;
+    if (!repository || !importPreview || !importPreview.valid.length || importing) return;
     setImporting(true);
     setImportMessage("");
 
     try {
       const inserted = await repository.createBatch(importPreview.valid);
       setQuestions((prev) => [...inserted, ...prev]);
-      setImportMessage(`Successfully imported ${inserted.length} question(s)!`);
+      setImportMessage(`Berhasil mengimpor ${inserted.length} soal ke Question Bank!`);
       setImportFile(null);
       setImportPreview(null);
     } catch (importErr) {
-      setImportMessage(`Import failed: ${importErr.message}`);
+      setImportMessage(`Gagal mengimpor: ${importErr.message}`);
     } finally {
       setImporting(false);
     }
@@ -400,16 +446,36 @@ export default function QuestionLibrary() {
 
   return (
     <section className="hub-crud-panel hub-question-bank-workspace" aria-label="Question Bank Workspace">
-      {/* Top Heading & Tab Bar */}
-      <header className="hub-crud-heading" style={{ flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <span>ACADEMIC / INTERACTIVE MCQ</span>
-          <h2>Question Library & Practice</h2>
-          <p>Practice medical questions with randomized options, review mistakes, and manage library.</p>
+      {/* Top Heading & Responsive Tab Bar */}
+      <header className="hub-crud-heading" style={{ flexWrap: "wrap", gap: "0.75rem", padding: "1rem" }}>
+        <div style={{ flex: "1 1 18rem", minWidth: 0 }}>
+          <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
+            ACADEMIC / INTERACTIVE MCQ
+          </span>
+          <h2 style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", margin: "0.2rem 0", color: "var(--hub-text)", wordBreak: "break-word" }}>
+            Question Library & Practice
+          </h2>
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
+            Latihan soal kedokteran interaktif dengan opsi acak, notebook kesalahan, dan import CSV.
+          </p>
         </div>
 
-        {/* Workspace Mode Subtabs */}
-        <div role="tablist" aria-label="Question bank modes" style={{ display: "flex", gap: "0.35rem", padding: "0.25rem", border: "1px solid var(--hub-line)", borderRadius: "7px" }}>
+        {/* Workspace Mode Subtabs (Mobile scrollable without horizontal overflow) */}
+        <div
+          role="tablist"
+          aria-label="Question bank modes"
+          style={{
+            display: "flex",
+            gap: "0.35rem",
+            padding: "0.25rem",
+            border: "1px solid var(--hub-line)",
+            borderRadius: "7px",
+            maxWidth: "100%",
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           <button
             type="button"
             role="tab"
@@ -424,6 +490,8 @@ export default function QuestionLibrary() {
               background: activeTab === "practice" ? "var(--hub-surface)" : "transparent",
               font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             PRACTICE
@@ -442,6 +510,8 @@ export default function QuestionLibrary() {
               background: activeTab === "library" ? "var(--hub-surface)" : "transparent",
               font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             LIBRARY
@@ -460,6 +530,8 @@ export default function QuestionLibrary() {
               background: activeTab === "mistakes" ? "var(--hub-surface)" : "transparent",
               font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             MISTAKES
@@ -478,6 +550,8 @@ export default function QuestionLibrary() {
               background: activeTab === "import" ? "var(--hub-surface)" : "transparent",
               font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             CSV IMPORT
@@ -485,16 +559,22 @@ export default function QuestionLibrary() {
         </div>
       </header>
 
-      {error && <p className="hub-data-error" role="alert">{error}</p>}
+      {/* Notifications and Alerts */}
+      {notification && (
+        <div style={{ margin: "0.5rem 1rem", padding: "0.65rem 0.9rem", background: "rgba(34, 197, 94, 0.12)", border: "1px solid rgba(34, 197, 94, 0.4)", borderRadius: "6px", color: "#4ade80", fontSize: "0.82rem" }} role="status">
+          ✓ {notification}
+        </div>
+      )}
+      {error && <p className="hub-data-error" role="alert" style={{ margin: "0.5rem 1rem" }}>{error}</p>}
 
       {/* ===================================================================== */}
       {/* TAB 1: PRACTICE MODE                                                  */}
       {/* ===================================================================== */}
       {activeTab === "practice" && (
-        <div className="hub-practice-container" style={{ padding: "1rem" }}>
+        <div className="hub-practice-container" style={{ padding: "0.75rem clamp(0.5rem, 3vw, 1.25rem)" }}>
           {!practiceActive ? (
             /* Practice Setup Screen */
-            <div style={{ maxWidth: "34rem", margin: "0 auto", display: "grid", gap: "1.2rem" }}>
+            <div style={{ maxWidth: "34rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
               <div style={{ border: "1px solid var(--hub-line)", padding: "1.25rem", borderRadius: "8px", background: "var(--hub-panel)" }}>
                 <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                   SETUP PRACTICE SESSION
@@ -503,7 +583,7 @@ export default function QuestionLibrary() {
                   Pilih Soal Latihan
                 </h3>
                 <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
-                  Latihan akan mengacak urutan soal dan mengacak urutan opsi pilihan (A–E). Kunci jawaban dan pembahasan langsung tampil setelah Anda menjawab.
+                  Latihan mengerjakan seluruh soal dari blok/topik yang dipilih. Urutan soal dan opsi jawaban (A–E) diacak otomatis setiap sesi.
                 </p>
 
                 <div style={{ display: "grid", gap: "0.75rem", marginTop: "1rem" }}>
@@ -514,7 +594,7 @@ export default function QuestionLibrary() {
                     <select
                       value={practiceBlock}
                       onChange={(e) => setPracticeBlock(e.target.value)}
-                      style={{ padding: "0.55rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px" }}
+                      style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}
                     >
                       <option value="">Semua Blok ({questions.length} soal)</option>
                       {filterOptions.blocks.map((b) => (
@@ -531,7 +611,7 @@ export default function QuestionLibrary() {
                       <select
                         value={practiceTopic}
                         onChange={(e) => setPracticeTopic(e.target.value)}
-                        style={{ padding: "0.55rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px" }}
+                        style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}
                       >
                         <option value="">Semua Topik</option>
                         {filterOptions.topics.map((t) => (
@@ -542,7 +622,7 @@ export default function QuestionLibrary() {
                   )}
                 </div>
 
-                <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
                   <span style={{ fontSize: "0.75rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                     {matchingPracticeQuestions.length} SOAL TERSEDIA
                   </span>
@@ -552,7 +632,7 @@ export default function QuestionLibrary() {
                     onClick={() => startPractice()}
                     disabled={!matchingPracticeQuestions.length}
                     className="hub-primary-action"
-                    style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.6rem 1.1rem" }}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", padding: "0.75rem 1.25rem", minHeight: "44px", width: "100%", maxWidth: "14rem" }}
                   >
                     <Play size={13} fill="currentColor" /> MULAI LATIHAN
                   </button>
@@ -569,9 +649,8 @@ export default function QuestionLibrary() {
                 Hasil Latihan
               </h3>
 
-              {/* Accuracy score display */}
-              <div style={{ margin: "1.5rem 0", padding: "1rem", background: "var(--hub-panel-raised)", borderRadius: "8px", border: "1px solid var(--hub-line)" }}>
-                <strong style={{ display: "block", fontSize: "2.5rem", color: "var(--hub-accent)", fontFamily: "var(--font-geist-mono), monospace" }}>
+              <div style={{ margin: "1.25rem 0", padding: "1.25rem 1rem", background: "var(--hub-panel-raised)", borderRadius: "8px", border: "1px solid var(--hub-line)" }}>
+                <strong style={{ display: "block", fontSize: "2.6rem", color: "var(--hub-accent)", fontFamily: "var(--font-geist-mono), monospace" }}>
                   {practiceQuestions.length ? Math.round((practiceStats.correct / practiceQuestions.length) * 100) : 0}%
                 </strong>
                 <p style={{ margin: "0.4rem 0 0", fontSize: "0.85rem", color: "var(--hub-muted)" }}>
@@ -579,13 +658,13 @@ export default function QuestionLibrary() {
                 </p>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+              <div style={{ display: "grid", gap: "0.6rem" }}>
                 {practiceStats.wrong > 0 && (
                   <button
                     type="button"
                     onClick={retryPracticeIncorrect}
                     className="hub-primary-action"
-                    style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", minHeight: "44px" }}
                   >
                     <RotateCcw size={13} /> ULANGI SOAL SALAH ({practiceStats.wrong})
                   </button>
@@ -593,25 +672,25 @@ export default function QuestionLibrary() {
                 <button
                   type="button"
                   onClick={() => setPracticeActive(false)}
-                  style={{ padding: "0.5rem 1rem", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-text)", cursor: "pointer", borderRadius: "4px" }}
+                  style={{ minHeight: "44px", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-text)", cursor: "pointer", borderRadius: "4px" }}
                 >
-                  SESI BARU
+                  SESI LATIHAN BARU
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("mistakes")}
-                  style={{ padding: "0.5rem 1rem", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-muted)", cursor: "pointer", borderRadius: "4px" }}
+                  style={{ minHeight: "44px", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-muted)", cursor: "pointer", borderRadius: "4px" }}
                 >
-                  CATATAN KESALAHAN
+                  BUKA CATATAN KESALAHAN
                 </button>
               </div>
             </div>
           ) : (
-            /* Active Question Runner */
-            <div style={{ maxWidth: "42rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
-              {/* Progress & Score Bar */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--hub-line)", paddingBottom: "0.6rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            /* Active Question Runner (Mobile-Optimized) */
+            <div style={{ maxWidth: "42rem", margin: "0 auto", display: "grid", gap: "0.85rem" }}>
+              {/* Progress & Quick Stats */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--hub-line)", paddingBottom: "0.6rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "0.72rem", color: "var(--hub-accent)", fontFamily: "var(--font-geist-mono), monospace", fontWeight: 600 }}>
                     SOAL {practiceIndex + 1} / {practiceQuestions.length}
                   </span>
@@ -628,16 +707,16 @@ export default function QuestionLibrary() {
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                  <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-geist-mono), monospace", color: "#4ade80" }}>
+                  <span style={{ fontSize: "0.7rem", fontFamily: "var(--font-geist-mono), monospace", color: "#4ade80" }}>
                     ✓ {practiceStats.correct}
                   </span>
-                  <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-geist-mono), monospace", color: "#f87171" }}>
+                  <span style={{ fontSize: "0.7rem", fontFamily: "var(--font-geist-mono), monospace", color: "#f87171" }}>
                     ✗ {practiceStats.wrong}
                   </span>
                   <button
                     type="button"
                     onClick={() => setPracticeActive(false)}
-                    style={{ background: "transparent", border: "none", color: "var(--hub-muted)", fontSize: "0.68rem", cursor: "pointer", marginLeft: "0.5rem" }}
+                    style={{ background: "transparent", border: "none", color: "var(--hub-muted)", fontSize: "0.72rem", cursor: "pointer", padding: "0.3rem" }}
                   >
                     Keluar
                   </button>
@@ -645,14 +724,14 @@ export default function QuestionLibrary() {
               </div>
 
               {/* Question Stem */}
-              <div style={{ background: "var(--hub-panel)", border: "1px solid var(--hub-line)", padding: "1.25rem", borderRadius: "8px" }}>
-                <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: 1.55, color: "var(--hub-text)", whiteSpace: "pre-wrap" }}>
+              <div style={{ background: "var(--hub-panel)", border: "1px solid var(--hub-line)", padding: "1.1rem", borderRadius: "8px", overflowWrap: "anywhere" }}>
+                <p style={{ margin: 0, fontSize: "clamp(0.92rem, 3vw, 1.05rem)", lineHeight: 1.55, color: "var(--hub-text)", whiteSpace: "pre-wrap" }}>
                   {currentQuestion?.question_text}
                 </p>
               </div>
 
-              {/* Shuffled Options (A–E) */}
-              <div style={{ display: "grid", gap: "0.5rem" }}>
+              {/* Shuffled Options (Large Touch Targets for Mobile) */}
+              <div style={{ display: "grid", gap: "0.6rem" }}>
                 {VALID_OPTIONS.map((opt) => {
                   const optText = currentQuestion?.shuffledOptions?.[opt] || "";
                   const isSelected = practiceSelectedAnswer === opt;
@@ -685,51 +764,53 @@ export default function QuestionLibrary() {
                       onClick={() => setPracticeSelectedAnswer(opt)}
                       style={{
                         display: "flex",
-                        alignItems: "flex-start",
+                        alignItems: "center",
                         gap: "0.75rem",
-                        padding: "0.75rem 0.9rem",
-                        borderRadius: "6px",
+                        padding: "0.85rem 1rem",
+                        minHeight: "48px",
+                        borderRadius: "7px",
                         border: optionBorder,
                         background: optionBg,
                         color: optionColor,
                         cursor: practiceSubmitted ? "default" : "pointer",
                         textAlign: "left",
                         width: "100%",
+                        touchAction: "manipulation",
                       }}
                     >
                       <strong
                         style={{
                           fontFamily: "var(--font-geist-mono), monospace",
-                          fontSize: "0.8rem",
-                          minWidth: "1.4rem",
+                          fontSize: "0.95rem",
+                          minWidth: "1.5rem",
                           color: isCorrect && practiceSubmitted ? "#4ade80" : isSelected && !practiceSubmitted ? "var(--hub-accent)" : "var(--hub-muted)",
                         }}
                       >
                         {opt}.
                       </strong>
-                      <span style={{ flex: 1, fontSize: "0.85rem", lineHeight: 1.45, whiteSpace: "pre-wrap" }}>
+                      <span style={{ flex: 1, fontSize: "clamp(0.85rem, 2.5vw, 0.92rem)", lineHeight: 1.45, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
                         {optText}
                       </span>
                       {practiceSubmitted && isCorrect && (
-                        <CheckCircle2 size={16} color="#4ade80" style={{ flexShrink: 0 }} />
+                        <CheckCircle2 size={18} color="#4ade80" style={{ flexShrink: 0 }} />
                       )}
                       {practiceSubmitted && isSelected && !isCorrect && (
-                        <XCircle size={16} color="#f87171" style={{ flexShrink: 0 }} />
+                        <XCircle size={18} color="#f87171" style={{ flexShrink: 0 }} />
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Action Buttons: Submit / Next */}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", marginTop: "0.5rem" }}>
+              {/* Action Button: Submit or Next */}
+              <div style={{ marginTop: "0.4rem" }}>
                 {!practiceSubmitted ? (
                   <button
                     type="button"
                     onClick={handlePracticeSubmit}
                     disabled={!practiceSelectedAnswer}
                     className="hub-primary-action"
-                    style={{ padding: "0.65rem 1.4rem" }}
+                    style={{ width: "100%", minHeight: "48px", fontSize: "0.88rem", display: "flex", justifyContent: "center", alignItems: "center" }}
                   >
                     SUBMIT JAWABAN
                   </button>
@@ -738,15 +819,15 @@ export default function QuestionLibrary() {
                     type="button"
                     onClick={handlePracticeNext}
                     className="hub-primary-action"
-                    style={{ padding: "0.65rem 1.4rem", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                    style={{ width: "100%", minHeight: "48px", fontSize: "0.88rem", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "0.5rem" }}
                   >
                     {practiceIndex + 1 < practiceQuestions.length ? "SOAL BERIKUTNYA" : "SELESAI & LIHAT HASIL"}
-                    <ArrowRight size={14} />
+                    <ArrowRight size={15} />
                   </button>
                 )}
               </div>
 
-              {/* Immediate Explanation Display after Submit */}
+              {/* Immediate Explanation Display */}
               {practiceSubmitted && (
                 <div
                   style={{
@@ -763,11 +844,11 @@ export default function QuestionLibrary() {
                       PEMBAHASAN & KUNCI JAWABAN
                     </span>
                   </div>
-                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.82rem", color: "var(--hub-text)" }}>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "var(--hub-text)", lineHeight: 1.45 }}>
                     Kunci Jawaban yang Benar: <b>{currentQuestion.shuffledCorrectAnswer}. {currentQuestion.shuffledOptions[currentQuestion.shuffledCorrectAnswer]}</b>
                   </p>
                   {currentQuestion.explanation ? (
-                    <div style={{ fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                    <div style={{ fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
                       {currentQuestion.explanation}
                     </div>
                   ) : (
@@ -787,9 +868,13 @@ export default function QuestionLibrary() {
       {/* ===================================================================== */}
       {activeTab === "library" && (
         <div className="hub-library-tab">
-          {/* Action & Filter Bar */}
-          <div className="hub-ledger-controls" aria-label="Question library filters">
-            <label style={{ minWidth: "12rem" }}>
+          {/* Action & Filter Bar (Stacked on Mobile, Horizontal on Desktop) */}
+          <div
+            className="hub-ledger-controls"
+            aria-label="Question library filters"
+            style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center", padding: "0.75rem 1rem" }}
+          >
+            <label style={{ flex: "1 1 12rem", minWidth: "10rem" }}>
               <span>SEARCH</span>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
@@ -797,7 +882,7 @@ export default function QuestionLibrary() {
                   placeholder="Cari teks soal, topik, tag..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  style={{ width: "100%", paddingLeft: "1.8rem" }}
+                  style={{ width: "100%", paddingLeft: "1.8rem", fontSize: "16px", minHeight: "38px" }}
                 />
                 <Search
                   size={13}
@@ -806,9 +891,13 @@ export default function QuestionLibrary() {
               </div>
             </label>
 
-            <label>
+            <label style={{ flex: "1 1 8rem" }}>
               <span>BLOK</span>
-              <select value={blockFilter} onChange={(e) => setBlockFilter(e.target.value)}>
+              <select
+                value={blockFilter}
+                onChange={(e) => setBlockFilter(e.target.value)}
+                style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}
+              >
                 <option value="">Semua blok</option>
                 {filterOptions.blocks.map((blk) => (
                   <option key={blk} value={blk}>{blk}</option>
@@ -816,40 +905,68 @@ export default function QuestionLibrary() {
               </select>
             </label>
 
-            {filterOptions.topics.length > 0 && (
-              <label>
-                <span>TOPIK</span>
-                <select value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)}>
-                  <option value="">Semua topik</option>
-                  {filterOptions.topics.map((top) => (
-                    <option key={top} value={top}>{top}</option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label style={{ flex: "1 1 8rem" }}>
+              <span>TOPIK</span>
+              <select
+                value={topicFilter}
+                onChange={(e) => setTopicFilter(e.target.value)}
+                style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}
+              >
+                <option value="">Semua topik</option>
+                {filterOptions.topics.map((top) => (
+                  <option key={top} value={top}>{top}</option>
+                ))}
+              </select>
+            </label>
 
             <button
               type="button"
               className={bookmarkedOnly ? "is-active" : undefined}
               onClick={() => setBookmarkedOnly((prev) => !prev)}
               title="Filter bookmark"
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", minHeight: "38px" }}
             >
               <Star size={12} fill={bookmarkedOnly ? "currentColor" : "none"} />
               BOOKMARK
             </button>
 
             {hasActiveFilters && (
-              <button type="button" onClick={resetFilters} title="Reset filter">
+              <button type="button" onClick={resetFilters} title="Reset filter" style={{ minHeight: "38px" }}>
                 <RotateCcw size={12} /> RESET
               </button>
             )}
 
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <strong>
+            {/* DELETE ALL IN TOPIC BUTTON (Visible when Topic is selected) */}
+            {topicFilter && (
+              <button
+                type="button"
+                onClick={() => setTopicDeleteOpen(true)}
+                disabled={matchingTopicQuestions.length === 0}
+                className="hub-danger-action"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  fontSize: "0.65rem",
+                  padding: "0.45rem 0.75rem",
+                  minHeight: "38px",
+                }}
+                title={`Hapus semua soal di topik ${topicFilter}`}
+              >
+                <Trash2 size={12} /> HAPUS SEMUA DI TOPIK ({matchingTopicQuestions.length})
+              </button>
+            )}
+
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", width: "100%", justifyContent: "space-between" }}>
+              <strong style={{ fontSize: "0.75rem" }}>
                 {filteredQuestions.length} / {questions.length} SOAL
               </strong>
-              <button type="button" onClick={openCreateForm} className="hub-primary-action">
+              <button
+                type="button"
+                onClick={openCreateForm}
+                className="hub-primary-action"
+                style={{ minHeight: "38px", padding: "0.5rem 1rem" }}
+              >
                 <Plus aria-hidden="true" /> TAMBAH SOAL
               </button>
             </div>
@@ -864,7 +981,7 @@ export default function QuestionLibrary() {
               <p style={{ marginTop: "0.5rem", color: "var(--hub-muted)", fontSize: "0.8rem" }}>
                 Bank soal masih kosong. Anda dapat menambahkan soal secara manual atau mengimpor via CSV.
               </p>
-              <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
+              <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
                 <button type="button" onClick={openCreateForm} className="hub-primary-action">
                   <Plus aria-hidden="true" /> TAMBAH SOAL PERTAMA
                 </button>
@@ -888,7 +1005,7 @@ export default function QuestionLibrary() {
               </button>
             </div>
           ) : (
-            <div className="hub-question-list" style={{ display: "grid", gap: "0.75rem", padding: "1rem" }}>
+            <div className="hub-question-list" style={{ display: "grid", gap: "0.75rem", padding: "0.75rem clamp(0.5rem, 3vw, 1rem)" }}>
               {filteredQuestions.map((q, index) => {
                 const isRevealed = Boolean(revealedAnswers[q.id]);
                 return (
@@ -902,6 +1019,7 @@ export default function QuestionLibrary() {
                       padding: "1rem",
                       display: "grid",
                       gap: "0.75rem",
+                      overflowWrap: "anywhere",
                     }}
                   >
                     {/* Header */}
@@ -944,10 +1062,11 @@ export default function QuestionLibrary() {
                             borderRadius: "4px",
                             color: isRevealed ? "#4ade80" : "var(--hub-muted)",
                             cursor: "pointer",
-                            padding: "0.3rem 0.5rem",
+                            padding: "0.4rem 0.6rem",
+                            minHeight: "36px",
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: "0.25rem",
+                            gap: "0.3rem",
                             fontSize: "0.62rem",
                             fontFamily: "var(--font-geist-mono), monospace",
                           }}
@@ -960,7 +1079,7 @@ export default function QuestionLibrary() {
                           onClick={() => handleToggleBookmark(q)}
                           aria-label="Toggle bookmark"
                           title={q.is_bookmarked ? "Bookmarked" : "Bookmark"}
-                          style={{ background: "transparent", border: "none", color: q.is_bookmarked ? "#fbbf24" : "var(--hub-muted)", cursor: "pointer", padding: "0.3rem" }}
+                          style={{ background: "transparent", border: "none", color: q.is_bookmarked ? "#fbbf24" : "var(--hub-muted)", cursor: "pointer", padding: "0.4rem", minHeight: "36px", display: "flex", alignItems: "center" }}
                         >
                           <Star size={15} fill={q.is_bookmarked ? "#fbbf24" : "none"} />
                         </button>
@@ -968,7 +1087,7 @@ export default function QuestionLibrary() {
                           type="button"
                           onClick={() => openEditForm(q)}
                           aria-label="Edit question"
-                          style={{ background: "transparent", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)", cursor: "pointer", padding: "0.3rem" }}
+                          style={{ background: "transparent", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)", cursor: "pointer", padding: "0.4rem", minHeight: "36px", display: "flex", alignItems: "center" }}
                         >
                           <Pencil size={13} />
                         </button>
@@ -976,7 +1095,7 @@ export default function QuestionLibrary() {
                           type="button"
                           onClick={() => handleDelete(q)}
                           aria-label="Delete question"
-                          style={{ background: "transparent", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)", cursor: "pointer", padding: "0.3rem" }}
+                          style={{ background: "transparent", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)", cursor: "pointer", padding: "0.4rem", minHeight: "36px", display: "flex", alignItems: "center" }}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -984,11 +1103,11 @@ export default function QuestionLibrary() {
                     </div>
 
                     {/* Question Stem */}
-                    <p style={{ margin: 0, fontSize: "0.88rem", lineHeight: 1.5, color: "var(--hub-text)", whiteSpace: "pre-wrap" }}>
+                    <p style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.5, color: "var(--hub-text)", whiteSpace: "pre-wrap" }}>
                       {q.question_text}
                     </p>
 
-                    {/* Options (A–E) - Correct Answer HIDDEN unless toggled */}
+                    {/* Options (A–E) */}
                     <div style={{ display: "grid", gap: "0.35rem" }}>
                       {VALID_OPTIONS.map((opt) => {
                         const isCorrect = q.correct_answer === opt;
@@ -1002,14 +1121,14 @@ export default function QuestionLibrary() {
                               display: "flex",
                               alignItems: "flex-start",
                               gap: "0.6rem",
-                              padding: "0.4rem 0.6rem",
+                              padding: "0.45rem 0.65rem",
                               borderRadius: "4px",
                               border: highlight ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid var(--hub-line)",
                               background: highlight ? "rgba(34, 197, 94, 0.08)" : "var(--hub-panel-raised)",
-                              fontSize: "0.8rem",
+                              fontSize: "0.82rem",
                             }}
                           >
-                            <strong style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "0.72rem", color: highlight ? "#4ade80" : "var(--hub-muted)", minWidth: "1.2rem" }}>
+                            <strong style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "0.75rem", color: highlight ? "#4ade80" : "var(--hub-muted)", minWidth: "1.2rem" }}>
                               {opt}.
                             </strong>
                             <span style={{ flex: 1, whiteSpace: "pre-wrap" }}>{text}</span>
@@ -1023,7 +1142,7 @@ export default function QuestionLibrary() {
                       })}
                     </div>
 
-                    {/* Explanation - shown when key is revealed */}
+                    {/* Explanation */}
                     {isRevealed && q.explanation && (
                       <div style={{ marginTop: "0.2rem", padding: "0.6rem", background: "var(--hub-panel-raised)", borderRadius: "5px", fontSize: "0.8rem", color: "var(--hub-muted)", lineHeight: 1.45, whiteSpace: "pre-wrap", borderLeft: "2px solid var(--hub-accent)" }}>
                         <b style={{ color: "var(--hub-text)", display: "block", marginBottom: "0.2rem" }}>Pembahasan:</b>
@@ -1042,7 +1161,7 @@ export default function QuestionLibrary() {
       {/* TAB 3: MISTAKE REVIEW                                                 */}
       {/* ===================================================================== */}
       {activeTab === "mistakes" && (
-        <div className="hub-mistakes-tab" style={{ padding: "1rem" }}>
+        <div className="hub-mistakes-tab" style={{ padding: "0.75rem clamp(0.5rem, 3vw, 1.25rem)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
             <div>
               <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
@@ -1065,7 +1184,7 @@ export default function QuestionLibrary() {
                   setActiveTab("practice");
                 }}
                 className="hub-primary-action"
-                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", minHeight: "44px", width: "100%", maxWidth: "18rem" }}
               >
                 <Play size={13} fill="currentColor" /> LATIHAN ULANG SEMUA SOAL SALAH ({mistakes.length})
               </button>
@@ -1084,7 +1203,7 @@ export default function QuestionLibrary() {
                 type="button"
                 onClick={() => setActiveTab("practice")}
                 className="hub-primary-action"
-                style={{ marginTop: "1rem" }}
+                style={{ marginTop: "1rem", minHeight: "44px" }}
               >
                 MULAI LATIHAN SEKARANG
               </button>
@@ -1101,10 +1220,11 @@ export default function QuestionLibrary() {
                     padding: "1rem",
                     display: "grid",
                     gap: "0.6rem",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.45rem", background: "rgba(239, 68, 68, 0.15)", color: "#f87171", borderRadius: "4px", fontFamily: "var(--font-geist-mono), monospace" }}>
                         SALAH {mistakeCount}x
                       </span>
@@ -1119,29 +1239,29 @@ export default function QuestionLibrary() {
                         setActiveTab("practice");
                       }}
                       className="hub-primary-action"
-                      style={{ fontSize: "0.68rem", padding: "0.3rem 0.65rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+                      style={{ fontSize: "0.72rem", padding: "0.4rem 0.75rem", minHeight: "36px", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                     >
                       <Play size={11} fill="currentColor" /> Latih Soal Ini
                     </button>
                   </div>
 
-                  <p style={{ margin: "0.2rem 0", fontSize: "0.88rem", color: "var(--hub-text)", lineHeight: 1.5 }}>
+                  <p style={{ margin: "0.2rem 0", fontSize: "0.9rem", color: "var(--hub-text)", lineHeight: 1.5 }}>
                     {q.question_text}
                   </p>
 
-                  <div style={{ padding: "0.5rem 0.75rem", background: "var(--hub-panel-raised)", borderRadius: "6px", fontSize: "0.78rem" }}>
+                  <div style={{ padding: "0.6rem 0.8rem", background: "var(--hub-panel-raised)", borderRadius: "6px", fontSize: "0.8rem" }}>
                     <p style={{ margin: "0 0 0.3rem", color: "#4ade80" }}>
                       Kunci Jawaban: <b>{q.correct_answer}. {q.options?.[q.correct_answer]}</b>
                     </p>
                     {lastAttempt && (
-                      <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.72rem" }}>
+                      <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.75rem" }}>
                         Jawaban terakhir Anda: <b>{lastAttempt.selected_answer}</b> ({lastAttempt.is_correct ? "Benar" : "Salah"})
                       </p>
                     )}
                   </div>
 
                   {q.explanation && (
-                    <div style={{ fontSize: "0.78rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
+                    <div style={{ fontSize: "0.8rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
                       <b>Pembahasan:</b> {q.explanation}
                     </div>
                   )}
@@ -1156,7 +1276,7 @@ export default function QuestionLibrary() {
       {/* TAB 4: CSV IMPORT                                                     */}
       {/* ===================================================================== */}
       {activeTab === "import" && (
-        <div className="hub-import-tab" style={{ padding: "1rem", maxWidth: "48rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
+        <div className="hub-import-tab" style={{ padding: "0.75rem clamp(0.5rem, 3vw, 1.25rem)", maxWidth: "48rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
           <div style={{ border: "1px solid var(--hub-line)", borderRadius: "8px", background: "var(--hub-panel)", padding: "1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
               <div>
@@ -1166,7 +1286,7 @@ export default function QuestionLibrary() {
                 <h3 style={{ margin: "0.25rem 0", fontSize: "1.25rem", color: "var(--hub-text)" }}>
                   Impor Soal dari File CSV
                 </h3>
-                <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--hub-muted)" }}>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--hub-muted)", lineHeight: 1.4 }}>
                   Format kolom: <code>question,option_a,option_b,option_c,option_d,option_e,answer,explanation,block,topic</code>
                 </p>
               </div>
@@ -1178,12 +1298,13 @@ export default function QuestionLibrary() {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "0.4rem",
-                  padding: "0.45rem 0.75rem",
+                  padding: "0.55rem 0.85rem",
+                  minHeight: "40px",
                   border: "1px solid var(--hub-line)",
                   borderRadius: "5px",
                   background: "var(--hub-panel-raised)",
                   color: "var(--hub-text)",
-                  fontSize: "0.72rem",
+                  fontSize: "0.75rem",
                   cursor: "pointer",
                 }}
               >
@@ -1191,7 +1312,7 @@ export default function QuestionLibrary() {
               </button>
             </div>
 
-            {/* File Upload Input */}
+            {/* File Upload Dropzone */}
             <div
               style={{
                 marginTop: "1.25rem",
@@ -1204,7 +1325,7 @@ export default function QuestionLibrary() {
             >
               <Upload size={24} color="var(--hub-muted)" style={{ margin: "0 auto 0.5rem" }} />
               <label style={{ display: "inline-block", cursor: "pointer" }}>
-                <span className="hub-primary-action" style={{ display: "inline-block", padding: "0.5rem 1rem", borderRadius: "5px" }}>
+                <span className="hub-primary-action" style={{ display: "inline-block", padding: "0.6rem 1.2rem", borderRadius: "5px", minHeight: "44px", lineHeight: "2rem" }}>
                   PILIH FILE CSV
                 </span>
                 <input
@@ -1215,14 +1336,14 @@ export default function QuestionLibrary() {
                 />
               </label>
               {importFile && (
-                <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", color: "var(--hub-text)" }}>
+                <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", color: "var(--hub-text)", wordBreak: "break-word" }}>
                   File terpilih: <b>{importFile.name}</b> ({(importFile.size / 1024).toFixed(1)} KB)
                 </p>
               )}
             </div>
 
             {importMessage && (
-              <p className={importMessage.includes("failed") ? "hub-data-error" : "hub-data-state"} style={{ marginTop: "1rem" }}>
+              <p className={importMessage.includes("Gagal") ? "hub-data-error" : "hub-data-state"} style={{ marginTop: "1rem" }}>
                 {importMessage}
               </p>
             )}
@@ -1230,19 +1351,18 @@ export default function QuestionLibrary() {
             {/* Validation & Preview Screen */}
             {importPreview && (
               <div style={{ marginTop: "1.25rem", borderTop: "1px solid var(--hub-line)", paddingTop: "1rem" }}>
-                {/* Status Pills */}
                 <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-                  <span style={{ fontSize: "0.75rem", color: "#4ade80", background: "rgba(34, 197, 94, 0.15)", padding: "0.3rem 0.6rem", borderRadius: "4px" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#4ade80", background: "rgba(34, 197, 94, 0.15)", padding: "0.35rem 0.65rem", borderRadius: "4px" }}>
                     ✓ {importPreview.valid.length} Baris Valid
                   </span>
                   {importPreview.errors.length > 0 && (
-                    <span style={{ fontSize: "0.75rem", color: "#f87171", background: "rgba(239, 68, 68, 0.15)", padding: "0.3rem 0.6rem", borderRadius: "4px" }}>
+                    <span style={{ fontSize: "0.75rem", color: "#f87171", background: "rgba(239, 68, 68, 0.15)", padding: "0.35rem 0.65rem", borderRadius: "4px" }}>
                       ✗ {importPreview.errors.length} Baris Bermasalah
                     </span>
                   )}
                 </div>
 
-                {/* Errors display */}
+                {/* Error details */}
                 {importPreview.errors.length > 0 && (
                   <div style={{ marginBottom: "1rem", padding: "0.75rem", background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "6px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", color: "#f87171", fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.4rem" }}>
@@ -1261,7 +1381,7 @@ export default function QuestionLibrary() {
                   </div>
                 )}
 
-                {/* Valid Questions Preview Table */}
+                {/* Valid Preview Table (Responsive scroll) */}
                 {importPreview.valid.length > 0 && (
                   <div>
                     <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "var(--hub-text)" }}>
@@ -1269,22 +1389,22 @@ export default function QuestionLibrary() {
                     </h4>
                     <div style={{ display: "grid", gap: "0.5rem" }}>
                       {importPreview.valid.slice(0, 3).map((item, idx) => (
-                        <div key={idx} style={{ padding: "0.6rem", background: "var(--hub-panel-raised)", borderRadius: "5px", fontSize: "0.78rem" }}>
+                        <div key={idx} style={{ padding: "0.6rem 0.8rem", background: "var(--hub-panel-raised)", borderRadius: "5px", fontSize: "0.8rem", overflowWrap: "anywhere" }}>
                           <p style={{ margin: "0 0 0.25rem", color: "var(--hub-text)", fontWeight: 500 }}>
                             {idx + 1}. {item.question_text}
                           </p>
-                          <span style={{ color: "#4ade80", fontSize: "0.7rem", fontFamily: "var(--font-geist-mono), monospace" }}>
+                          <span style={{ color: "#4ade80", fontSize: "0.72rem", fontFamily: "var(--font-geist-mono), monospace" }}>
                             Kunci: {item.correct_answer} &nbsp;·&nbsp; Blok: {item.block || "—"} &nbsp;·&nbsp; Topik: {item.topic || "—"}
                           </span>
                         </div>
                       ))}
                     </div>
 
-                    <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                    <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end", gap: "0.5rem", flexWrap: "wrap" }}>
                       <button
                         type="button"
                         onClick={() => { setImportFile(null); setImportPreview(null); }}
-                        style={{ padding: "0.5rem 1rem", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-muted)", cursor: "pointer", borderRadius: "4px" }}
+                        style={{ padding: "0.6rem 1rem", minHeight: "44px", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-muted)", cursor: "pointer", borderRadius: "4px" }}
                       >
                         BATALKAN
                       </button>
@@ -1293,7 +1413,7 @@ export default function QuestionLibrary() {
                         onClick={handleExecuteImport}
                         disabled={importing}
                         className="hub-primary-action"
-                        style={{ padding: "0.55rem 1.25rem" }}
+                        style={{ padding: "0.6rem 1.4rem", minHeight: "44px" }}
                       >
                         {importing ? "MENGIMPOR…" : `IMPOR ${importPreview.valid.length} SOAL VALID`}
                       </button>
@@ -1307,7 +1427,84 @@ export default function QuestionLibrary() {
       )}
 
       {/* ===================================================================== */}
-      {/* QUESTION FORM MODAL (ADD / EDIT)                                      */}
+      {/* BULK DELETE BY TOPIC CONFIRMATION MODAL                               */}
+      {/* ===================================================================== */}
+      {topicDeleteOpen && (
+        <div className="hub-crud-modal-backdrop" onMouseDown={() => !deletingTopic && setTopicDeleteOpen(false)}>
+          <div
+            className="hub-crud-form hub-crud-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Konfirmasi Hapus Soal di Topik"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ maxWidth: "32rem", width: "95%", padding: "1.25rem" }}
+          >
+            <div className="hub-crud-form-head" style={{ marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#f87171" }}>
+                <AlertTriangle size={16} />
+                <span style={{ fontWeight: 600, fontSize: "0.85rem" }}>KONFIRMASI HAPUS TOPIK</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTopicDeleteOpen(false)}
+                disabled={deletingTopic}
+                aria-label="Tutup"
+                style={{ background: "transparent", border: "none", color: "var(--hub-muted)", cursor: "pointer" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {deleteTopicError && (
+              <p className="hub-data-error" style={{ marginBottom: "0.75rem" }}>
+                {deleteTopicError}
+              </p>
+            )}
+
+            <div style={{ fontSize: "0.88rem", lineHeight: 1.5, color: "var(--hub-text)", marginBottom: "1.25rem" }}>
+              <p style={{ margin: "0 0 0.5rem" }}>
+                Apakah Anda yakin ingin menghapus semua <b>{matchingTopicQuestions.length} soal</b> pada topik:
+              </p>
+              <div style={{ padding: "0.6rem 0.8rem", background: "var(--hub-panel-raised)", borderRadius: "6px", border: "1px solid var(--hub-line)", marginBottom: "0.6rem" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--hub-muted)" }}>TOPIK:</div>
+                <strong style={{ fontSize: "0.95rem", color: "var(--hub-text)" }}>{topicFilter}</strong>
+                {blockFilter && (
+                  <div style={{ fontSize: "0.75rem", color: "var(--hub-muted)", marginTop: "0.25rem" }}>
+                    Blok: <b>{blockFilter}</b>
+                  </div>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--hub-muted)" }}>
+                Soal-soal ini akan dipindahkan ke Trash dan tetap dapat dipulihkan dalam 30 hari.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setTopicDeleteOpen(false)}
+                disabled={deletingTopic}
+                style={{ padding: "0.6rem 1rem", minHeight: "44px", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-muted)", borderRadius: "4px", cursor: "pointer" }}
+              >
+                BATALKAN
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDeleteTopic}
+                disabled={deletingTopic || matchingTopicQuestions.length === 0}
+                className="hub-danger-action"
+                style={{ padding: "0.6rem 1.25rem", minHeight: "44px", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <Trash2 size={13} />
+                {deletingTopic ? "MENGHAPUS…" : `YA, HAPUS ${matchingTopicQuestions.length} SOAL`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* QUESTION FORM MODAL (ADD / EDIT) (Mobile-Optimized)                   */}
       {/* ===================================================================== */}
       {formOpen && (
         <div className="hub-crud-modal-backdrop" onMouseDown={closeForm}>
@@ -1318,7 +1515,7 @@ export default function QuestionLibrary() {
             aria-modal="true"
             aria-label={editingId ? "Edit Soal" : "Tambah Soal"}
             onMouseDown={(e) => e.stopPropagation()}
-            style={{ maxWidth: "42rem", width: "95%" }}
+            style={{ maxWidth: "42rem", width: "95%", maxHeight: "min(90dvh, 52rem)", overflowY: "auto" }}
           >
             <div className="hub-crud-form-head">
               <span>{editingId ? "EDIT SOAL" : "TAMBAH SOAL BARU"}</span>
@@ -1343,6 +1540,7 @@ export default function QuestionLibrary() {
                   placeholder="Tuliskan teks pertanyaan atau skenario klinis..."
                   value={form.question_text}
                   onChange={(e) => setForm({ ...form, question_text: e.target.value })}
+                  style={{ fontSize: "16px" }}
                 />
               </label>
 
@@ -1354,6 +1552,7 @@ export default function QuestionLibrary() {
                   placeholder="e.g. Blok 1, Blok 5"
                   value={form.block}
                   onChange={(e) => setForm({ ...form, block: e.target.value })}
+                  style={{ fontSize: "16px" }}
                 />
               </label>
 
@@ -1364,6 +1563,7 @@ export default function QuestionLibrary() {
                   placeholder="e.g. Kardiovaskular, Farmakologi"
                   value={form.topic}
                   onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                  style={{ fontSize: "16px" }}
                 />
               </label>
 
@@ -1372,23 +1572,23 @@ export default function QuestionLibrary() {
                 className="hub-field-wide"
                 style={{
                   display: "grid",
-                  gap: "0.5rem",
+                  gap: "0.6rem",
                   marginTop: "0.5rem",
                   borderTop: "1px solid var(--hub-line)",
                   paddingTop: "0.75rem",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.25rem" }}>
                   <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                     OPSI JAWABAN (A–E) & KUNCI JAWABAN *
                   </span>
-                  <span style={{ fontSize: "0.58rem", color: "var(--hub-muted)" }}>
+                  <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)" }}>
                     Pilih radio button di samping opsi yang benar.
                   </span>
                 </div>
 
                 {VALID_OPTIONS.map((opt) => (
-                  <div key={opt} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <div key={opt} style={{ display: "flex", alignItems: "center", gap: "0.6rem", minHeight: "44px" }}>
                     <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer", minWidth: "3.2rem" }}>
                       <input
                         type="radio"
@@ -1396,8 +1596,9 @@ export default function QuestionLibrary() {
                         value={opt}
                         checked={form.correct_answer === opt}
                         onChange={() => setForm({ ...form, correct_answer: opt })}
+                        style={{ width: "18px", height: "18px" }}
                       />
-                      <strong style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "0.75rem" }}>
+                      <strong style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "0.85rem" }}>
                         {opt}.
                       </strong>
                     </label>
@@ -1412,7 +1613,7 @@ export default function QuestionLibrary() {
                           options: { ...form.options, [opt]: e.target.value },
                         })
                       }
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, fontSize: "16px", minHeight: "42px" }}
                     />
                   </div>
                 ))}
@@ -1426,6 +1627,7 @@ export default function QuestionLibrary() {
                   placeholder="Penjelasan rasional klinis atau poin pembelajaran..."
                   value={form.explanation}
                   onChange={(e) => setForm({ ...form, explanation: e.target.value })}
+                  style={{ fontSize: "16px" }}
                 />
               </label>
 
@@ -1437,20 +1639,22 @@ export default function QuestionLibrary() {
                   placeholder="e.g. cardio, ekg, aritmia"
                   value={form.tags}
                   onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  style={{ fontSize: "16px" }}
                 />
               </label>
 
               {/* Bookmark */}
               <label
                 className="hub-field-wide"
-                style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", minHeight: "44px" }}
               >
                 <input
                   type="checkbox"
                   checked={form.is_bookmarked}
                   onChange={(e) => setForm({ ...form, is_bookmarked: e.target.checked })}
+                  style={{ width: "18px", height: "18px" }}
                 />
-                <span style={{ fontSize: "0.75rem" }}>Tandai sebagai bookmark</span>
+                <span style={{ fontSize: "0.82rem" }}>Tandai sebagai bookmark</span>
               </label>
             </div>
 
@@ -1462,12 +1666,13 @@ export default function QuestionLibrary() {
                 gap: "0.5rem",
                 padding: "0.75rem 1rem",
                 borderTop: "1px solid var(--hub-line)",
+                flexWrap: "wrap",
               }}
             >
-              <button type="button" onClick={closeForm} disabled={submitting}>
+              <button type="button" onClick={closeForm} disabled={submitting} style={{ minHeight: "44px", padding: "0.5rem 1rem" }}>
                 BATAL
               </button>
-              <button type="submit" disabled={submitting} className="hub-primary-action">
+              <button type="submit" disabled={submitting} className="hub-primary-action" style={{ minHeight: "44px", padding: "0.5rem 1.4rem" }}>
                 {submitting ? "MENYIMPAN…" : editingId ? "UPDATE SOAL" : "SIMPAN SOAL"}
               </button>
             </div>

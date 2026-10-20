@@ -281,6 +281,20 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
                 },
               };
             },
+            is(field, val) {
+              return {
+                eq(topicField, topicVal) {
+                  return {
+                    eq(blockField, blockVal) {
+                      return {
+                        select: async () => ({ data: [{ id: "q1" }, { id: "q2" }], error: null }),
+                      };
+                    },
+                    select: async () => ({ data: [{ id: "q1" }, { id: "q2" }], error: null }),
+                  };
+                },
+              };
+            },
           };
         },
       };
@@ -316,6 +330,16 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   // Soft delete question
   await repo.remove("q1");
   assert.ok(updated.deleted_at);
+
+  // Soft delete by topic
+  const topicDelete = await repo.removeByTopic({ block: "Blok 1", topic: "Biologi" });
+  assert.equal(topicDelete.deletedCount, 2);
+  assert.deepEqual(topicDelete.deletedIds, ["q1", "q2"]);
+
+  await assert.rejects(
+    () => repo.removeByTopic({ topic: "" }),
+    /A valid topic is required/
+  );
 
   // Toggle bookmark
   const toggled = await repo.toggleBookmark("q1", false);
