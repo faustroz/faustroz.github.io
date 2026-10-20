@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CrudPanel from "@/components/hub/CrudPanel";
+import QuestionLibrary from "@/components/hub/QuestionLibrary";
 import { calculateAcademicTarget, calculateOspeScore, GRADE_POINTS } from "@/lib/hub/academic.mjs";
 import { ACADEMIC_CHANNELS } from "@/lib/hub/module-config.mjs";
 
@@ -54,6 +55,7 @@ function AcademicTargetCalculator({ records }) {
 }
 
 export default function AcademicPanel() {
+  const [workspaceTab, setWorkspaceTab] = useState("records");
   const [records, setRecords] = useState([]);
   const [mkuRecords, setMkuRecords] = useState([]);
   const [recordType, setRecordType] = useState("medical");
@@ -66,14 +68,28 @@ export default function AcademicPanel() {
     return { semester, ip: total ? rows.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / total : 0 };
   });
   return <>
-    <section className="hub-academic-summary"><article><span>IPK / CUMULATIVE</span><strong>{ipk.toFixed(2)}</strong></article><article><span>SKS / CREDITS</span><strong>{credits}</strong></article><article><span>SEMESTERS</span><strong>{bySemester.length}</strong></article>{bySemester.map((item) => <article key={item.semester}><span>IP {item.semester}</span><strong>{item.ip.toFixed(2)}</strong></article>)}</section>
-    <AcademicTargetCalculator records={allRecords} />
-    <section className="hub-academic-record-type" aria-label="Academic record type">
-      <div><span>RECORD TYPE</span><p>IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p></div>
-      <div role="tablist" aria-label="Academic record options"><button type="button" role="tab" aria-selected={recordType === "medical"} className={recordType === "medical" ? "is-active" : undefined} onClick={() => setRecordType("medical")}>BLOK KEDOKTERAN</button><button type="button" role="tab" aria-selected={recordType === "mku"} className={recordType === "mku" ? "is-active" : undefined} onClick={() => setRecordType("mku")}>MATA KULIAH UMUM</button></div>
+    <section className="hub-academic-record-type" aria-label="Academic workspace section" style={{ marginBottom: "1rem" }}>
+      <div><span>ACADEMIC WORKSPACE</span><p>Switch between coursework records and Question Bank library.</p></div>
+      <div role="tablist" aria-label="Academic workspace views">
+        <button type="button" role="tab" aria-selected={workspaceTab === "records"} className={workspaceTab === "records" ? "is-active" : undefined} onClick={() => setWorkspaceTab("records")}>RECORD & TARGETS</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "questions"} className={workspaceTab === "questions" ? "is-active" : undefined} onClick={() => setWorkspaceTab("questions")}>QUESTION BANK</button>
+      </div>
     </section>
-    {recordType === "medical" && <><section className="hub-academic-guide"><header><span>BLOCK GRADING / AUTOMATIC</span><p>Enter each applicable component score (0–100). The selected block determines its weighting and calculates the final score, grade, IP, and IPK.</p></header><div>{guide.map(([range, grade, point]) => <span key={grade}>{range} <b>{grade}</b> / {point}</span>)}</div><ul>{weights.map(([block, distribution]) => <li key={block}><b>{block}</b><span>{distribution}</span></li>)}</ul></section><OspeCalculator /></>}
-    <div hidden={recordType !== "medical"}><CrudPanel {...ACADEMIC_CHANNELS[0]} onRecordsChange={setRecords} /></div>
-    <div hidden={recordType !== "mku"}><CrudPanel {...ACADEMIC_CHANNELS[1]} onRecordsChange={setMkuRecords} /></div>
+
+    {workspaceTab === "questions" ? (
+      <QuestionLibrary />
+    ) : (
+      <>
+        <section className="hub-academic-summary"><article><span>IPK / CUMULATIVE</span><strong>{ipk.toFixed(2)}</strong></article><article><span>SKS / CREDITS</span><strong>{credits}</strong></article><article><span>SEMESTERS</span><strong>{bySemester.length}</strong></article>{bySemester.map((item) => <article key={item.semester}><span>IP {item.semester}</span><strong>{item.ip.toFixed(2)}</strong></article>)}</section>
+        <AcademicTargetCalculator records={allRecords} />
+        <section className="hub-academic-record-type" aria-label="Academic record type">
+          <div><span>RECORD TYPE</span><p>IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p></div>
+          <div role="tablist" aria-label="Academic record options"><button type="button" role="tab" aria-selected={recordType === "medical"} className={recordType === "medical" ? "is-active" : undefined} onClick={() => setRecordType("medical")}>BLOK KEDOKTERAN</button><button type="button" role="tab" aria-selected={recordType === "mku"} className={recordType === "mku" ? "is-active" : undefined} onClick={() => setRecordType("mku")}>MATA KULIAH UMUM</button></div>
+        </section>
+        {recordType === "medical" && <><section className="hub-academic-guide"><header><span>BLOCK GRADING / AUTOMATIC</span><p>Enter each applicable component score (0–100). The selected block determines its weighting and calculates the final score, grade, IP, and IPK.</p></header><div>{guide.map(([range, grade, point]) => <span key={grade}>{range} <b>{grade}</b> / {point}</span>)}</div><ul>{weights.map(([block, distribution]) => <li key={block}><b>{block}</b><span>{distribution}</span></li>)}</ul></section><OspeCalculator /></>}
+        <div hidden={recordType !== "medical"}><CrudPanel {...ACADEMIC_CHANNELS[0]} onRecordsChange={setRecords} /></div>
+        <div hidden={recordType !== "mku"}><CrudPanel {...ACADEMIC_CHANNELS[1]} onRecordsChange={setMkuRecords} /></div>
+      </>
+    )}
   </>;
 }
