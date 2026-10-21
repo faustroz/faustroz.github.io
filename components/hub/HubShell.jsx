@@ -10,11 +10,13 @@ export default function HubShell({ children }) {
   const portfolioLanding = pathname === "/";
   const financeRoute = pathname?.startsWith("/finance/portfolio");
   const specialistRoute = financeRoute;
+  const practiceRoute = pathname === "/academic/practice";
   const privateRoute = isPrivateHubRoute(pathname);
   const shellClasses = ["hub-shell"];
 
   if (specialistRoute) shellClasses.push("hub-shell--specialist");
   if (financeRoute) shellClasses.push("hub-shell--finance");
+  if (practiceRoute) shellClasses.push("hub-shell--practice");
 
   if (portfolioLanding) return children;
 
@@ -30,11 +32,11 @@ export default function HubShell({ children }) {
 
   return (
     <div className={shellClasses.join(" ")}>
-      <HubNavigation />
+      {!practiceRoute && <HubNavigation />}
       <div className="hub-content">
         {privateRoute ? <HubAuthGate>{children}</HubAuthGate> : children}
       </div>
-      {!specialistRoute && (
+      {!specialistRoute && !practiceRoute && (
         <footer className="hub-footer">
           <span>4allx / Personal Hub</span>
           <span>© {new Date().getFullYear()} Ferdy Diatmika</span>

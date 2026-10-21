@@ -52,6 +52,11 @@ const sampleQuestions = [
 ];
 
 let mockDbQuestions = [];
+const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, back: vi.fn() }),
+}));
 
 // Mock requireSupabase for QuestionLibrary and CrudPanel
 vi.mock("@/lib/supabase/client", () => {
@@ -95,6 +100,26 @@ vi.mock("@/lib/supabase/client", () => {
 });
 
 describe("AcademicPanel and QuestionBank redesign integration", () => {
+  it("starts a shuffled standalone practice route and retains the selected filters", async () => {
+    mockDbQuestions = [...sampleQuestions];
+    mockPush.mockClear();
+    window.sessionStorage.clear();
+    render(<QuestionLibrary />);
+    await waitFor(() => expect(screen.getByText(/3 SOAL TERSEDIA/i)).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText(/blok kedokteran/i), { target: { value: "Kardiovaskular" } });
+    fireEvent.change(screen.getByLabelText(/topik \(opsional\)/i), { target: { value: "Aritmia" } });
+    fireEvent.click(screen.getByRole("button", { name: /mulai latihan/i }));
+
+    expect(mockPush).toHaveBeenCalledWith("/academic/practice");
+    const run = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1"));
+    expect(run.questions).toHaveLength(2);
+    expect(run.block).toBe("Kardiovaskular");
+    expect(run.topic).toBe("Aritmia");
+    expect(run.questions.every((question) => question.shuffledOptions[question.shuffledCorrectAnswer] === question.options[question.correct_answer])).toBe(true);
+    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-filters:v1"))).toEqual({ block: "Kardiovaskular", topic: "Aritmia" });
+  });
+
   it("renders the concise Academic overview and navigates dedicated workspace pages", async () => {
     mockDbQuestions = [];
     render(<AcademicPanel />);

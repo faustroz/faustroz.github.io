@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
@@ -26,7 +27,13 @@ import {
 } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import {
-  createPracticeSession,
+  createPracticeRun,
+  PRACTICE_RUN_STORAGE_KEY,
+  readPracticeFilters,
+  writePracticeFilters,
+  writePracticeRun,
+} from "@/lib/hub/academic-practice.mjs";
+import {
   createQuestionRepository,
   extractFilterOptions,
   filterQuestions,
@@ -49,6 +56,7 @@ const DEFAULT_FORM = Object.freeze({
 });
 
 export default function QuestionLibrary() {
+  const router = useRouter();
   // Top-level bank sub-navigation: "practice" | "library" | "mistakes" | "import"
   const [activeTab, setActiveTab] = useState("practice");
 
@@ -138,6 +146,13 @@ export default function QuestionLibrary() {
     loadQuestions();
   }, [loadQuestions]);
 
+  useEffect(() => {
+    const savedFilters = readPracticeFilters(window.sessionStorage);
+    if (!savedFilters) return;
+    setPracticeBlock(savedFilters.block);
+    setPracticeTopic(savedFilters.topic);
+  }, []);
+
   const loadMistakes = useCallback(async () => {
     if (!repository) return;
     setLoadingMistakes(true);
@@ -201,15 +216,17 @@ export default function QuestionLibrary() {
   const startPractice = (targetQuestions = null) => {
     const pool = targetQuestions || matchingPracticeQuestions;
     if (!pool.length) return;
-
-    const session = createPracticeSession(pool);
-    setPracticeQuestions(session);
-    setPracticeIndex(0);
-    setPracticeSelectedAnswer("");
-    setPracticeSubmitted(false);
-    setPracticeStats({ correct: 0, wrong: 0, incorrectQuestions: [] });
-    setPracticeFinished(false);
-    setPracticeActive(true);
+    const session = createPracticeRun(pool, { block: practiceBlock, topic: practiceTopic });
+    if (!session || !writePracticeRun(window.sessionStorage, session)) {
+      setNotification("Sesi latihan tidak dapat disiapkan. Periksa penyimpanan browser lalu coba lagi.");
+      return;
+    }
+    if (!writePracticeFilters(window.sessionStorage, { block: practiceBlock, topic: practiceTopic })) {
+      window.sessionStorage.removeItem(PRACTICE_RUN_STORAGE_KEY);
+      setNotification("Pilihan latihan tidak dapat disimpan. Periksa penyimpanan browser lalu coba lagi.");
+      return;
+    }
+    router.push("/academic/practice");
   };
 
   const currentQuestion = practiceQuestions[practiceIndex] || null;
