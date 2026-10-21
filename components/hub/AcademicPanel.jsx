@@ -55,7 +55,7 @@ function AcademicTargetCalculator({ records }) {
 }
 
 export default function AcademicPanel() {
-  const [workspaceTab, setWorkspaceTab] = useState("records");
+  const [activePage, setActivePage] = useState("overview");
   const [records, setRecords] = useState([]);
   const [mkuRecords, setMkuRecords] = useState([]);
   const [recordType, setRecordType] = useState("medical");
@@ -67,29 +67,63 @@ export default function AcademicPanel() {
     const total = rows.reduce((sum, row) => sum + Number(row.credits || 0), 0);
     return { semester, ip: total ? rows.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / total : 0 };
   });
+  const latestSemester = [...bySemester].sort((left, right) => String(right.semester).localeCompare(String(left.semester), undefined, { numeric: true }))[0] || null;
+  const pages = [["overview", "Overview"], ["grades", "Grades & Credits"], ["target", "Academic Target"], ["calculator", "Grade Calculator"], ["questions", "Question Bank"]];
+
   return <>
-    <section className="hub-academic-record-type" aria-label="Academic workspace section" style={{ marginBottom: "1rem" }}>
-      <div><span>ACADEMIC WORKSPACE</span><p>Switch between coursework records and Question Bank library.</p></div>
-      <div role="tablist" aria-label="Academic workspace views">
-        <button type="button" role="tab" aria-selected={workspaceTab === "records"} className={workspaceTab === "records" ? "is-active" : undefined} onClick={() => setWorkspaceTab("records")}>RECORD & TARGETS</button>
-        <button type="button" role="tab" aria-selected={workspaceTab === "questions"} className={workspaceTab === "questions" ? "is-active" : undefined} onClick={() => setWorkspaceTab("questions")}>QUESTION BANK</button>
-      </div>
+    <nav className="hub-academic-nav" role="tablist" aria-label="Academic pages">
+      {pages.map(([id, label]) => <button key={id} type="button" role="tab" id={`academic-tab-${id}`} aria-controls={`academic-panel-${id}`} aria-selected={activePage === id} className={activePage === id ? "is-active" : undefined} aria-label={id === "overview" ? "Overview — Record & Targets" : label} onClick={() => setActivePage(id)}>{label}</button>)}
+    </nav>
+
+    <section id="academic-panel-overview" className="hub-academic-page-panel" role="tabpanel" aria-labelledby="academic-tab-overview" hidden={activePage !== "overview"}>
+      <section className="hub-academic-overview">
+        <article className="hub-academic-gpa"><span>IPK / CUMULATIVE</span><strong>{credits ? ipk.toFixed(2) : "—"}</strong><small>{credits ? "Blok kedokteran + MKU" : "Belum ada nilai tercatat"}</small></article>
+        <div className="hub-academic-overview-stats">
+          <article><span>TOTAL SKS</span><strong>{credits}</strong></article>
+          <article><span>SEMESTER</span><strong>{bySemester.length}</strong></article>
+          <article><span>IP TERBARU{latestSemester ? ` · ${latestSemester.semester}` : ""}</span><strong>{latestSemester ? latestSemester.ip.toFixed(2) : "—"}</strong></article>
+        </div>
+      </section>
+      <section className="hub-academic-quick-links" aria-label="Academic quick access">
+        <span>AKSES CEPAT</span>
+        <div>
+          <button type="button" onClick={() => { setRecordType("medical"); setActivePage("grades"); }}>Grades & Credits · Blok</button>
+          <button type="button" onClick={() => { setRecordType("mku"); setActivePage("grades"); }}>Mata Kuliah Umum</button>
+          <button type="button" onClick={() => setActivePage("target")}>Academic Target</button>
+          <button type="button" onClick={() => setActivePage("calculator")}>Grade Calculator</button>
+          <button type="button" onClick={() => setActivePage("questions")}>Question Bank</button>
+        </div>
+      </section>
+      <p className="hub-academic-shared-note">IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p>
     </section>
 
-    {workspaceTab === "questions" ? (
-      <QuestionLibrary />
-    ) : (
-      <>
-        <section className="hub-academic-summary"><article><span>IPK / CUMULATIVE</span><strong>{ipk.toFixed(2)}</strong></article><article><span>SKS / CREDITS</span><strong>{credits}</strong></article><article><span>SEMESTERS</span><strong>{bySemester.length}</strong></article>{bySemester.map((item) => <article key={item.semester}><span>IP {item.semester}</span><strong>{item.ip.toFixed(2)}</strong></article>)}</section>
-        <AcademicTargetCalculator records={allRecords} />
-        <section className="hub-academic-record-type" aria-label="Academic record type">
-          <div><span>RECORD TYPE</span><p>IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p></div>
-          <div role="tablist" aria-label="Academic record options"><button type="button" role="tab" aria-selected={recordType === "medical"} className={recordType === "medical" ? "is-active" : undefined} onClick={() => setRecordType("medical")}>BLOK KEDOKTERAN</button><button type="button" role="tab" aria-selected={recordType === "mku"} className={recordType === "mku" ? "is-active" : undefined} onClick={() => setRecordType("mku")}>MATA KULIAH UMUM</button></div>
-        </section>
-        {recordType === "medical" && <><section className="hub-academic-guide"><header><span>BLOCK GRADING / AUTOMATIC</span><p>Enter each applicable component score (0–100). The selected block determines its weighting and calculates the final score, grade, IP, and IPK.</p></header><div>{guide.map(([range, grade, point]) => <span key={grade}>{range} <b>{grade}</b> / {point}</span>)}</div><ul>{weights.map(([block, distribution]) => <li key={block}><b>{block}</b><span>{distribution}</span></li>)}</ul></section><OspeCalculator /></>}
-        <div hidden={recordType !== "medical"}><CrudPanel {...ACADEMIC_CHANNELS[0]} onRecordsChange={setRecords} /></div>
-        <div hidden={recordType !== "mku"}><CrudPanel {...ACADEMIC_CHANNELS[1]} onRecordsChange={setMkuRecords} /></div>
-      </>
-    )}
+    <section id="academic-panel-grades" className="hub-academic-page-panel hub-academic-grades" role="tabpanel" aria-labelledby="academic-tab-grades" hidden={activePage !== "grades"}>
+      <section className="hub-academic-record-type" aria-label="Academic record type">
+        <div><span>RECORD TYPE</span><p>IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p></div>
+        <div role="tablist" aria-label="Academic record options"><button type="button" role="tab" aria-selected={recordType === "medical"} className={recordType === "medical" ? "is-active" : undefined} onClick={() => setRecordType("medical")}>BLOK KEDOKTERAN</button><button type="button" role="tab" aria-selected={recordType === "mku"} className={recordType === "mku" ? "is-active" : undefined} onClick={() => setRecordType("mku")}>MATA KULIAH UMUM</button></div>
+      </section>
+      <div hidden={recordType !== "medical"}><CrudPanel {...ACADEMIC_CHANNELS[0]} onRecordsChange={setRecords} /></div>
+      <div hidden={recordType !== "mku"}><CrudPanel {...ACADEMIC_CHANNELS[1]} onRecordsChange={setMkuRecords} /></div>
+    </section>
+
+    <section id="academic-panel-target" className="hub-academic-page-panel" role="tabpanel" aria-labelledby="academic-tab-target" hidden={activePage !== "target"}>
+      <AcademicTargetCalculator records={allRecords} />
+    </section>
+
+    <section id="academic-panel-calculator" className="hub-academic-page-panel hub-academic-calculator-page" role="tabpanel" aria-labelledby="academic-tab-calculator" hidden={activePage !== "calculator"}>
+      <details className="hub-academic-guide hub-academic-guide-accordion">
+        <summary><span>ATURAN PEMBOBOTAN NILAI BLOK</span><small>Lihat tabel nilai dan komponen per blok</small></summary>
+        <div className="hub-academic-guide-content">
+          <p>Nilai akhir blok dikonversi menjadi huruf mutu dan bobot berikut.</p>
+          <div>{guide.map(([range, grade, point]) => <span key={grade}>{range} <b>{grade}</b> / {point}</span>)}</div>
+          <ul>{weights.map(([block, distribution]) => <li key={block}><b>{block}</b><span>{distribution}</span></li>)}</ul>
+        </div>
+      </details>
+      <OspeCalculator />
+    </section>
+
+    <section id="academic-panel-questions" className="hub-academic-page-panel" role="tabpanel" aria-labelledby="academic-tab-questions" hidden={activePage !== "questions"}>
+      {activePage === "questions" && <QuestionLibrary />}
+    </section>
   </>;
 }

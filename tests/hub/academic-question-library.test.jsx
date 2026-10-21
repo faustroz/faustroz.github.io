@@ -95,14 +95,27 @@ vi.mock("@/lib/supabase/client", () => {
 });
 
 describe("AcademicPanel and QuestionBank redesign integration", () => {
-  it("renders Academic workspace and navigates Question Bank modes without difficulty or exam mode", async () => {
+  it("renders the concise Academic overview and navigates dedicated workspace pages", async () => {
     mockDbQuestions = [];
     render(<AcademicPanel />);
 
-    // Default view is RECORD & TARGETS
-    expect(screen.getByRole("tab", { name: /record & targets/i })).toHaveAttribute("aria-selected", "true");
+    // Overview is the concise default; record management lives on its own page.
+    expect(screen.getByRole("tab", { name: /overview/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/IPK \/ CUMULATIVE/i)).toBeInTheDocument();
     expect(screen.getByText(/BLOK KEDOKTERAN/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /new entry/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /grades & credits/i }));
+    expect(screen.getByRole("tab", { name: /grades & credits/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /blok kedokteran/i })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: /mata kuliah umum/i }));
+    expect(screen.getByRole("tab", { name: /mata kuliah umum/i })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.click(screen.getByRole("tab", { name: /academic target/i }));
+    expect(screen.getByRole("heading", { name: /target ip semester/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /grade calculator/i }));
+    expect(screen.getByRole("heading", { name: /target kkm 55/i })).toBeInTheDocument();
+    expect(screen.getByText(/aturan pembobotan nilai blok/i)).toBeInTheDocument();
 
     // Switch to QUESTION BANK
     const questionBankTab = screen.getByRole("tab", { name: /question bank/i });

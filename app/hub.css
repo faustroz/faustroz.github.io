@@ -3047,3 +3047,80 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
     flex: 1 0 auto;
   }
 }
+
+/* Academic subpages: concise navigation and overview-first hierarchy. */
+.hub-academic-nav {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.4rem;
+  margin:0 0 1rem;
+  padding:.35rem;
+  border:1px solid var(--hub-line);
+  border-radius:9px;
+  background:var(--hub-panel);
+}
+.hub-academic-nav button {
+  min-width:0;
+  min-height:2.45rem;
+  padding:.55rem .8rem;
+  border:1px solid transparent;
+  border-radius:6px;
+  color:var(--hub-muted);
+  background:transparent;
+  font:.69rem "IBM Plex Mono",var(--font-geist-mono),monospace;
+  text-align:center;
+  cursor:pointer;
+}
+.hub-academic-nav button.is-active { border-color:var(--hub-line); color:var(--hub-text); background:var(--hub-surface); }
+.hub-academic-page-panel { min-width:0; }
+.hub-academic-overview { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,2fr); gap:.75rem; margin:0 0 .75rem; }
+.hub-academic-gpa,.hub-academic-overview-stats article { min-width:0; padding:1rem; border:1px solid var(--hub-line); border-radius:9px; background:var(--hub-panel); }
+.hub-academic-gpa { display:flex; flex-direction:column; justify-content:center; }
+.hub-academic-gpa > span,.hub-academic-overview-stats article > span,.hub-academic-quick-links > span { color:var(--hub-muted); font:.6rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.07em; }
+.hub-academic-gpa strong { display:block; margin:.25rem 0; color:var(--hub-text); font:700 clamp(2.35rem,6vw,3.6rem)/1 "Bricolage Grotesque",sans-serif; font-variant-numeric:tabular-nums; }
+.hub-academic-gpa small { color:var(--hub-muted); font-size:.72rem; }
+.hub-academic-overview-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; }
+.hub-academic-overview-stats article { display:flex; flex-direction:column; justify-content:center; gap:.45rem; }
+.hub-academic-overview-stats article strong { overflow-wrap:anywhere; color:var(--hub-text); font:650 clamp(1.1rem,2.3vw,1.55rem)/1.1 "Bricolage Grotesque",sans-serif; font-variant-numeric:tabular-nums; }
+.hub-academic-quick-links { padding:1rem; border:1px solid var(--hub-line); border-radius:9px; background:var(--hub-panel); }
+.hub-academic-quick-links > div { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.5rem; margin-top:.65rem; }
+.hub-academic-quick-links button { min-width:0; min-height:2.75rem; padding:.55rem .65rem; border:1px solid var(--hub-line); border-radius:6px; color:var(--hub-text); background:var(--hub-surface); font-size:.72rem; text-align:left; overflow-wrap:anywhere; cursor:pointer; }
+.hub-academic-quick-links button:hover { border-color:var(--hub-accent); }
+.hub-academic-shared-note { margin:.65rem 0 0; color:var(--hub-muted); font-size:.72rem; line-height:1.45; }
+.hub-academic-guide-accordion { padding:0; overflow:hidden; }
+.hub-academic-guide-accordion summary { display:grid; gap:.25rem; padding:.9rem 1rem; color:var(--hub-text); cursor:pointer; list-style:none; }
+.hub-academic-guide-accordion summary::-webkit-details-marker { display:none; }
+.hub-academic-guide-accordion summary::after { content:"+"; position:absolute; right:1rem; color:var(--hub-muted); font:1rem "IBM Plex Mono",monospace; }
+.hub-academic-guide-accordion[open] summary::after { content:"−"; }
+.hub-academic-guide-accordion summary { position:relative; padding-right:2.5rem; }
+.hub-academic-guide-accordion summary span { font:.63rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.07em; }
+.hub-academic-guide-accordion summary small { color:var(--hub-muted); font-size:.72rem; }
+.hub-academic-guide-content { padding:0 1rem 1rem; }
+.hub-academic-guide-content > p { margin:.1rem 0 .7rem; color:var(--hub-muted); font-size:.76rem; line-height:1.45; }
+.hub-academic-grades .hub-academic-record-type { margin-bottom:.7rem; }
+.hub-academic-grades .hub-crud-heading { gap:.65rem; padding:1rem; }
+.hub-academic-grades .hub-crud-heading h2 { font-size:clamp(1.2rem,3vw,1.6rem); }
+.hub-academic-grades .hub-crud-row { min-width:0; }
+
+@media (max-width:767px) {
+  .hub-academic-nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.3rem; padding:.3rem; }
+  .hub-academic-nav button { min-height:2.65rem; padding:.45rem .35rem; font-size:.62rem; line-height:1.25; overflow-wrap:anywhere; }
+  .hub-academic-overview { grid-template-columns:1fr; gap:.5rem; }
+  .hub-academic-gpa { min-height:7rem; }
+  .hub-academic-overview-stats { gap:.4rem; }
+  .hub-academic-overview-stats article { min-height:4.65rem; padding:.65rem .55rem; }
+  .hub-academic-overview-stats article > span { font-size:.52rem; line-height:1.35; }
+  .hub-academic-overview-stats article strong { font-size:1.08rem; }
+  .hub-academic-quick-links { padding:.8rem; }
+  .hub-academic-quick-links > div { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
+  .hub-academic-quick-links button { min-height:2.55rem; padding:.5rem; font-size:.68rem; }
+  .hub-academic-quick-links button:last-child { grid-column:1 / -1; }
+  .hub-academic-grades .hub-crud-heading { align-items:stretch; flex-direction:column; }
+  .hub-academic-grades .hub-crud-heading > * { min-width:0; max-width:100%; }
+}
+
+@media (max-width:360px) {
+  .hub-academic-overview-stats article { padding:.55rem .4rem; }
+  .hub-academic-overview-stats article > span { font-size:.48rem; }
+  .hub-academic-nav button { font-size:.58rem; }
+}
