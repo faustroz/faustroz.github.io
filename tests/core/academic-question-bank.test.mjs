@@ -44,6 +44,25 @@ test("Phase 32 migration extends existing questions, keeps categories and image 
   assert.match(sql, /academic_question_attempts_answer_shape_check/);
 });
 
+test("Phase 33 removes implicit categories without deleting existing question data", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/033-question-bank-no-default-categories.sql", import.meta.url), "utf8");
+  assert.match(sql, /alter column exam_type drop default/);
+  assert.match(sql, /alter column subject drop default/);
+  assert.match(sql, /alter column exam_type drop not null/);
+  assert.match(sql, /alter column subject drop not null/);
+  assert.match(sql, /subject is null or length\(trim\(subject\)\) > 0/);
+  assert.doesNotMatch(sql, /\bdelete\s+from\s+public\.academic_questions/i);
+  assert.doesNotMatch(sql, /\btruncate\b/i);
+});
+
+test("Question Bank UI has no hardcoded exam-type or subject category seeds", async () => {
+  const component = await readFile(new URL("../../components/hub/QuestionLibrary.jsx", import.meta.url), "utf8");
+  assert.match(component, /useState\(\[\]\)/);
+  assert.doesNotMatch(component, /useState\(\[\"MP\"|useState\(\[\"Anatomi\"/);
+  assert.doesNotMatch(component, /setExamCategories\(\[\.\.\.new Set\(\[\"MP\"/);
+  assert.doesNotMatch(component, /setSubjectCategories\(\[\.\.\.new Set\(\[\"Anatomi\"/);
+});
+
 test("permanent Trash deletion also removes private question image objects", async () => {
   const trash = await readFile(new URL("../../components/hub/TrashPanel.jsx", import.meta.url), "utf8");
   assert.match(trash, /item\.table === "academic_questions" && item\.row\.image_path/);
@@ -97,7 +116,7 @@ test("validateQuestionPayload validates single-choice MCQs with 5 options (A-E)"
   );
 });
 
-test("question validation supports essay safely while preserving legacy MCQ defaults", () => {
+test("question validation supports essay and does not invent exam or subject categories", () => {
   const essay = validateQuestionPayload({ question_type: "essay", exam_type: "OSPE", subject: "Biokimia", block: "Hepatobilier", topic: "Bilirubin", subtopic: "Konjugasi", question_text: "Jelaskan metabolisme bilirubin", reference_answer: "Bilirubin berasal dari heme.", tags: "heme, hati" });
   assert.equal(essay.question_type, "essay");
   assert.equal(essay.correct_answer, null);
@@ -106,6 +125,9 @@ test("question validation supports essay safely while preserving legacy MCQ defa
   assert.throws(() => validateQuestionPayload({ question_type: "essay", question_text: "Essay tanpa rujukan" }), /Reference answer is required/);
   assert.throws(() => validateQuestionPayload({ question_type: "mcq", question_text: "MCQ tanpa opsi" }), /Option A cannot be empty/);
   assert.equal(validateQuestionPayload({ question_text: "Legacy question", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" }).question_type, "mcq");
+  const unclassified = validateQuestionPayload({ question_text: "No category yet", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" });
+  assert.equal(unclassified.exam_type, null);
+  assert.equal(unclassified.subject, null);
 });
 
 test("question image identity is a storage path, not an expiring URL", () => {
@@ -269,6 +291,22 @@ test("modern CSV preview validates MCQ and Essay rows without accepting invalid 
   assert.equal(result.valid[0].tags[1], "bilirubin");
   assert.equal(result.valid[1].question_type, "essay");
   assert.equal(result.valid[1].options && Object.keys(result.valid[1].options).length, 0);
+});
+
+test("CSV category validation accepts user-managed categories and never invents defaults", () => {
+  const csv = [
+    "exam_type,subject,question_type,question_text,option_a,option_b,option_c,option_d,option_e,correct_answer,reference_answer",
+    "Ujian Buatan,Subjek Buatan,mcq,Pertanyaan,A,B,C,D,E,A,",
+    "Default Asing,Subjek Buatan,mcq,Pertanyaan lain,A,B,C,D,E,A,",
+    ",,mcq,Tanpa metadata,A,B,C,D,E,A,",
+  ].join("\n");
+  const result = validateCsvRows(csv, { examTypes: ["Ujian Buatan"], subjects: ["Subjek Buatan"] });
+  assert.equal(result.valid.length, 2);
+  assert.equal(result.errors.length, 1);
+  assert.match(result.errors[0].reason, /belum terdaftar/);
+  assert.equal(result.valid[0].exam_type, "Ujian Buatan");
+  assert.equal(result.valid[1].exam_type, null);
+  assert.equal(result.valid[1].subject, null);
 });
 
 test("createQuestionRepository delegates to Supabase with proper checks", async () => {

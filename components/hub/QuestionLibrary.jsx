@@ -47,10 +47,10 @@ import {
 } from "@/lib/hub/question-bank.mjs";
 
 const DEFAULT_FORM = Object.freeze({
-  exam_type: "MCQ",
+  exam_type: "",
   question_type: "mcq",
   question_text: "",
-  subject: "Kedokteran",
+  subject: "",
   block: "",
   topic: "",
   subtopic: "",
@@ -73,8 +73,8 @@ export default function QuestionLibrary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState("");
-  const [examCategories, setExamCategories] = useState(["MP", "OSPE", "SOCA", "MCQ", "Essay", "Custom"]);
-  const [subjectCategories, setSubjectCategories] = useState(["Anatomi", "Histologi", "Fisiologi", "Biokimia", "Farmakologi", "Patologi Anatomi", "Patologi Klinik", "Mikrobiologi", "Parasitologi", "Ilmu lainnya", "Kedokteran"]);
+  const [examCategories, setExamCategories] = useState([]);
+  const [subjectCategories, setSubjectCategories] = useState([]);
   const [examTypeFilter, setExamTypeFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [formatFilter, setFormatFilter] = useState("");
@@ -167,8 +167,8 @@ export default function QuestionLibrary() {
       }));
       setQuestions(withImages);
       const [examRows, subjectRows] = await Promise.all([repository.listCategories("exam_type"), repository.listCategories("subject")]);
-      setExamCategories([...new Set(["MP", "OSPE", "SOCA", "MCQ", "Essay", "Custom", ...examRows.map((row) => row.name), ...data.map((q) => q.exam_type).filter(Boolean)])]);
-      setSubjectCategories([...new Set(["Anatomi", "Histologi", "Fisiologi", "Biokimia", "Farmakologi", "Patologi Anatomi", "Patologi Klinik", "Mikrobiologi", "Parasitologi", "Ilmu lainnya", "Kedokteran", ...subjectRows.map((row) => row.name), ...data.map((q) => q.subject).filter(Boolean)])]);
+      setExamCategories(examRows.map((row) => row.name));
+      setSubjectCategories(subjectRows.map((row) => row.name));
     } catch (err) {
       setError(err.message || "Failed to load question bank.");
     } finally {
@@ -254,7 +254,7 @@ export default function QuestionLibrary() {
   // ---------------------------------------------------------------------------
   const matchingPracticeQuestions = useMemo(() => {
     return questions.filter((q) => {
-      if (practiceExamType && (q.exam_type || "MCQ") !== practiceExamType) return false;
+      if (practiceExamType && q.exam_type !== practiceExamType) return false;
       if (practiceBlock && q.block !== practiceBlock) return false;
       if (practiceSubject && q.subject !== practiceSubject) return false;
       if (practiceTopic && q.topic !== practiceTopic) return false;
@@ -347,9 +347,9 @@ export default function QuestionLibrary() {
     setEditingId(question.id);
     setForm({
       question_text: question.question_text || "",
-      exam_type: question.exam_type || "MCQ",
+      exam_type: question.exam_type || "",
       question_type: question.question_type || "mcq",
-      subject: question.subject || "Kedokteran",
+      subject: question.subject || "",
       block: question.block || "",
       topic: question.topic || "",
       subtopic: question.subtopic || "",
@@ -407,8 +407,6 @@ export default function QuestionLibrary() {
         imagePath = uploadedPath;
       }
       const payload = { ...form, image_path: imagePath };
-      if (form.exam_type) await repository.addCategory("exam_type", form.exam_type);
-      if (form.subject) await repository.addCategory("subject", form.subject);
       if (editingId) {
         const previousImagePath = questions.find((item) => item.id === editingId)?.image_path;
         const updated = await repository.update(editingId, payload);
@@ -420,8 +418,6 @@ export default function QuestionLibrary() {
         const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
         setQuestions((prev) => [{ ...created, image_url: signed?.data?.signedUrl || "" }, ...prev]);
       }
-      setExamCategories((prev) => [...new Set([...prev, form.exam_type])]);
-      setSubjectCategories((prev) => [...new Set([...prev, form.subject])]);
       closeForm();
     } catch (err) {
       if (uploadedImagePath) await requireSupabase().storage.from("academic-question-images").remove([uploadedImagePath]);
@@ -504,7 +500,7 @@ export default function QuestionLibrary() {
 
     try {
       const text = await file.text();
-      const validation = validateCsvRows(text);
+      const validation = validateCsvRows(text, { examTypes: examCategories, subjects: subjectCategories });
       setImportPreview(validation);
     } catch (parseErr) {
       setImportPreview({
@@ -521,8 +517,8 @@ export default function QuestionLibrary() {
       await repository.addCategory(kind, value);
       const rows = await repository.listCategories(kind);
       setCategoryRows(rows);
-      if (kind === "exam_type") setExamCategories((prev) => [...new Set([...prev, value])]);
-      else setSubjectCategories((prev) => [...new Set([...prev, value])]);
+      if (kind === "exam_type") setExamCategories(rows.map((row) => row.name));
+      else setSubjectCategories(rows.map((row) => row.name));
       setNotification(`${kind === "exam_type" ? "Exam type" : "Subject"} disimpan.`);
     } catch (categoryError) { setError(categoryError.message || "Kategori gagal disimpan."); }
   };
@@ -550,8 +546,8 @@ export default function QuestionLibrary() {
     try {
       await repository.removeCategory(row.id);
       setCategoryRows((prev) => prev.filter((item) => item.id !== row.id));
-      if (row.kind === "exam_type" && !questions.some((question) => question.exam_type === row.name)) setExamCategories((prev) => prev.filter((item) => item !== row.name));
-      if (row.kind === "subject" && !questions.some((question) => question.subject === row.name)) setSubjectCategories((prev) => prev.filter((item) => item !== row.name));
+      if (row.kind === "exam_type") setExamCategories((prev) => prev.filter((item) => item !== row.name));
+      if (row.kind === "subject") setSubjectCategories((prev) => prev.filter((item) => item !== row.name));
     } catch (categoryError) { setError(categoryError.message || "Kategori gagal dihapus."); }
   };
 
@@ -561,15 +557,8 @@ export default function QuestionLibrary() {
     setImportMessage("");
 
     try {
-      const categoryPairs = new Set(importPreview.valid.flatMap((question) => [["exam_type", question.exam_type], ["subject", question.subject]]).map(([kind, name]) => kind + "|" + name));
-      await Promise.all([...categoryPairs].map(async (pair) => {
-        const separator = pair.indexOf("|");
-        await repository.addCategory(pair.slice(0, separator), pair.slice(separator + 1));
-      }));
       const inserted = await repository.createBatch(importPreview.valid);
       setQuestions((prev) => [...inserted, ...prev]);
-      setExamCategories((prev) => [...new Set([...prev, ...importPreview.valid.map((question) => question.exam_type)])]);
-      setSubjectCategories((prev) => [...new Set([...prev, ...importPreview.valid.map((question) => question.subject)])]);
       setImportMessage(`Berhasil mengimpor ${inserted.length} soal ke Question Bank. ${importPreview.valid.length - inserted.length} duplikat dilewati.`);
       setImportFile(null);
       setImportPreview(null);
@@ -596,7 +585,7 @@ export default function QuestionLibrary() {
     const escapeCell = (value) => '"' + String(value ?? "").replaceAll('"', '""') + '"';
     const headers = ["exam_type", "block", "subject", "topic", "subtopic", "question_type", "question_text", "option_a", "option_b", "option_c", "option_d", "option_e", "correct_answer", "reference_answer", "explanation", "tags"].join(",");
     const rows = questions.map((q) => [
-      q.exam_type || "MCQ", q.block, q.subject, q.topic, q.subtopic, q.question_type || "mcq", q.question_text,
+      q.exam_type || "", q.block, q.subject, q.topic, q.subtopic, q.question_type || "mcq", q.question_text,
       q.options?.A, q.options?.B, q.options?.C, q.options?.D, q.options?.E, q.correct_answer,
       q.reference_answer, q.explanation, (q.tags || []).join(";"),
     ].map(escapeCell).join(","));
@@ -1167,7 +1156,7 @@ export default function QuestionLibrary() {
                         <label className="hub-question-select">
                           <input type="checkbox" aria-label={"Pilih soal " + (index + 1)} checked={selectedQuestionIds.includes(q.id)} onChange={(event) => setSelectedQuestionIds((prev) => event.target.checked ? [...prev, q.id] : prev.filter((id) => id !== q.id))} /> Pilih
                         </label>
-                        <span>{q.exam_type || "MCQ"} · {(q.question_type || "mcq").toUpperCase()}</span>
+                        <span>{q.exam_type || "Tanpa exam type"} · {(q.question_type || "mcq").toUpperCase()}</span>
                         {q.subject && <span>{q.subject}</span>}
                         {(q.block || q.topic) && <span>{[q.block, q.topic].filter(Boolean).join(" / ")}</span>}
                         {q.image_path && <span className="hub-question-image-marker" aria-label="Memiliki gambar soal" title="Memiliki gambar soal"><ImageIcon size={13} aria-hidden="true" /></span>}
@@ -1635,16 +1624,20 @@ export default function QuestionLibrary() {
 
             <div className="hub-form-grid" style={{ padding: "1rem" }}>
               <label>
-                <span>EXAM TYPE *</span>
-                <input list="academic-exam-types" required value={form.exam_type} onChange={(e) => setForm({ ...form, exam_type: e.target.value })} placeholder="OSPE, MP, SOCA..." style={{ fontSize: "16px" }} />
-                <datalist id="academic-exam-types">{examCategories.map((item) => <option key={item} value={item} />)}</datalist>
+                <span>EXAM TYPE</span>
+                <select value={form.exam_type} onChange={(e) => setForm({ ...form, exam_type: e.target.value })} style={{ fontSize: "16px" }}>
+                  <option value="">Tanpa exam type</option>
+                  {form.exam_type && !examCategories.includes(form.exam_type) && <option value={form.exam_type}>Tersimpan · {form.exam_type}</option>}
+                  {examCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+                {!examCategories.length && <small style={{ color: "var(--hub-muted)" }}>Belum ada pilihan. Tambahkan melalui menu Aksi lainnya.</small>}
               </label>
               {/* Block & topic */}
               <label>
                 <span>BLOK KEDOKTERAN (OPSIONAL)</span>
                 <input
                   type="text"
-                  placeholder="e.g. Blok 1, Blok 5"
+                  placeholder="Nama block (opsional)"
                   value={form.block}
                   onChange={(e) => setForm({ ...form, block: e.target.value })}
                   style={{ fontSize: "16px" }}
@@ -1652,16 +1645,20 @@ export default function QuestionLibrary() {
               </label>
 
               <label>
-                <span>SUBJECT *</span>
-                <input list="academic-subjects" required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Biokimia, Farmakologi..." style={{ fontSize: "16px" }} />
-                <datalist id="academic-subjects">{subjectCategories.map((item) => <option key={item} value={item} />)}</datalist>
+                <span>SUBJECT</span>
+                <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} style={{ fontSize: "16px" }}>
+                  <option value="">Tanpa subject</option>
+                  {form.subject && !subjectCategories.includes(form.subject) && <option value={form.subject}>Tersimpan · {form.subject}</option>}
+                  {subjectCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+                {!subjectCategories.length && <small style={{ color: "var(--hub-muted)" }}>Belum ada pilihan. Tambahkan melalui menu Aksi lainnya.</small>}
               </label>
 
               <label>
                 <span>TOPIK (OPSIONAL)</span>
                 <input
                   type="text"
-                  placeholder="e.g. Kardiovaskular, Farmakologi"
+                  placeholder="Nama topic (opsional)"
                   value={form.topic}
                   onChange={(e) => setForm({ ...form, topic: e.target.value })}
                   style={{ fontSize: "16px" }}
