@@ -1826,7 +1826,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-crud-form textarea:focus { border-color: var(--hub-accent); box-shadow: 0 0 0 2px var(--hub-accent-soft); }
 
 .hub-auth-form button,
-.hub-crud-heading button,
+.hub-crud-heading > button,
 .hub-save-button,
 .hub-settings-card button {
   display: inline-flex;
@@ -1846,7 +1846,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 }
 
 .hub-auth-form button svg,
-.hub-crud-heading button svg,
+.hub-crud-heading > button svg,
 .hub-save-button svg,
 .hub-settings-card button svg { width: 0.9rem; }
 .hub-auth-form button:disabled,
@@ -1913,7 +1913,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-crud-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; padding: 1.25rem; border-bottom: 1px solid var(--hub-line); }
 .hub-crud-heading h2 { margin: 0.35rem 0 0.2rem; font-family: var(--hub-display); font-size: 2rem; font-weight: 400; }
 .hub-crud-heading p { max-width: 40rem; margin: 0; font-size: 0.76rem; }
-.hub-crud-heading button { flex: 0 0 auto; }
+.hub-crud-heading > button { flex: 0 0 auto; }
 
 .hub-crud-form { margin: 1rem; padding: 1rem; border: 1px solid var(--hub-line-bright); background: var(--hub-panel); }
 .hub-crud-modal-backdrop {
@@ -1996,7 +1996,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-specialist-link > svg:last-child { display: none; }
   .hub-crud-heading { flex-direction: column; }
   .hub-crud-sections { grid-template-columns: 1fr; }
-  .hub-crud-heading button { width: 100%; }
+  .hub-crud-heading > button { width: 100%; }
   .hub-crud-modal-backdrop { align-items: end; padding: 0; }
   .hub-crud-modal { width: 100%; max-height: min(90dvh, 52rem); border-right: 0; border-bottom: 0; border-left: 0; }
   .hub-form-grid { grid-template-columns: 1fr; }
@@ -2321,7 +2321,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 }
 
 .hub-shell:not(.hub-shell--finance) .hub-auth-form button,
-.hub-shell:not(.hub-shell--finance) .hub-crud-heading button,
+.hub-shell:not(.hub-shell--finance) .hub-crud-heading > button,
 .hub-shell:not(.hub-shell--finance) .hub-save-button,
 .hub-shell:not(.hub-shell--finance) .hub-settings-card button,
 .hub-shell:not(.hub-shell--finance) .hub-pwa-status button {
@@ -2761,7 +2761,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 }
 
 .hub-shell:not(.hub-shell--finance) .hub-auth-form button,
-.hub-shell:not(.hub-shell--finance) .hub-crud-heading button,
+.hub-shell:not(.hub-shell--finance) .hub-crud-heading > button,
 .hub-shell:not(.hub-shell--finance) .hub-save-button,
 .hub-shell:not(.hub-shell--finance) .hub-settings-card button,
 .hub-pwa-status button {
@@ -3008,4 +3008,42 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-academic-record-type { align-items:stretch; flex-direction:column; }
   .hub-academic-record-type [role="tablist"] { width:100%; }
   .hub-academic-record-type button { flex:1; padding-inline:.35rem; font-size:.58rem; }
+}
+
+@media (max-width:767px) {
+  .hub-shell:not(.hub-shell--finance) .hub-academic-page {
+    padding-top: 1.5rem;
+  }
+
+  .hub-academic-page .hub-private-heading {
+    margin-bottom: 1.4rem;
+  }
+
+  .hub-academic-page .hub-private-heading h1 {
+    max-width: 16ch;
+    margin: .45rem 0 .7rem;
+    font-size: clamp(2.25rem, 9.5vw, 3rem);
+    line-height: .98;
+    text-wrap: balance;
+  }
+
+  .hub-question-bank-workspace > .hub-crud-heading {
+    justify-content: flex-start;
+    gap: .75rem;
+  }
+
+  .hub-question-bank-workspace > .hub-crud-heading > div:first-child {
+    width: 100%;
+    flex: 0 1 auto !important;
+  }
+
+  .hub-question-bank-workspace > .hub-crud-heading > [role="tablist"] {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .hub-question-bank-workspace > .hub-crud-heading > [role="tablist"] button {
+    width: auto;
+    flex: 1 0 auto;
+  }
 }
