@@ -1090,33 +1090,29 @@ export default function QuestionLibrary() {
           {loading ? (
             <div className="hub-data-state">MEMUAT DAFTAR SOAL…</div>
           ) : questions.length === 0 ? (
-            <div className="hub-data-state">
-              <span>BELUM ADA SOAL DI BANK</span>
-              <p style={{ marginTop: "0.5rem", color: "var(--hub-muted)", fontSize: "0.8rem" }}>
-                Bank soal masih kosong. Anda dapat menambahkan soal secara manual atau mengimpor via CSV.
-              </p>
-              <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <div className="hub-data-state hub-question-empty-state">
+              <div className="hub-question-empty-copy">
+                <span>BELUM ADA SOAL DI BANK</span>
+                <p>Bank soal masih kosong. Tambahkan soal manual atau mulai dari file CSV.</p>
+              </div>
+              <div className="hub-question-empty-actions">
                 <button type="button" onClick={openCreateForm} className="hub-primary-action">
-                  <Plus aria-hidden="true" /> TAMBAH SOAL PERTAMA
+                  <Plus size={16} aria-hidden="true" /> Tambah soal pertama
                 </button>
-                <button type="button" onClick={() => setActiveTab("import")} style={{ padding: "0.5rem 1rem", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-text)", borderRadius: "4px" }}>
-                  IMPOR CSV
+                <button type="button" onClick={() => setActiveTab("import")} className="hub-question-tool-button">
+                  <FileSpreadsheet size={15} aria-hidden="true" /> Impor CSV
                 </button>
               </div>
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="hub-data-state">
-              <span>TIDAK ADA SOAL YANG SESUAI</span>
-              <p style={{ marginTop: "0.5rem", color: "var(--hub-muted)", fontSize: "0.8rem" }}>
-                Tidak ada soal yang cocok dengan filter atau kata kunci pencarian.
-              </p>
-              <button
-                type="button"
-                onClick={resetFilters}
-                style={{ marginTop: "1rem", padding: "0.5rem 1rem", border: "1px solid var(--hub-line)", background: "transparent", color: "var(--hub-text)", cursor: "pointer", borderRadius: "4px" }}
-              >
-                Reset Filter
-              </button>
+            <div className="hub-data-state hub-question-empty-state">
+              <div className="hub-question-empty-copy">
+                <span>TIDAK ADA SOAL YANG SESUAI</span>
+                <p>Tidak ada soal yang cocok dengan filter atau kata kunci pencarian.</p>
+              </div>
+              <div className="hub-question-empty-actions">
+                <button type="button" onClick={resetFilters} className="hub-question-tool-button">Reset filter</button>
+              </div>
             </div>
           ) : (
             <div className="hub-question-list" style={{ display: "grid", gap: "0.75rem", padding: "0.75rem clamp(0.5rem, 3vw, 1rem)" }}>

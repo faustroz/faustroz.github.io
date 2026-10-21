@@ -3452,6 +3452,13 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-question-icon-button:hover { color:var(--hub-text); border-color:var(--hub-line-bright); background:var(--hub-panel-raised); }
 .hub-question-icon-button:focus-visible,.hub-question-more > summary:focus-visible { outline:2px solid var(--hub-accent); outline-offset:2px; }
 .hub-question-icon-button--danger:hover { color:#f87171; }
+.hub-question-empty-state { width:100%; min-height:clamp(13rem,28vh,17rem); display:grid; align-content:center; justify-items:center; gap:1rem; padding:2rem 1rem; text-align:center; letter-spacing:normal; }
+.hub-question-empty-copy { width:min(100%,34rem); display:grid; justify-items:center; gap:.4rem; }
+.hub-question-empty-copy > span { color:var(--hub-text); font:600 .9rem/1.35 var(--font-geist-sans),sans-serif; letter-spacing:.01em; }
+.hub-question-empty-copy > p { max-width:38rem; margin:0; color:var(--hub-muted); font:400 .82rem/1.55 var(--font-geist-sans),sans-serif; letter-spacing:normal; }
+.hub-question-empty-actions { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.55rem; }
+.hub-question-empty-actions > button { min-height:2.75rem; display:inline-flex; align-items:center; justify-content:center; gap:.45rem; padding:.6rem .9rem; }
+.hub-question-empty-actions .hub-primary-action { white-space:nowrap; }
 
 .hub-import-tab { width:100%; overflow:hidden; }
 .hub-import-card { min-width:0; width:100%; max-width:100%; padding:clamp(.8rem,3vw,1.25rem); border:1px solid var(--hub-line); border-radius:8px; background:var(--hub-panel); overflow:hidden; }
@@ -3489,6 +3496,9 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-question-card-head { align-items:flex-start !important; }
   .hub-question-metadata { flex:1 1 100%; gap:.35rem .55rem; font-size:.65rem; }
   .hub-question-card-actions { flex:0 0 auto; }
+  .hub-question-empty-state { min-height:14rem; padding:1.5rem 1rem; gap:.9rem; }
+  .hub-question-empty-actions { width:min(100%,20rem); display:grid; grid-template-columns:minmax(0,1fr); }
+  .hub-question-empty-actions > button { width:100%; }
   .hub-csv-upload-area { align-items:flex-start; flex-wrap:wrap; }
   .hub-csv-upload-area > svg { margin-top:.1rem; }
   .hub-csv-upload-copy { flex-basis:calc(100% - 2rem); }
