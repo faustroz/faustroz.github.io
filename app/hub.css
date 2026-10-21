@@ -3405,3 +3405,27 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .academic-practice__progress span,.academic-practice__option { transition:none; }
   .academic-practice__loading { animation:none; }
 }
+
+/* Small interaction feedback shared across Hub controls and clickable surfaces. */
+.hub-shell:not(.hub-shell--practice) :where(button,a,[role="button"]) {
+  -webkit-tap-highlight-color:transparent;
+  transition-property:color,background-color,border-color,box-shadow,transform;
+  transition-duration:140ms;
+  transition-timing-function:ease;
+}
+.hub-shell:not(.hub-shell--practice) :where(button):hover:not(:disabled) { border-color:var(--hub-line-bright); background-color:rgba(255,255,255,.035); }
+.hub-shell:not(.hub-shell--practice) :where(button,[role="button"]):active:not(:disabled) { transform:scale(.985); }
+.hub-shell:not(.hub-shell--practice) :where(button,a,[role="button"]):focus-visible { outline-color:var(--hub-accent); outline-offset:3px; }
+.hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a,button) { transition-duration:160ms; }
+.hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a,button) svg { transition:transform 160ms ease,color 160ms ease; }
+.hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a[aria-current="page"],button.is-active) svg { transform:translateY(-1px); }
+.hub-shell:not(.hub-shell--practice) :where(.hub-module-card,.hub-insight-card,.hub-focus-panel,.hub-settings-card,.hub-specialist-link,.hub-vault-folder,.hub-vault-file) {
+  transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease;
+}
+.hub-shell:not(.hub-shell--practice) .hub-module-card:hover { box-shadow:0 1rem 2.25rem rgba(0,0,0,.3); }
+@media (prefers-reduced-motion:reduce) {
+  .hub-shell:not(.hub-shell--practice) :where(button,a,[role="button"],.hub-module-card,.hub-insight-card,.hub-focus-panel,.hub-settings-card,.hub-specialist-link,.hub-vault-folder,.hub-vault-file),
+  .hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a,button) svg { transition:none !important; }
+  .hub-shell:not(.hub-shell--practice) :where(button,[role="button"]):active:not(:disabled),
+  .hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a[aria-current="page"],button.is-active) svg { transform:none; }
+}

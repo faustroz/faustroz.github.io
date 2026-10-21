@@ -36,30 +36,33 @@ describe("standalone Academic Practice page", () => {
 
   it("keeps the answer hidden until submit, saves only once, advances, and shows a separate result", async () => {
     render(<AcademicPracticePage />);
-    expect(await screen.findByText("Question one?")).toBeInTheDocument();
+    const initialRun = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1"));
+    const firstQuestion = initialRun.questions[0];
+    const secondQuestion = initialRun.questions[1];
+    expect(await screen.findByText(firstQuestion.question_text)).toBeInTheDocument();
     expect(screen.queryByText(/Jawaban yang benar:/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Keluar ke Question Bank/i })).toBeInTheDocument();
 
-    const correct = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).questions[0].shuffledCorrectAnswer;
+    const correct = firstQuestion.shuffledCorrectAnswer;
     const incorrect = ["A", "B", "C", "D", "E"].find((option) => option !== correct);
     fireEvent.click(screen.getByRole("radio", { name: new RegExp(`^${incorrect}`) }));
     fireEvent.click(screen.getByRole("button", { name: /Periksa jawaban/i }));
 
     await waitFor(() => expect(attemptInsert).toHaveBeenCalledTimes(1));
     expect(screen.getByText(/Belum tepat/i)).toBeInTheDocument();
-    expect(screen.getByText("Explanation one")).toBeInTheDocument();
+    expect(screen.getByText(firstQuestion.explanation)).toBeInTheDocument();
     expect(screen.getByText(/Jawaban yang benar:/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /NEXT QUESTION/i }));
-    expect(await screen.findByText("Question two?")).toBeInTheDocument();
+    expect(await screen.findByText(secondQuestion.question_text)).toBeInTheDocument();
     expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(1);
 
-    const secondAnswer = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).questions[1].shuffledCorrectAnswer;
+    const secondAnswer = secondQuestion.shuffledCorrectAnswer;
     fireEvent.click(screen.getByRole("radio", { name: new RegExp(`^${secondAnswer}`) }));
     fireEvent.click(screen.getByRole("button", { name: /Periksa jawaban/i }));
     fireEvent.click(await screen.findByRole("button", { name: /NEXT QUESTION/i }));
     expect(await screen.findByText("SESI SELESAI")).toBeInTheDocument();
-    expect(screen.queryByText("Question two?")).not.toBeInTheDocument();
+    expect(screen.queryByText(secondQuestion.question_text)).not.toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent.replace(/\s+/g, " ").includes("1 benar · 1 salah · 2 soal"))).toBeInTheDocument();
   });
 });
