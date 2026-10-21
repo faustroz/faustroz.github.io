@@ -15,6 +15,9 @@ import {
   Eye,
   EyeOff,
   FileSpreadsheet,
+  Filter,
+  Image as ImageIcon,
+  MoreHorizontal,
   Pencil,
   Play,
   Plus,
@@ -76,6 +79,8 @@ export default function QuestionLibrary() {
   const [subjectFilter, setSubjectFilter] = useState("");
   const [formatFilter, setFormatFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [practiceExamType, setPracticeExamType] = useState("");
   const [practiceSubject, setPracticeSubject] = useState("");
   const [practiceFormat, setPracticeFormat] = useState("");
@@ -221,6 +226,7 @@ export default function QuestionLibrary() {
   }, [questions, search, examTypeFilter, subjectFilter, formatFilter, tagFilter, blockFilter, topicFilter, bookmarkedOnly]);
 
   const hasActiveFilters = Boolean(search || examTypeFilter || subjectFilter || formatFilter || tagFilter || blockFilter || topicFilter || bookmarkedOnly);
+  const activeFilterCount = [examTypeFilter, blockFilter, subjectFilter, topicFilter, formatFilter, tagFilter, bookmarkedOnly].filter(Boolean).length;
 
   const resetFilters = () => {
     setSearch("");
@@ -609,18 +615,19 @@ export default function QuestionLibrary() {
       <header className="hub-crud-heading" style={{ flexWrap: "wrap", gap: "0.75rem", padding: "1rem" }}>
         <div style={{ flex: "1 1 18rem", minWidth: 0 }}>
           <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
-            ACADEMIC / INTERACTIVE MCQ
+            ACADEMIC / QUESTION BANK
           </span>
           <h2 style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", margin: "0.2rem 0", color: "var(--hub-text)", wordBreak: "break-word" }}>
             Question Library & Practice
           </h2>
           <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
-            Latihan soal kedokteran interaktif dengan opsi acak, notebook kesalahan, dan import CSV.
+            Latihan soal MCQ dan Essay, catatan kesalahan, serta impor CSV.
           </p>
         </div>
 
         {/* Workspace Mode Subtabs (Mobile scrollable without horizontal overflow) */}
         <div
+          className="hub-question-tabs"
           role="tablist"
           aria-label="Question bank modes"
           style={{
@@ -647,7 +654,7 @@ export default function QuestionLibrary() {
               borderRadius: "4px",
               color: activeTab === "practice" ? "var(--hub-text)" : "var(--hub-muted)",
               background: activeTab === "practice" ? "var(--hub-surface)" : "transparent",
-              font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
+              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
               whiteSpace: "nowrap",
               flexShrink: 0,
@@ -667,7 +674,7 @@ export default function QuestionLibrary() {
               borderRadius: "4px",
               color: activeTab === "library" ? "var(--hub-text)" : "var(--hub-muted)",
               background: activeTab === "library" ? "var(--hub-surface)" : "transparent",
-              font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
+              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
               whiteSpace: "nowrap",
               flexShrink: 0,
@@ -687,7 +694,7 @@ export default function QuestionLibrary() {
               borderRadius: "4px",
               color: activeTab === "mistakes" ? "var(--hub-text)" : "var(--hub-muted)",
               background: activeTab === "mistakes" ? "var(--hub-surface)" : "transparent",
-              font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
+              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
               whiteSpace: "nowrap",
               flexShrink: 0,
@@ -707,7 +714,7 @@ export default function QuestionLibrary() {
               borderRadius: "4px",
               color: activeTab === "import" ? "var(--hub-text)" : "var(--hub-muted)",
               background: activeTab === "import" ? "var(--hub-surface)" : "transparent",
-              font: "0.62rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
+              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
               cursor: "pointer",
               whiteSpace: "nowrap",
               flexShrink: 0,
@@ -1051,139 +1058,42 @@ export default function QuestionLibrary() {
       {/* ===================================================================== */}
       {activeTab === "library" && (
         <div className="hub-library-tab">
-          {/* Action & Filter Bar (Stacked on Mobile, Horizontal on Desktop) */}
-          <div
-            className="hub-ledger-controls"
-            aria-label="Question library filters"
-            style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center", padding: "0.75rem 1rem" }}
-          >
-            <label style={{ flex: "1 1 12rem", minWidth: "10rem" }}>
-              <span>SEARCH</span>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                <input
-                  type="search"
-                  placeholder="Cari teks soal, topik, tag..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{ width: "100%", paddingLeft: "1.8rem", fontSize: "16px", minHeight: "38px" }}
-                />
-                <Search
-                  size={13}
-                  style={{ position: "absolute", left: "0.6rem", pointerEvents: "none", opacity: 0.5 }}
-                />
-              </div>
+          <div className="hub-question-toolbar" aria-label="Question library toolbar">
+            <label className="hub-question-search">
+              <Search size={15} aria-hidden="true" />
+              <input type="search" aria-label="Cari soal" placeholder="Cari soal atau metadata…" value={search} onChange={(e) => setSearch(e.target.value)} />
             </label>
-
-            <label style={{ flex: "1 1 8rem" }}>
-              <span>EXAM TYPE</span>
-              <select aria-label="Filter exam type" value={examTypeFilter} onChange={(e) => setExamTypeFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
-                <option value="">Semua Exam Type</option>{examCategories.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label style={{ flex: "1 1 8rem" }}>
-              <span>SUBJECT</span>
-              <select aria-label="Filter subject" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
-                <option value="">Semua subject</option>{subjectCategories.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-            </label>
-            <label style={{ flex: "1 1 8rem" }}>
-              <span>FORMAT</span>
-              <select aria-label="Filter format" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
-                <option value="">Semua format</option><option value="mcq">MCQ</option><option value="essay">Essay</option>
-              </select>
-            </label>
-            <label style={{ flex: "1 1 8rem" }}>
-              <span>TAG</span>
-              <select aria-label="Filter tag" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
-                <option value="">Semua tag</option>{filterOptions.tags.map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
-            <label style={{ flex: "1 1 8rem" }}>
-              <span>BLOK</span>
-              <select
-                aria-label="Filter block"
-                value={blockFilter}
-                onChange={(e) => setBlockFilter(e.target.value)}
-                style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}
-              >
-                <option value="">Semua blok</option>
-                {filterOptions.blocks.map((blk) => (
-                  <option key={blk} value={blk}>{blk}</option>
-                ))}
-              </select>
-            </label>
-
-            <label style={{ flex: "1 1 8rem" }}>
-              <span>TOPIK</span>
-              <select
-                aria-label="Filter topik"
-                value={topicFilter}
-                onChange={(e) => setTopicFilter(e.target.value)}
-                style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}
-              >
-                <option value="">Semua topik</option>
-                {filterOptions.topics.map((top) => (
-                  <option key={top} value={top}>{top}</option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              type="button"
-              className={bookmarkedOnly ? "is-active" : undefined}
-              onClick={() => setBookmarkedOnly((prev) => !prev)}
-              title="Filter bookmark"
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", minHeight: "38px" }}
-            >
-              <Star size={12} fill={bookmarkedOnly ? "currentColor" : "none"} />
-              BOOKMARK
+            <button type="button" className="hub-question-tool-button" aria-expanded={filterPanelOpen} aria-controls="question-filter-panel" onClick={() => setFilterPanelOpen((open) => !open)}>
+              <Filter size={15} aria-hidden="true" /> Filter{activeFilterCount > 0 && <span className="hub-question-filter-count">{activeFilterCount}</span>}
             </button>
+            <button type="button" className="hub-primary-action hub-question-add-button" onClick={openCreateForm}><Plus size={15} aria-hidden="true" /> Tambah soal</button>
+            <details className="hub-question-more" open={moreMenuOpen} onToggle={(event) => setMoreMenuOpen(event.currentTarget.open)}>
+              <summary aria-label="Aksi lainnya" title="Aksi lainnya"><MoreHorizontal size={19} aria-hidden="true" /></summary>
+              <div className="hub-question-more-menu" aria-label="Aksi Question Bank lainnya">
+                <button type="button" onClick={() => { handleExportCsv(); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export CSV</button>
+                <button type="button" onClick={() => { handleAddCategory("exam_type"); setMoreMenuOpen(false); }}>Tambah Exam Type</button>
+                <button type="button" onClick={() => { handleAddCategory("subject"); setMoreMenuOpen(false); }}>Tambah Subject</button>
+                <button type="button" onClick={() => { openCategoryManager("exam_type"); setMoreMenuOpen(false); }}>Kelola Exam Types</button>
+                <button type="button" onClick={() => { openCategoryManager("subject"); setMoreMenuOpen(false); }}>Kelola Subjects</button>
+              </div>
+            </details>
+          </div>
 
-            {hasActiveFilters && (
-              <button type="button" onClick={resetFilters} title="Reset filter" style={{ minHeight: "38px" }}>
-                <RotateCcw size={12} /> RESET
-              </button>
-            )}
-
-            {/* DELETE ALL IN TOPIC BUTTON (Visible when Topic is selected) */}
-            {topicFilter && (
-              <button
-                type="button"
-                onClick={() => setTopicDeleteOpen(true)}
-                disabled={matchingTopicQuestions.length === 0}
-                className="hub-danger-action"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.35rem",
-                  fontSize: "0.65rem",
-                  padding: "0.45rem 0.75rem",
-                  minHeight: "38px",
-                }}
-                title={`Hapus semua soal di topik ${topicFilter}`}
-              >
-                <Trash2 size={12} /> HAPUS SEMUA DI TOPIK ({matchingTopicQuestions.length})
-              </button>
-            )}
-
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", width: "100%", justifyContent: "space-between" }}>
-              <strong style={{ fontSize: "0.75rem" }}>
-                {filteredQuestions.length} / {questions.length} SOAL
-              </strong>
-              <button
-                type="button"
-                onClick={openCreateForm}
-                className="hub-primary-action"
-                style={{ minHeight: "38px", padding: "0.5rem 1rem" }}
-              >
-                <Plus aria-hidden="true" /> TAMBAH SOAL
-              </button>
-              <button type="button" onClick={handleExportCsv} disabled={!questions.length} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}><Download size={13} /> EXPORT CSV</button>
-              <button type="button" onClick={() => handleAddCategory("exam_type")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>+ EXAM TYPE</button>
-              <button type="button" onClick={() => handleAddCategory("subject")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>+ SUBJECT</button>
-              <button type="button" onClick={() => openCategoryManager("exam_type")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>MANAGE EXAM TYPES</button>
-              <button type="button" onClick={() => openCategoryManager("subject")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>MANAGE SUBJECTS</button>
-              {selectedQuestionIds.length > 0 && <button type="button" onClick={() => startPractice(questions.filter((q) => selectedQuestionIds.includes(q.id)))} className="hub-primary-action" style={{ minHeight: "38px" }}><Play size={13} /> LATIHAN {selectedQuestionIds.length} TERPILIH</button>}
+          <div id="question-filter-panel" className="hub-question-filter-panel" hidden={!filterPanelOpen}>
+            <div className="hub-question-filter-grid">
+              <label><span>EXAM TYPE</span><select aria-label="Filter exam type" value={examTypeFilter} onChange={(e) => setExamTypeFilter(e.target.value)}><option value="">Semua jenis ujian</option>{examCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label><span>BLOCK</span><select aria-label="Filter block" value={blockFilter} onChange={(e) => setBlockFilter(e.target.value)}><option value="">Semua block</option>{filterOptions.blocks.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label><span>SUBJECT</span><select aria-label="Filter subject" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}><option value="">Semua subject</option>{subjectCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label><span>TOPIC</span><select aria-label="Filter topic" value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)}><option value="">Semua topic</option>{filterOptions.topics.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label><span>FORMAT</span><select aria-label="Filter format" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)}><option value="">MCQ + Essay</option><option value="mcq">MCQ</option><option value="essay">Essay</option></select></label>
+              <label><span>TAG</span><select aria-label="Filter tag" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}><option value="">Semua tag</option>{filterOptions.tags.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+            </div>
+            <div className="hub-question-filter-footer">
+              <label className="hub-question-bookmark-filter"><input type="checkbox" checked={bookmarkedOnly} onChange={(event) => setBookmarkedOnly(event.target.checked)} /> <Star size={14} fill={bookmarkedOnly ? "currentColor" : "none"} /> Bookmark only</label>
+              {topicFilter && <button type="button" className="hub-danger-action" onClick={() => setTopicDeleteOpen(true)} disabled={!matchingTopicQuestions.length}><Trash2 size={13} /> Hapus semua di topic ({matchingTopicQuestions.length})</button>}
+              <span className="hub-question-result-count">{filteredQuestions.length} / {questions.length} soal</span>
+              {selectedQuestionIds.length > 0 && <button type="button" className="hub-question-tool-button" onClick={() => startPractice(questions.filter((q) => selectedQuestionIds.includes(q.id)))}><Play size={13} /> Latihan {selectedQuestionIds.length} terpilih</button>}
+              {hasActiveFilters && <button type="button" className="hub-question-reset" onClick={resetFilters}><RotateCcw size={13} /> Reset filter</button>}
             </div>
           </div>
 
@@ -1239,6 +1149,7 @@ export default function QuestionLibrary() {
                   >
                     {/* Header */}
                     <div
+                      className="hub-question-card-head"
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -1249,58 +1160,37 @@ export default function QuestionLibrary() {
                         paddingBottom: "0.5rem",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                        <span style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "0.65rem", color: "var(--hub-accent)", fontWeight: 600 }}>
+                      <div className="hub-question-metadata">
+                        <span className="hub-question-index">
                           #{String(index + 1).padStart(2, "0")}
                         </span>
-                        <label style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.62rem", color: "var(--hub-muted)" }}>
+                        <label className="hub-question-select">
                           <input type="checkbox" aria-label={"Pilih soal " + (index + 1)} checked={selectedQuestionIds.includes(q.id)} onChange={(event) => setSelectedQuestionIds((prev) => event.target.checked ? [...prev, q.id] : prev.filter((id) => id !== q.id))} /> Pilih
                         </label>
-                        <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>{q.exam_type || "MCQ"}</span>
-                        <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>{(q.question_type || "mcq").toUpperCase()}</span>
-                        {q.subject && <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>{q.subject}</span>}
-                        {q.block && (
-                          <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>
-                            {q.block}
-                          </span>
-                        )}
-                        {q.topic && (
-                          <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>
-                            {q.topic}
-                          </span>
-                        )}
+                        <span>{q.exam_type || "MCQ"} · {(q.question_type || "mcq").toUpperCase()}</span>
+                        {q.subject && <span>{q.subject}</span>}
+                        {(q.block || q.topic) && <span>{[q.block, q.topic].filter(Boolean).join(" / ")}</span>}
+                        {q.image_path && <span className="hub-question-image-marker" aria-label="Memiliki gambar soal" title="Memiliki gambar soal"><ImageIcon size={13} aria-hidden="true" /></span>}
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <div className="hub-question-card-actions">
                         <button
                           type="button"
                           onClick={() => toggleRevealAnswer(q.id)}
-                          aria-label="Toggle answer key"
+                          className="hub-question-icon-button"
+                          aria-label={isRevealed ? "Sembunyikan kunci jawaban" : q.question_type === "essay" ? "Lihat reference answer" : "Lihat kunci jawaban"}
                           title={isRevealed ? "Sembunyikan jawaban" : "Tampilkan jawaban"}
-                          style={{
-                            background: "transparent",
-                            border: "1px solid var(--hub-line)",
-                            borderRadius: "4px",
-                            color: isRevealed ? "#4ade80" : "var(--hub-muted)",
-                            cursor: "pointer",
-                            padding: "0.4rem 0.6rem",
-                            minHeight: "36px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.3rem",
-                            fontSize: "0.62rem",
-                            fontFamily: "var(--font-geist-mono), monospace",
-                          }}
+                          style={{ color: isRevealed ? "#4ade80" : undefined }}
                         >
                           {isRevealed ? <EyeOff size={12} /> : <Eye size={12} />}
-                          {isRevealed ? "JAWABAN TERBUKA" : q.question_type === "essay" ? "LIHAT REFERENSI" : "LIHAT KUNCI"}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleToggleBookmark(q)}
-                          aria-label="Toggle bookmark"
+                          className="hub-question-icon-button"
+                          aria-label={q.is_bookmarked ? "Hapus bookmark" : "Bookmark soal"}
                           title={q.is_bookmarked ? "Bookmarked" : "Bookmark"}
-                          style={{ background: "transparent", border: "none", color: q.is_bookmarked ? "#fbbf24" : "var(--hub-muted)", cursor: "pointer", padding: "0.4rem", minHeight: "36px", display: "flex", alignItems: "center" }}
+                          style={{ color: q.is_bookmarked ? "#fbbf24" : undefined }}
                         >
                           <Star size={15} fill={q.is_bookmarked ? "#fbbf24" : "none"} />
                         </button>
@@ -1308,7 +1198,7 @@ export default function QuestionLibrary() {
                           type="button"
                           onClick={() => openEditForm(q)}
                           aria-label="Edit question"
-                          style={{ background: "transparent", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)", cursor: "pointer", padding: "0.4rem", minHeight: "36px", display: "flex", alignItems: "center" }}
+                          className="hub-question-icon-button"
                         >
                           <Pencil size={13} />
                         </button>
@@ -1316,7 +1206,7 @@ export default function QuestionLibrary() {
                           type="button"
                           onClick={() => handleDelete(q)}
                           aria-label="Delete question"
-                          style={{ background: "transparent", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)", cursor: "pointer", padding: "0.4rem", minHeight: "36px", display: "flex", alignItems: "center" }}
+                          className="hub-question-icon-button"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -1500,9 +1390,9 @@ export default function QuestionLibrary() {
       {/* ===================================================================== */}
       {activeTab === "import" && (
         <div className="hub-import-tab" style={{ padding: "0.75rem clamp(0.5rem, 3vw, 1.25rem)", maxWidth: "48rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
-          <div style={{ border: "1px solid var(--hub-line)", borderRadius: "8px", background: "var(--hub-panel)", padding: "1.25rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
-              <div>
+          <div className="hub-import-card">
+            <div className="hub-import-header">
+              <div className="hub-import-intro">
                 <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                   BULK IMPORT / CSV
                 </span>
@@ -1510,52 +1400,30 @@ export default function QuestionLibrary() {
                   Impor Soal dari File CSV
                 </h3>
                 <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--hub-muted)", lineHeight: 1.4 }}>
-                  Format kolom: <code>question,option_a,option_b,option_c,option_d,option_e,answer,explanation,block,topic</code>
+                  Impor metadata ujian dengan soal MCQ atau Essay. Gunakan template untuk struktur kolom lengkap.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={handleDownloadTemplate}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  padding: "0.55rem 0.85rem",
-                  minHeight: "40px",
-                  border: "1px solid var(--hub-line)",
-                  borderRadius: "5px",
-                  background: "var(--hub-panel-raised)",
-                  color: "var(--hub-text)",
-                  fontSize: "0.75rem",
-                  cursor: "pointer",
-                }}
+                className="hub-csv-template-button"
               >
-                <Download size={13} /> UNDUH TEMPLATE CSV
+                <Download size={14} /> Unduh Template CSV
               </button>
             </div>
 
-            {/* File Upload Dropzone */}
-            <div
-              style={{
-                marginTop: "1.25rem",
-                border: "2px dashed var(--hub-line)",
-                borderRadius: "8px",
-                padding: "1.5rem",
-                textAlign: "center",
-                background: "var(--hub-panel-raised)",
-              }}
-            >
-              <Upload size={24} color="var(--hub-muted)" style={{ margin: "0 auto 0.5rem" }} />
-              <label style={{ display: "inline-block", cursor: "pointer" }}>
-                <span className="hub-primary-action" style={{ display: "inline-block", padding: "0.6rem 1.2rem", borderRadius: "5px", minHeight: "44px", lineHeight: "2rem" }}>
-                  PILIH FILE CSV
-                </span>
+            <div className="hub-csv-upload-area">
+              <Upload size={19} aria-hidden="true" />
+              <div className="hub-csv-upload-copy"><strong>Pilih file CSV</strong><span>Gunakan file .csv dengan header sesuai template.</span></div>
+              <label className="hub-csv-file-label">
+                <span>Pilih file</span>
                 <input
                   type="file"
+                  aria-label="Pilih file CSV"
                   accept=".csv,text/csv"
                   onChange={handleCsvFileChange}
-                  style={{ display: "none" }}
+                  className="hub-csv-file-input"
                 />
               </label>
               {importFile && (
@@ -1573,16 +1441,14 @@ export default function QuestionLibrary() {
 
             {/* Validation & Preview Screen */}
             {importPreview && (
-              <div style={{ marginTop: "1.25rem", borderTop: "1px solid var(--hub-line)", paddingTop: "1rem" }}>
-                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+              <div className="hub-csv-preview">
+                <div className="hub-csv-preview-summary" aria-live="polite">
                   <span style={{ fontSize: "0.75rem", color: "#4ade80", background: "rgba(34, 197, 94, 0.15)", padding: "0.35rem 0.65rem", borderRadius: "4px" }}>
                     ✓ {importPreview.valid.length} Baris Valid
                   </span>
-                  {importPreview.errors.length > 0 && (
-                    <span style={{ fontSize: "0.75rem", color: "#f87171", background: "rgba(239, 68, 68, 0.15)", padding: "0.35rem 0.65rem", borderRadius: "4px" }}>
-                      ✗ {importPreview.errors.length} Baris Bermasalah
-                    </span>
-                  )}
+                  <span style={{ fontSize: "0.75rem", color: importPreview.errors.length ? "#f87171" : "var(--hub-muted)", background: importPreview.errors.length ? "rgba(239, 68, 68, 0.15)" : "var(--hub-panel-raised)", padding: "0.35rem 0.65rem", borderRadius: "4px" }}>
+                    {importPreview.errors.length ? `✗ ${importPreview.errors.length} Baris Tidak Valid` : "Tidak ada baris invalid"}
+                  </span>
                 </div>
 
                 {/* Error details */}
@@ -1623,7 +1489,7 @@ export default function QuestionLibrary() {
                       ))}
                     </div>
 
-                    <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <div className="hub-csv-preview-actions">
                       <button
                         type="button"
                         onClick={() => { setImportFile(null); setImportPreview(null); }}

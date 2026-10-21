@@ -158,6 +158,14 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     fireEvent.click(libraryTab);
     expect(libraryTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("button", { name: /tambah soal/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter exam type").closest(".hub-question-filter-panel")).toHaveAttribute("hidden");
+    fireEvent.click(screen.getByRole("button", { name: /filter/i }));
+    expect(screen.getByLabelText("Filter exam type")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter block")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter subject")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter topic")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter format")).toBeInTheDocument();
+    expect(screen.getByLabelText(/bookmark only/i)).toBeInTheDocument();
 
     // Verify difficulty is NOT present in UI
     expect(screen.queryByText(/difficulty/i)).not.toBeInTheDocument();
@@ -184,6 +192,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     // Switch to LIBRARY tab
     const libraryTab = screen.getByRole("tab", { name: /library/i });
     fireEvent.click(libraryTab);
+    fireEvent.click(screen.getByRole("button", { name: /filter/i }));
 
     // Wait for questions to load
     await waitFor(() => {
@@ -194,11 +203,11 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     expect(screen.queryByRole("button", { name: /hapus semua di topik/i })).not.toBeInTheDocument();
 
     // Select topic "Aritmia"
-    const topicSelect = screen.getByLabelText(/topik/i);
+    const topicSelect = screen.getByLabelText("Filter topic");
     fireEvent.change(topicSelect, { target: { value: "Aritmia" } });
 
     // Button should now be visible and display the count (2 matching questions)
-    const deleteTopicBtn = screen.getByRole("button", { name: /hapus semua di topik \(2\)/i });
+    const deleteTopicBtn = screen.getByText(/HAPUS SEMUA DI TOPIC \(2\)/i).closest("button");
     expect(deleteTopicBtn).toBeInTheDocument();
 
     // Click to open confirmation modal
@@ -218,7 +227,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     expect(screen.queryByRole("dialog", { name: /konfirmasi hapus soal di topik/i })).not.toBeInTheDocument();
 
     // Reopen and confirm deletion
-    fireEvent.click(screen.getByRole("button", { name: /hapus semua di topik \(2\)/i }));
+    fireEvent.click(screen.getByText(/HAPUS SEMUA DI TOPIC \(2\)/i).closest("button"));
     const confirmBtn = screen.getByRole("button", { name: /ya, hapus 2 soal/i });
     fireEvent.click(confirmBtn);
 
