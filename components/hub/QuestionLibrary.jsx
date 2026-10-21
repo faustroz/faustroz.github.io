@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- private signed question images and local preview blobs are not static assets. */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -43,14 +44,19 @@ import {
 } from "@/lib/hub/question-bank.mjs";
 
 const DEFAULT_FORM = Object.freeze({
+  exam_type: "MCQ",
+  question_type: "mcq",
   question_text: "",
   subject: "Kedokteran",
   block: "",
   topic: "",
+  subtopic: "",
   difficulty: "medium",
   options: { A: "", B: "", C: "", D: "", E: "" },
   correct_answer: "A",
   explanation: "",
+  reference_answer: "",
+  image_path: "",
   tags: "",
   is_bookmarked: false,
 });
@@ -64,6 +70,20 @@ export default function QuestionLibrary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState("");
+  const [examCategories, setExamCategories] = useState(["MP", "OSPE", "SOCA", "MCQ", "Essay", "Custom"]);
+  const [subjectCategories, setSubjectCategories] = useState(["Anatomi", "Histologi", "Fisiologi", "Biokimia", "Farmakologi", "Patologi Anatomi", "Patologi Klinik", "Mikrobiologi", "Parasitologi", "Ilmu lainnya", "Kedokteran"]);
+  const [examTypeFilter, setExamTypeFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [formatFilter, setFormatFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [practiceExamType, setPracticeExamType] = useState("");
+  const [practiceSubject, setPracticeSubject] = useState("");
+  const [practiceFormat, setPracticeFormat] = useState("");
+  const [practiceCount, setPracticeCount] = useState("all");
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [imagePreview, setImagePreview] = useState("");
+  const [categoryManagerKind, setCategoryManagerKind] = useState("");
+  const [categoryRows, setCategoryRows] = useState([]);
 
   // Library filters
   const [search, setSearch] = useState("");
@@ -134,7 +154,16 @@ export default function QuestionLibrary() {
     setError("");
     try {
       const data = await repository.list();
-      setQuestions(data);
+      const client = requireSupabase();
+      const withImages = await Promise.all(data.map(async (question) => {
+        if (!question.image_path) return question;
+        const { data: signed, error: signError } = await client.storage.from("academic-question-images").createSignedUrl(question.image_path, 3600);
+        return { ...question, image_url: signError ? "" : signed?.signedUrl || "" };
+      }));
+      setQuestions(withImages);
+      const [examRows, subjectRows] = await Promise.all([repository.listCategories("exam_type"), repository.listCategories("subject")]);
+      setExamCategories([...new Set(["MP", "OSPE", "SOCA", "MCQ", "Essay", "Custom", ...examRows.map((row) => row.name), ...data.map((q) => q.exam_type).filter(Boolean)])]);
+      setSubjectCategories([...new Set(["Anatomi", "Histologi", "Fisiologi", "Biokimia", "Farmakologi", "Patologi Anatomi", "Patologi Klinik", "Mikrobiologi", "Parasitologi", "Ilmu lainnya", "Kedokteran", ...subjectRows.map((row) => row.name), ...data.map((q) => q.subject).filter(Boolean)])]);
     } catch (err) {
       setError(err.message || "Failed to load question bank.");
     } finally {
@@ -149,8 +178,12 @@ export default function QuestionLibrary() {
   useEffect(() => {
     const savedFilters = readPracticeFilters(window.sessionStorage);
     if (!savedFilters) return;
+    setPracticeExamType(savedFilters.examType);
     setPracticeBlock(savedFilters.block);
+    setPracticeSubject(savedFilters.subject);
     setPracticeTopic(savedFilters.topic);
+    setPracticeFormat(savedFilters.questionType);
+    setPracticeCount(savedFilters.count);
   }, []);
 
   const loadMistakes = useCallback(async () => {
@@ -177,16 +210,24 @@ export default function QuestionLibrary() {
   const filteredQuestions = useMemo(() => {
     return filterQuestions(questions, {
       search,
+      examType: examTypeFilter,
+      subject: subjectFilter,
+      questionType: formatFilter,
+      tag: tagFilter,
       block: blockFilter,
       topic: topicFilter,
       bookmarkedOnly,
     });
-  }, [questions, search, blockFilter, topicFilter, bookmarkedOnly]);
+  }, [questions, search, examTypeFilter, subjectFilter, formatFilter, tagFilter, blockFilter, topicFilter, bookmarkedOnly]);
 
-  const hasActiveFilters = Boolean(search || blockFilter || topicFilter || bookmarkedOnly);
+  const hasActiveFilters = Boolean(search || examTypeFilter || subjectFilter || formatFilter || tagFilter || blockFilter || topicFilter || bookmarkedOnly);
 
   const resetFilters = () => {
     setSearch("");
+    setExamTypeFilter("");
+    setSubjectFilter("");
+    setFormatFilter("");
+    setTagFilter("");
     setBlockFilter("");
     setTopicFilter("");
     setBookmarkedOnly(false);
@@ -207,21 +248,25 @@ export default function QuestionLibrary() {
   // ---------------------------------------------------------------------------
   const matchingPracticeQuestions = useMemo(() => {
     return questions.filter((q) => {
+      if (practiceExamType && (q.exam_type || "MCQ") !== practiceExamType) return false;
       if (practiceBlock && q.block !== practiceBlock) return false;
+      if (practiceSubject && q.subject !== practiceSubject) return false;
       if (practiceTopic && q.topic !== practiceTopic) return false;
+      if (practiceFormat && (q.question_type || "mcq") !== practiceFormat) return false;
       return true;
     });
-  }, [questions, practiceBlock, practiceTopic]);
+  }, [questions, practiceExamType, practiceBlock, practiceSubject, practiceTopic, practiceFormat]);
 
   const startPractice = (targetQuestions = null) => {
-    const pool = targetQuestions || matchingPracticeQuestions;
+    const filteredPool = targetQuestions || matchingPracticeQuestions;
+    const pool = practiceCount === "all" || targetQuestions ? filteredPool : filteredPool.slice(0, Math.max(1, Number(practiceCount) || filteredPool.length));
     if (!pool.length) return;
     const session = createPracticeRun(pool, { block: practiceBlock, topic: practiceTopic });
     if (!session || !writePracticeRun(window.sessionStorage, session)) {
       setNotification("Sesi latihan tidak dapat disiapkan. Periksa penyimpanan browser lalu coba lagi.");
       return;
     }
-    if (!writePracticeFilters(window.sessionStorage, { block: practiceBlock, topic: practiceTopic })) {
+    if (!writePracticeFilters(window.sessionStorage, { examType: practiceExamType, block: practiceBlock, subject: practiceSubject, topic: practiceTopic, questionType: practiceFormat, count: practiceCount })) {
       window.sessionStorage.removeItem(PRACTICE_RUN_STORAGE_KEY);
       setNotification("Pilihan latihan tidak dapat disimpan. Periksa penyimpanan browser lalu coba lagi.");
       return;
@@ -288,6 +333,7 @@ export default function QuestionLibrary() {
     setEditingId(null);
     setForm(DEFAULT_FORM);
     setFormError("");
+    setImagePreview("");
     setFormOpen(true);
   };
 
@@ -295,9 +341,12 @@ export default function QuestionLibrary() {
     setEditingId(question.id);
     setForm({
       question_text: question.question_text || "",
+      exam_type: question.exam_type || "MCQ",
+      question_type: question.question_type || "mcq",
       subject: question.subject || "Kedokteran",
       block: question.block || "",
       topic: question.topic || "",
+      subtopic: question.subtopic || "",
       difficulty: question.difficulty || "medium",
       options: {
         A: question.options?.A || "",
@@ -308,9 +357,12 @@ export default function QuestionLibrary() {
       },
       correct_answer: question.correct_answer || "A",
       explanation: question.explanation || "",
+      reference_answer: question.reference_answer || "",
+      image_path: question.image_path || "",
       tags: (question.tags || []).join(", "),
       is_bookmarked: Boolean(question.is_bookmarked),
     });
+    setImagePreview(question.image_url || "");
     setFormError("");
     setFormOpen(true);
   };
@@ -331,17 +383,42 @@ export default function QuestionLibrary() {
     }
     setSubmitting(true);
     setFormError("");
+    let uploadedImagePath = null;
 
     try {
-      if (editingId) {
-        const updated = await repository.update(editingId, form);
-        setQuestions((prev) => prev.map((q) => (q.id === editingId ? updated : q)));
-      } else {
-        const created = await repository.create(form);
-        setQuestions((prev) => [created, ...prev]);
+      const client = requireSupabase();
+      let imagePath = form.image_path || null;
+      const imageFile = event.currentTarget.elements.namedItem("question_image")?.files?.[0];
+      if (imageFile) {
+        if (!/^image\/(jpeg|png|webp|gif)$/.test(imageFile.type) || imageFile.size > 5 * 1024 * 1024) throw new Error("Gambar harus JPG, PNG, WebP, atau GIF dengan ukuran maksimal 5 MB.");
+        const { data: authData, error: authError } = await client.auth.getUser();
+        if (authError || !authData.user) throw new Error("Sesi login tidak valid. Silakan masuk kembali.");
+        const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[imageFile.type];
+        const uploadedPath = authData.user.id + "/" + crypto.randomUUID() + "." + extension;
+        uploadedImagePath = uploadedPath;
+        const { error: uploadError } = await client.storage.from("academic-question-images").upload(uploadedPath, imageFile, { contentType: imageFile.type, upsert: false });
+        if (uploadError) throw new Error(`Upload gambar gagal: ${uploadError.message}`);
+        imagePath = uploadedPath;
       }
+      const payload = { ...form, image_path: imagePath };
+      if (form.exam_type) await repository.addCategory("exam_type", form.exam_type);
+      if (form.subject) await repository.addCategory("subject", form.subject);
+      if (editingId) {
+        const previousImagePath = questions.find((item) => item.id === editingId)?.image_path;
+        const updated = await repository.update(editingId, payload);
+        if (previousImagePath && previousImagePath !== imagePath) await client.storage.from("academic-question-images").remove([previousImagePath]);
+        const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
+        setQuestions((prev) => prev.map((q) => (q.id === editingId ? { ...updated, image_url: signed?.data?.signedUrl || "" } : q)));
+      } else {
+        const created = await repository.create(payload);
+        const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
+        setQuestions((prev) => [{ ...created, image_url: signed?.data?.signedUrl || "" }, ...prev]);
+      }
+      setExamCategories((prev) => [...new Set([...prev, form.exam_type])]);
+      setSubjectCategories((prev) => [...new Set([...prev, form.subject])]);
       closeForm();
     } catch (err) {
+      if (uploadedImagePath) await requireSupabase().storage.from("academic-question-images").remove([uploadedImagePath]);
       setFormError(err.message || "Failed to save question.");
     } finally {
       setSubmitting(false);
@@ -431,15 +508,63 @@ export default function QuestionLibrary() {
     }
   };
 
+  const handleAddCategory = async (kind) => {
+    const value = window.prompt(kind === "exam_type" ? "Nama jenis ujian baru:" : "Nama subject baru:")?.trim();
+    if (!value) return;
+    try {
+      await repository.addCategory(kind, value);
+      const rows = await repository.listCategories(kind);
+      setCategoryRows(rows);
+      if (kind === "exam_type") setExamCategories((prev) => [...new Set([...prev, value])]);
+      else setSubjectCategories((prev) => [...new Set([...prev, value])]);
+      setNotification(`${kind === "exam_type" ? "Exam type" : "Subject"} disimpan.`);
+    } catch (categoryError) { setError(categoryError.message || "Kategori gagal disimpan."); }
+  };
+
+  const openCategoryManager = async (kind) => {
+    try {
+      setCategoryRows(await repository.listCategories(kind));
+      setCategoryManagerKind(kind);
+    } catch (categoryError) { setError(categoryError.message || "Kategori gagal dimuat."); }
+  };
+
+  const renameCategory = async (row) => {
+    const name = window.prompt("Nama kategori baru:", row.name)?.trim();
+    if (!name || name === row.name) return;
+    try {
+      await repository.updateCategory(row.id, name);
+      setCategoryRows(await repository.listCategories(categoryManagerKind));
+      if (row.kind === "exam_type") setExamCategories((prev) => [...new Set([...prev.filter((item) => item !== row.name), name])]);
+      else setSubjectCategories((prev) => [...new Set([...prev.filter((item) => item !== row.name), name])]);
+    } catch (categoryError) { setError(categoryError.message || "Kategori gagal diubah."); }
+  };
+
+  const deleteCategory = async (row) => {
+    if (!window.confirm("Hapus kategori dari daftar? Metadata soal yang sudah tersimpan tidak akan diubah.")) return;
+    try {
+      await repository.removeCategory(row.id);
+      setCategoryRows((prev) => prev.filter((item) => item.id !== row.id));
+      if (row.kind === "exam_type" && !questions.some((question) => question.exam_type === row.name)) setExamCategories((prev) => prev.filter((item) => item !== row.name));
+      if (row.kind === "subject" && !questions.some((question) => question.subject === row.name)) setSubjectCategories((prev) => prev.filter((item) => item !== row.name));
+    } catch (categoryError) { setError(categoryError.message || "Kategori gagal dihapus."); }
+  };
+
   const handleExecuteImport = async () => {
     if (!repository || !importPreview || !importPreview.valid.length || importing) return;
     setImporting(true);
     setImportMessage("");
 
     try {
+      const categoryPairs = new Set(importPreview.valid.flatMap((question) => [["exam_type", question.exam_type], ["subject", question.subject]]).map(([kind, name]) => kind + "|" + name));
+      await Promise.all([...categoryPairs].map(async (pair) => {
+        const separator = pair.indexOf("|");
+        await repository.addCategory(pair.slice(0, separator), pair.slice(separator + 1));
+      }));
       const inserted = await repository.createBatch(importPreview.valid);
       setQuestions((prev) => [...inserted, ...prev]);
-      setImportMessage(`Berhasil mengimpor ${inserted.length} soal ke Question Bank!`);
+      setExamCategories((prev) => [...new Set([...prev, ...importPreview.valid.map((question) => question.exam_type)])]);
+      setSubjectCategories((prev) => [...new Set([...prev, ...importPreview.valid.map((question) => question.subject)])]);
+      setImportMessage(`Berhasil mengimpor ${inserted.length} soal ke Question Bank. ${importPreview.valid.length - inserted.length} duplikat dilewati.`);
       setImportFile(null);
       setImportPreview(null);
     } catch (importErr) {
@@ -459,6 +584,23 @@ export default function QuestionLibrary() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExportCsv = () => {
+    const escapeCell = (value) => '"' + String(value ?? "").replaceAll('"', '""') + '"';
+    const headers = ["exam_type", "block", "subject", "topic", "subtopic", "question_type", "question_text", "option_a", "option_b", "option_c", "option_d", "option_e", "correct_answer", "reference_answer", "explanation", "tags"].join(",");
+    const rows = questions.map((q) => [
+      q.exam_type || "MCQ", q.block, q.subject, q.topic, q.subtopic, q.question_type || "mcq", q.question_text,
+      q.options?.A, q.options?.B, q.options?.C, q.options?.D, q.options?.E, q.correct_answer,
+      q.reference_answer, q.explanation, (q.tags || []).join(";"),
+    ].map(escapeCell).join(","));
+    const blob = new Blob([[headers, ...rows].join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "4allx-question-bank.csv";
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -600,10 +742,16 @@ export default function QuestionLibrary() {
                   Pilih Soal Latihan
                 </h3>
                 <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
-                  Latihan mengerjakan seluruh soal dari blok/topik yang dipilih. Urutan soal dan opsi jawaban (A–E) diacak otomatis setiap sesi.
+                  Pilih kombinasi ujian dan materi. Soal dan opsi MCQ diacak sekali saat sesi dimulai.
                 </p>
 
                 <div style={{ display: "grid", gap: "0.75rem", marginTop: "1rem" }}>
+                  <label style={{ display: "grid", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>EXAM TYPE</span>
+                    <select aria-label="Exam Type latihan" value={practiceExamType} onChange={(e) => setPracticeExamType(e.target.value)} style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}>
+                      <option value="">Semua jenis ujian</option>{examCategories.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  </label>
                   <label style={{ display: "grid", gap: "0.3rem" }}>
                     <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                       BLOK KEDOKTERAN
@@ -617,6 +765,24 @@ export default function QuestionLibrary() {
                       {filterOptions.blocks.map((b) => (
                         <option key={b} value={b}>{b}</option>
                       ))}
+                    </select>
+                  </label>
+                  <label style={{ display: "grid", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>SUBJECT</span>
+                    <select aria-label="Subject latihan" value={practiceSubject} onChange={(e) => setPracticeSubject(e.target.value)} style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}>
+                      <option value="">Semua subject</option>{subjectCategories.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: "grid", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>FORMAT SOAL</span>
+                    <select aria-label="Format soal latihan" value={practiceFormat} onChange={(e) => setPracticeFormat(e.target.value)} style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}>
+                      <option value="">MCQ + Essay</option><option value="mcq">Hanya MCQ</option><option value="essay">Hanya Essay</option>
+                    </select>
+                  </label>
+                  <label style={{ display: "grid", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>JUMLAH SOAL</span>
+                    <select aria-label="Jumlah soal latihan" value={practiceCount} onChange={(e) => setPracticeCount(e.target.value)} style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}>
+                      <option value="all">Semua soal tersedia</option>{[10, 20, 30, 50].map((count) => <option key={count} value={count}>{count} soal</option>)}
                     </select>
                   </label>
 
@@ -641,7 +807,7 @@ export default function QuestionLibrary() {
 
                 <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
                   <span style={{ fontSize: "0.75rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
-                    {matchingPracticeQuestions.length} SOAL TERSEDIA
+                    {matchingPracticeQuestions.length} SOAL TERSEDIA{practiceCount !== "all" && matchingPracticeQuestions.length < Number(practiceCount) ? " · sesi berisi " + matchingPracticeQuestions.length + " soal" : ""}
                   </span>
 
                   <button
@@ -909,8 +1075,33 @@ export default function QuestionLibrary() {
             </label>
 
             <label style={{ flex: "1 1 8rem" }}>
+              <span>EXAM TYPE</span>
+              <select aria-label="Filter exam type" value={examTypeFilter} onChange={(e) => setExamTypeFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
+                <option value="">Semua Exam Type</option>{examCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label style={{ flex: "1 1 8rem" }}>
+              <span>SUBJECT</span>
+              <select aria-label="Filter subject" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
+                <option value="">Semua subject</option>{subjectCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+            <label style={{ flex: "1 1 8rem" }}>
+              <span>FORMAT</span>
+              <select aria-label="Filter format" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
+                <option value="">Semua format</option><option value="mcq">MCQ</option><option value="essay">Essay</option>
+              </select>
+            </label>
+            <label style={{ flex: "1 1 8rem" }}>
+              <span>TAG</span>
+              <select aria-label="Filter tag" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}>
+                <option value="">Semua tag</option>{filterOptions.tags.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label style={{ flex: "1 1 8rem" }}>
               <span>BLOK</span>
               <select
+                aria-label="Filter block"
                 value={blockFilter}
                 onChange={(e) => setBlockFilter(e.target.value)}
                 style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}
@@ -925,6 +1116,7 @@ export default function QuestionLibrary() {
             <label style={{ flex: "1 1 8rem" }}>
               <span>TOPIK</span>
               <select
+                aria-label="Filter topik"
                 value={topicFilter}
                 onChange={(e) => setTopicFilter(e.target.value)}
                 style={{ width: "100%", fontSize: "16px", minHeight: "38px" }}
@@ -986,6 +1178,12 @@ export default function QuestionLibrary() {
               >
                 <Plus aria-hidden="true" /> TAMBAH SOAL
               </button>
+              <button type="button" onClick={handleExportCsv} disabled={!questions.length} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}><Download size={13} /> EXPORT CSV</button>
+              <button type="button" onClick={() => handleAddCategory("exam_type")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>+ EXAM TYPE</button>
+              <button type="button" onClick={() => handleAddCategory("subject")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>+ SUBJECT</button>
+              <button type="button" onClick={() => openCategoryManager("exam_type")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>MANAGE EXAM TYPES</button>
+              <button type="button" onClick={() => openCategoryManager("subject")} style={{ minHeight: "38px", padding: "0.5rem 0.75rem" }}>MANAGE SUBJECTS</button>
+              {selectedQuestionIds.length > 0 && <button type="button" onClick={() => startPractice(questions.filter((q) => selectedQuestionIds.includes(q.id)))} className="hub-primary-action" style={{ minHeight: "38px" }}><Play size={13} /> LATIHAN {selectedQuestionIds.length} TERPILIH</button>}
             </div>
           </div>
 
@@ -1055,6 +1253,12 @@ export default function QuestionLibrary() {
                         <span style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: "0.65rem", color: "var(--hub-accent)", fontWeight: 600 }}>
                           #{String(index + 1).padStart(2, "0")}
                         </span>
+                        <label style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.62rem", color: "var(--hub-muted)" }}>
+                          <input type="checkbox" aria-label={"Pilih soal " + (index + 1)} checked={selectedQuestionIds.includes(q.id)} onChange={(event) => setSelectedQuestionIds((prev) => event.target.checked ? [...prev, q.id] : prev.filter((id) => id !== q.id))} /> Pilih
+                        </label>
+                        <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>{q.exam_type || "MCQ"}</span>
+                        <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>{(q.question_type || "mcq").toUpperCase()}</span>
+                        {q.subject && <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>{q.subject}</span>}
                         {q.block && (
                           <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.4rem", border: "1px solid var(--hub-line)", borderRadius: "4px", color: "var(--hub-muted)" }}>
                             {q.block}
@@ -1072,7 +1276,7 @@ export default function QuestionLibrary() {
                           type="button"
                           onClick={() => toggleRevealAnswer(q.id)}
                           aria-label="Toggle answer key"
-                          title={isRevealed ? "Sembunyikan Kunci" : "Tampilkan Kunci"}
+                          title={isRevealed ? "Sembunyikan jawaban" : "Tampilkan jawaban"}
                           style={{
                             background: "transparent",
                             border: "1px solid var(--hub-line)",
@@ -1089,7 +1293,7 @@ export default function QuestionLibrary() {
                           }}
                         >
                           {isRevealed ? <EyeOff size={12} /> : <Eye size={12} />}
-                          {isRevealed ? "KUNCI TERBUKA" : "LIHAT KUNCI"}
+                          {isRevealed ? "JAWABAN TERBUKA" : q.question_type === "essay" ? "LIHAT REFERENSI" : "LIHAT KUNCI"}
                         </button>
                         <button
                           type="button"
@@ -1119,13 +1323,14 @@ export default function QuestionLibrary() {
                       </div>
                     </div>
 
+                    {q.image_url && <button type="button" onClick={() => setImagePreview(q.image_url)} aria-label="Lihat gambar soal" style={{ padding: 0, border: 0, background: "transparent", width: "fit-content" }}><img src={q.image_url} alt="Gambar soal" style={{ display: "block", maxWidth: "min(100%, 32rem)", maxHeight: "18rem", objectFit: "contain", borderRadius: "6px" }} /></button>}
                     {/* Question Stem */}
                     <p style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.5, color: "var(--hub-text)", whiteSpace: "pre-wrap" }}>
                       {q.question_text}
                     </p>
 
                     {/* Options (A–E) */}
-                    <div style={{ display: "grid", gap: "0.35rem" }}>
+                    {(q.question_type || "mcq") === "mcq" && <div style={{ display: "grid", gap: "0.35rem" }}>
                       {VALID_OPTIONS.map((opt) => {
                         const isCorrect = q.correct_answer === opt;
                         const text = q.options?.[opt] || "—";
@@ -1157,7 +1362,8 @@ export default function QuestionLibrary() {
                           </div>
                         );
                       })}
-                    </div>
+                    </div>}
+                    {isRevealed && q.question_type === "essay" && <div><strong>Reference answer</strong><p>{q.reference_answer}</p>{q.explanation && <p>{q.explanation}</p>}</div>}
 
                     {/* Explanation */}
                     {isRevealed && q.explanation && (
@@ -1520,6 +1726,20 @@ export default function QuestionLibrary() {
         </div>
       )}
 
+      {categoryManagerKind && <div className="hub-crud-modal-backdrop" onMouseDown={() => setCategoryManagerKind("")}>
+        <section className="hub-crud-form hub-crud-modal" role="dialog" aria-modal="true" aria-label={categoryManagerKind === "subject" ? "Kelola subjects" : "Kelola exam types"} onMouseDown={(event) => event.stopPropagation()} style={{ maxWidth: "32rem", width: "95%", maxHeight: "min(80dvh, 36rem)", overflowY: "auto" }}>
+          <div className="hub-crud-form-head"><span>{categoryManagerKind === "subject" ? "KELOLA SUBJECT" : "KELOLA EXAM TYPE"}</span><button type="button" aria-label="Tutup" onClick={() => setCategoryManagerKind("")}><X /></button></div>
+          <div style={{ display: "grid", gap: "0.5rem", padding: "1rem" }}>
+            <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.8rem" }}>Ubah atau hapus kategori pribadi. Metadata pada soal yang sudah tersimpan tidak ikut dihapus.</p>
+            {categoryRows.length === 0 && <p style={{ color: "var(--hub-muted)", fontSize: "0.8rem" }}>Belum ada kategori tambahan tersimpan.</p>}
+            {categoryRows.map((row) => <div key={row.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.55rem 0", borderBottom: "1px solid var(--hub-line)" }}>
+              <span>{row.name}</span><div style={{ display: "flex", gap: "0.4rem" }}><button type="button" onClick={() => renameCategory(row)} aria-label={"Ubah " + row.name}><Pencil size={14} /></button><button type="button" onClick={() => deleteCategory(row)} aria-label={"Hapus " + row.name}><Trash2 size={14} /></button></div>
+            </div>)}
+            <button type="button" className="hub-primary-action" onClick={() => handleAddCategory(categoryManagerKind)}>+ TAMBAH KATEGORI</button>
+          </div>
+        </section>
+      </div>}
+
       {/* ===================================================================== */}
       {/* QUESTION FORM MODAL (ADD / EDIT) (Mobile-Optimized)                   */}
       {/* ===================================================================== */}
@@ -1548,20 +1768,12 @@ export default function QuestionLibrary() {
             )}
 
             <div className="hub-form-grid" style={{ padding: "1rem" }}>
-              {/* Question Text */}
-              <label className="hub-field-wide">
-                <span>PERTANYAAN / KASUS KLINIS *</span>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Tuliskan teks pertanyaan atau skenario klinis..."
-                  value={form.question_text}
-                  onChange={(e) => setForm({ ...form, question_text: e.target.value })}
-                  style={{ fontSize: "16px" }}
-                />
+              <label>
+                <span>EXAM TYPE *</span>
+                <input list="academic-exam-types" required value={form.exam_type} onChange={(e) => setForm({ ...form, exam_type: e.target.value })} placeholder="OSPE, MP, SOCA..." style={{ fontSize: "16px" }} />
+                <datalist id="academic-exam-types">{examCategories.map((item) => <option key={item} value={item} />)}</datalist>
               </label>
-
-              {/* Block & Topic (NO DIFFICULTY) */}
+              {/* Block & topic */}
               <label>
                 <span>BLOK KEDOKTERAN (OPSIONAL)</span>
                 <input
@@ -1574,6 +1786,12 @@ export default function QuestionLibrary() {
               </label>
 
               <label>
+                <span>SUBJECT *</span>
+                <input list="academic-subjects" required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Biokimia, Farmakologi..." style={{ fontSize: "16px" }} />
+                <datalist id="academic-subjects">{subjectCategories.map((item) => <option key={item} value={item} />)}</datalist>
+              </label>
+
+              <label>
                 <span>TOPIK (OPSIONAL)</span>
                 <input
                   type="text"
@@ -1583,9 +1801,46 @@ export default function QuestionLibrary() {
                   style={{ fontSize: "16px" }}
                 />
               </label>
+              <label>
+                <span>SUBTOPIK (OPSIONAL)</span>
+                <input type="text" value={form.subtopic} onChange={(e) => setForm({ ...form, subtopic: e.target.value })} style={{ fontSize: "16px" }} />
+              </label>
+              <label>
+                <span>QUESTION FORMAT *</span>
+                <select value={form.question_type} onChange={(e) => setForm({ ...form, question_type: e.target.value })} style={{ fontSize: "16px" }}>
+                  <option value="mcq">Multiple choice (MCQ)</option><option value="essay">Essay / short answer</option>
+                </select>
+              </label>
+              <label className="hub-field-wide">
+                <span>PERTANYAAN / KASUS KLINIS *</span>
+                <textarea rows={3} required placeholder="Tuliskan teks pertanyaan atau skenario klinis..." value={form.question_text} onChange={(e) => setForm({ ...form, question_text: e.target.value })} style={{ fontSize: "16px" }} />
+              </label>
+
+              <label className="hub-field-wide">
+                <span>GAMBAR SOAL (JPG, PNG, WEBP, GIF · MAKS 5 MB)</span>
+                <input type="file" name="question_image" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type) || file.size > 5 * 1024 * 1024) { setFormError("Gambar harus JPG, PNG, WebP, atau GIF dengan ukuran maksimal 5 MB."); e.target.value = ""; return; }
+                  setFormError("");
+                  setImagePreview(URL.createObjectURL(file));
+                }} style={{ fontSize: "16px" }} />
+                {imagePreview && <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                  <img src={imagePreview} alt="Preview gambar soal" style={{ maxWidth: "100%", maxHeight: "13rem", objectFit: "contain", borderRadius: "6px" }} />
+                  <button type="button" onClick={async (e) => {
+                    e.currentTarget.form.elements.namedItem("question_image").value = "";
+                    setForm({ ...form, image_path: "" }); setImagePreview("");
+                  }} style={{ minHeight: "42px" }}>HAPUS GAMBAR</button>
+                </div>}
+              </label>
+
+              {form.question_type === "essay" && <label className="hub-field-wide">
+                <span>REFERENCE ANSWER *</span>
+                <textarea rows={4} required value={form.reference_answer} onChange={(e) => setForm({ ...form, reference_answer: e.target.value })} placeholder="Jawaban rujukan untuk ditinjau setelah menjawab..." style={{ fontSize: "16px" }} />
+              </label>}
 
               {/* 5 Options A-E and Correct Answer */}
-              <div
+              {form.question_type === "mcq" && <div
                 className="hub-field-wide"
                 style={{
                   display: "grid",
@@ -1634,7 +1889,7 @@ export default function QuestionLibrary() {
                     />
                   </div>
                 ))}
-              </div>
+              </div>}
 
               {/* Explanation */}
               <label className="hub-field-wide" style={{ marginTop: "0.5rem" }}>
@@ -1696,6 +1951,10 @@ export default function QuestionLibrary() {
           </form>
         </div>
       )}
+      {imagePreview && !formOpen && <div className="academic-practice__image-overlay" role="dialog" aria-modal="true" aria-label="Gambar soal" onClick={() => setImagePreview("")}>
+        <button type="button" onClick={() => setImagePreview("")} aria-label="Tutup gambar">×</button>
+        <img src={imagePreview} alt="Gambar soal ukuran penuh" />
+      </div>}
     </section>
   );
 }

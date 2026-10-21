@@ -34,6 +34,22 @@ test("Phase 31 schema defines owner-scoped tables, RLS, and 30-day trash retenti
   assert.match(sql, /purge_expired_hub_trash/);
 });
 
+test("Phase 32 migration extends existing questions, keeps categories and image storage private and owner-scoped", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/032-medical-question-bank-upgrade.sql", import.meta.url), "utf8");
+  for (const field of ["exam_type", "question_type", "subtopic", "reference_answer"]) assert.match(sql, new RegExp("add column if not exists " + field));
+  assert.match(sql, /academic_question_categories enable row level security/);
+  assert.match(sql, /auth\.uid\(\) = user_id/);
+  assert.match(sql, /'academic-question-images', 'academic-question-images', false/);
+  assert.match(sql, /storage\.foldername\(name\)\)\[1\] = auth\.uid\(\)::text/);
+  assert.match(sql, /academic_question_attempts_answer_shape_check/);
+});
+
+test("permanent Trash deletion also removes private question image objects", async () => {
+  const trash = await readFile(new URL("../../components/hub/TrashPanel.jsx", import.meta.url), "utf8");
+  assert.match(trash, /item\.table === "academic_questions" && item\.row\.image_path/);
+  assert.match(trash, /storage\.from\("academic-question-images"\)\.remove/);
+});
+
 test("validateQuestionPayload validates single-choice MCQs with 5 options (A-E)", () => {
   const valid = {
     question_text: "What is the primary pacemaker of the human heart?",
@@ -79,6 +95,32 @@ test("validateQuestionPayload validates single-choice MCQs with 5 options (A-E)"
     () => validateQuestionPayload({ ...valid, correct_answer: "Z" }),
     /Correct answer must be one of: A, B, C, D, E/
   );
+});
+
+test("question validation supports essay safely while preserving legacy MCQ defaults", () => {
+  const essay = validateQuestionPayload({ question_type: "essay", exam_type: "OSPE", subject: "Biokimia", block: "Hepatobilier", topic: "Bilirubin", subtopic: "Konjugasi", question_text: "Jelaskan metabolisme bilirubin", reference_answer: "Bilirubin berasal dari heme.", tags: "heme, hati" });
+  assert.equal(essay.question_type, "essay");
+  assert.equal(essay.correct_answer, null);
+  assert.deepEqual(essay.options, {});
+  assert.equal(essay.exam_type, "OSPE");
+  assert.throws(() => validateQuestionPayload({ question_type: "essay", question_text: "Essay tanpa rujukan" }), /Reference answer is required/);
+  assert.throws(() => validateQuestionPayload({ question_type: "mcq", question_text: "MCQ tanpa opsi" }), /Option A cannot be empty/);
+  assert.equal(validateQuestionPayload({ question_text: "Legacy question", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" }).question_type, "mcq");
+});
+
+test("question image identity is a storage path, not an expiring URL", () => {
+  const path = "owner-uuid/asset-uuid.webp";
+  const question = validateQuestionPayload({ question_text: "Identify the specimen", question_type: "essay", reference_answer: "Reference", image_path: path });
+  assert.equal(question.image_path, path);
+  assert.equal(Object.hasOwn(question, "image_url"), false);
+});
+
+test("filters use exam type, subject, format, tags and search metadata", () => {
+  const items = [
+    { id: "mcq", exam_type: "OSPE", question_type: "mcq", subject: "Biokimia", topic: "Bilirubin", subtopic: "Konjugasi", tags: ["heme"] },
+    { id: "essay", exam_type: "MP", question_type: "essay", subject: "Fisiologi", topic: "Bilirubin", tags: ["hepar"] },
+  ];
+  assert.deepEqual(filterQuestions(items, { examType: "OSPE", subject: "Biokimia", questionType: "mcq", tag: "heme", search: "konjugasi" }).map((item) => item.id), ["mcq"]);
 });
 
 test("filterQuestions and extractFilterOptions work accurately on question collections", () => {
@@ -210,6 +252,23 @@ test("parseCsv and validateCsvRows correctly handle RFC-4180 CSV with quotes and
   assert.match(invalidResult.errors[1].reason, /Invalid answer 'Z'/);
   assert.equal(invalidResult.errors[2].rowNumber, 4);
   assert.match(invalidResult.errors[2].reason, /Question text is empty/);
+});
+
+test("modern CSV preview validates MCQ and Essay rows without accepting invalid rows", () => {
+  const csv = [
+    "exam_type,block,subject,topic,subtopic,question_type,question_text,option_a,option_b,option_c,option_d,option_e,correct_answer,reference_answer,explanation,tags",
+    'OSPE,Hepatobilier,Biokimia,Bilirubin,,mcq,"Enzim heme?",A,B,C,D,E,E,,"Penjelasan, singkat",heme;bilirubin',
+    ["MP", "Hepatobilier", "Fisiologi", "Bilirubin", "", "essay", "Uraikan proses.", "", "", "", "", "", "", "Konversi dan konjugasi.", "Catatan", "bilirubin;hepar"].join(","),
+    'MP,Hepatobilier,Fisiologi,Bilirubin,,essay,"Tanpa jawaban referensi.",,,,,,,,Catatan,bilirubin',
+    'OSPE,Hepatobilier,Biokimia,Bilirubin,,mcq,"Kunci invalid",A,B,C,D,E,Z,,Catatan,heme',
+  ].join("\n");
+  const result = validateCsvRows(csv);
+  assert.equal(result.valid.length, 2);
+  assert.equal(result.errors.length, 2);
+  assert.equal(result.valid[0].exam_type, "OSPE");
+  assert.equal(result.valid[0].tags[1], "bilirubin");
+  assert.equal(result.valid[1].question_type, "essay");
+  assert.equal(result.valid[1].options && Object.keys(result.valid[1].options).length, 0);
 });
 
 test("createQuestionRepository delegates to Supabase with proper checks", async () => {

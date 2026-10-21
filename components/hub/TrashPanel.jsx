@@ -36,6 +36,10 @@ export default function TrashPanel() {
       const { error: storageError } = await client.storage.from("document-vault").remove([item.row.storage_path]);
       if (storageError) return setError(storageError.message);
     }
+    if (item.table === "academic_questions" && item.row.image_path) {
+      const { error: storageError } = await client.storage.from("academic-question-images").remove([item.row.image_path]);
+      if (storageError) return setError(storageError.message);
+    }
     const { error: deleteError } = await client.from(item.table).delete().eq("id", item.row.id);
     if (deleteError) return setError(deleteError.message);
     load();
@@ -46,8 +50,13 @@ export default function TrashPanel() {
     try {
       const client = requireSupabase();
       const vaultPaths = items.filter(({ table }) => table === "vault_documents").map(({ row }) => row.storage_path).filter(Boolean);
+      const questionImagePaths = items.filter(({ table }) => table === "academic_questions").map(({ row }) => row.image_path).filter(Boolean);
       if (vaultPaths.length) {
         const { error: storageError } = await client.storage.from("document-vault").remove(vaultPaths);
+        if (storageError) throw storageError;
+      }
+      if (questionImagePaths.length) {
+        const { error: storageError } = await client.storage.from("academic-question-images").remove(questionImagePaths);
         if (storageError) throw storageError;
       }
       await Promise.all(tables.map(async ([table]) => {

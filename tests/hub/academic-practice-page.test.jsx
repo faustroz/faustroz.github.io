@@ -5,6 +5,7 @@ import { createPracticeRun, writePracticeRun } from "@/lib/hub/academic-practice
 
 const { mockBack } = vi.hoisted(() => ({ mockBack: vi.fn() }));
 const attemptInsert = vi.fn();
+const attemptUpdate = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
@@ -15,9 +16,11 @@ vi.mock("@/lib/supabase/client", () => ({
     from: () => ({
       insert: (payload) => {
         attemptInsert(payload);
-        return { select: () => ({ single: async () => ({ data: payload, error: null }) }) };
+        return { select: () => ({ single: async () => ({ data: { ...payload, id: "attempt-test" }, error: null }) }) };
       },
+      update: (payload) => { attemptUpdate(payload); return { eq: () => ({ select: () => ({ single: async () => ({ data: payload, error: null }) }) }) }; },
     }),
+    storage: { from: () => ({ createSignedUrl: async (path) => ({ data: { signedUrl: "signed:" + path }, error: null }) }) },
   }),
 }));
 
@@ -31,7 +34,33 @@ describe("standalone Academic Practice page", () => {
     window.sessionStorage.clear();
     mockBack.mockClear();
     attemptInsert.mockClear();
+    attemptUpdate.mockClear();
     writePracticeRun(window.sessionStorage, createPracticeRun(questions, { block: "Block 1", topic: "Topic A" }));
+  });
+
+  it("supports essay answers and keeps them outside automatic MCQ scoring", async () => {
+    const essay = { id: "essay-1", question_type: "essay", question_text: "Jelaskan proses bilirubin.", reference_answer: "Heme diubah menjadi bilirubin lalu dikonjugasi.", explanation: "Tinjau tahap di hepar.", options: {} };
+    writePracticeRun(window.sessionStorage, createPracticeRun([essay], { examType: "OSPE", subject: "Fisiologi", questionType: "essay" }));
+    render(<AcademicPracticePage />);
+    expect(await screen.findByText(essay.question_text)).toBeInTheDocument();
+    expect(screen.queryByText(essay.reference_answer)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/jawaban anda/i), { target: { value: "Jawaban saya" } });
+    fireEvent.click(screen.getByRole("button", { name: /kirim jawaban/i }));
+    expect(await screen.findByText(essay.reference_answer)).toBeInTheDocument();
+    await waitFor(() => expect(attemptInsert).toHaveBeenCalledTimes(1));
+    expect(attemptInsert.mock.calls[0][0]).toMatchObject({ question_id: "essay-1", response_text: "Jawaban saya", is_correct: null, selected_answer: null });
+    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(0);
+    fireEvent.change(screen.getByLabelText(/self-assessment essay/i), { target: { value: "no" } });
+    await waitFor(() => expect(attemptUpdate).toHaveBeenCalledWith({ self_assessed: false }));
+  });
+
+  it("resolves question images through a private signed URL at display time", async () => {
+    const imageQuestion = { ...questions[0], image_path: "owner-id/question.webp", image_url: "https://expired.example" };
+    writePracticeRun(window.sessionStorage, createPracticeRun([imageQuestion]));
+    render(<AcademicPracticePage />);
+    const image = await screen.findByRole("img", { name: "Gambar soal" });
+    expect(image).toHaveAttribute("src", "signed:owner-id/question.webp");
+    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).questions[0]).not.toHaveProperty("image_url");
   });
 
   it("keeps the answer hidden until submit, saves only once, advances, and shows a separate result", async () => {
@@ -62,7 +91,7 @@ describe("standalone Academic Practice page", () => {
     fireEvent.click(screen.getByRole("button", { name: /Periksa jawaban/i }));
     fireEvent.click(await screen.findByRole("button", { name: /NEXT QUESTION/i }));
     expect(await screen.findByText("SESI SELESAI")).toBeInTheDocument();
-    expect(screen.queryByText(secondQuestion.question_text)).not.toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent.replace(/\s+/g, " ").includes("1 benar · 1 salah · 2 soal"))).toBeInTheDocument();
+    expect(screen.getByText(secondQuestion.question_text)).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent.replace(/\s+/g, " ").includes("1 MCQ benar") && element.textContent.includes("1 salah"))).toBeInTheDocument();
   });
 });

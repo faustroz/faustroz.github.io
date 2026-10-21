@@ -117,7 +117,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     expect(run.block).toBe("Kardiovaskular");
     expect(run.topic).toBe("Aritmia");
     expect(run.questions.every((question) => question.shuffledOptions[question.shuffledCorrectAnswer] === question.options[question.correct_answer])).toBe(true);
-    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-filters:v1"))).toEqual({ block: "Kardiovaskular", topic: "Aritmia" });
+    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-filters:v1"))).toEqual({ examType: "", block: "Kardiovaskular", subject: "", topic: "Aritmia", questionType: "", count: "all" });
   });
 
   it("renders the concise Academic overview and navigates dedicated workspace pages", async () => {
