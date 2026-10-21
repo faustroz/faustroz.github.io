@@ -84,16 +84,6 @@ export default function AcademicPanel() {
           <article><span>IP TERBARU{latestSemester ? ` · ${latestSemester.semester}` : ""}</span><strong>{latestSemester ? latestSemester.ip.toFixed(2) : "—"}</strong></article>
         </div>
       </section>
-      <section className="hub-academic-quick-links" aria-label="Academic quick access">
-        <span>AKSES CEPAT</span>
-        <div>
-          <button type="button" onClick={() => { setRecordType("medical"); setActivePage("grades"); }}>Grades & Credits · Blok</button>
-          <button type="button" onClick={() => { setRecordType("mku"); setActivePage("grades"); }}>Mata Kuliah Umum</button>
-          <button type="button" onClick={() => setActivePage("target")}>Academic Target</button>
-          <button type="button" onClick={() => setActivePage("calculator")}>Grade Calculator</button>
-          <button type="button" onClick={() => setActivePage("questions")}>Question Bank</button>
-        </div>
-      </section>
       <p className="hub-academic-shared-note">IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p>
     </section>
 
