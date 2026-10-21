@@ -92,6 +92,15 @@ export default function HubNavigation() {
     return () => window.removeEventListener("keydown", openSearch);
   }, []);
 
+  useEffect(() => {
+    const openSearch = () => {
+      setMobileSheet(null);
+      setSearchOpen(true);
+    };
+    window.addEventListener("hub:open-search", openSearch);
+    return () => window.removeEventListener("hub:open-search", openSearch);
+  }, []);
+
   return (
     <>
       <header className="hub-header">

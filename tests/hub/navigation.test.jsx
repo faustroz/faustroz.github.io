@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import HubNavigation from "@/components/hub/HubNavigation";
@@ -148,5 +148,22 @@ describe("HubNavigation", () => {
       screen.queryByRole("dialog", { name: /workspace navigation/i })
     ).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it("opens the existing global search from the Home launcher event", () => {
+    render(<HubNavigation />);
+
+    act(() => window.dispatchEvent(new Event("hub:open-search")));
+
+    expect(screen.getByRole("dialog", { name: /global private search/i })).toBeVisible();
+  });
+
+  it("opens the existing expense form from a contextual quick action", () => {
+    render(<HubNavigation />);
+
+    act(() => window.dispatchEvent(new CustomEvent("hub:open-quick-add", { detail: { kind: "expenses" } })));
+
+    expect(screen.getByText("QUICK ADD / PRIVATE")).toBeVisible();
+    expect(screen.getByRole("combobox", { name: /type/i })).toHaveValue("expenses");
   });
 });

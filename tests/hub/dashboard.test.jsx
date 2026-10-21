@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import HubHome from "@/app/hub/page";
 
@@ -7,31 +7,22 @@ vi.mock("@/components/hub/useTradingMonitor", () => ({
 }));
 
 describe("Personal Hub dashboard", () => {
-  it("renders the approved route-first module dashboard", () => {
+  it("renders the dynamic command center and keeps the monitoring entry available", async () => {
     render(<HubHome />);
 
-    expect(
-      screen.getByRole("heading", { name: /personal command center/i })
-    ).toBeVisible();
-    expect(screen.getByRole("link", { name: /open finance/i })).toHaveAttribute(
-      "href",
-      "/finance"
-    );
+    expect(screen.getByRole("button", { name: /search finance, academic, vault/i })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("heading", { name: /hubungkan sesi pribadi/i })).toBeVisible());
     expect(screen.queryByRole("link", { name: /open study/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /open projects/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /open ai memory/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open settings/i })).toHaveAttribute("href", "/settings");
     expect(screen.getByRole("link", { name: /open trading system monitoring/i })).toHaveAttribute("href", "/trading");
-    expect(screen.queryByRole("link", { name: /open about/i })).not.toBeInTheDocument();
   });
 
-  it("keeps the Finance summary locked and free of private values", () => {
+  it("keeps private summaries empty when there is no authenticated session", async () => {
     render(<HubHome />);
 
-    const finance = screen.getByTestId("finance-summary");
-    expect(within(finance).getByText("LOCKED")).toBeVisible();
-    expect(within(finance).queryByText(/net worth/i)).not.toBeInTheDocument();
-    expect(within(finance).queryByText(/Rp\s*[\d.]/i)).not.toBeInTheDocument();
-    expect(within(finance).queryByText(/[+-]\d+(\.\d+)?%/)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/masuk untuk menampilkan ringkasan finance/i)).toBeVisible());
+    expect(screen.queryByText(/Rp\s*[\d.]/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/[+-]\d+(\.\d+)?%/)).not.toBeInTheDocument();
   });
 });
