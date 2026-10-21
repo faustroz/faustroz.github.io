@@ -1292,19 +1292,16 @@ export default function QuestionLibrary() {
           {loadingMistakes ? (
             <div className="hub-data-state">MEMUAT CATATAN KESALAHAN…</div>
           ) : mistakes.length === 0 ? (
-            <div className="hub-data-state">
-              <span>BELUM ADA CATATAN KESALAHAN</span>
-              <p style={{ marginTop: "0.5rem", color: "var(--hub-muted)", fontSize: "0.8rem" }}>
-                Tidak ada soal yang pernah dijawab salah, atau Anda belum memulai sesi latihan.
-              </p>
-              <button
-                type="button"
-                onClick={() => setActiveTab("practice")}
-                className="hub-primary-action"
-                style={{ marginTop: "1rem", minHeight: "44px" }}
-              >
-                MULAI LATIHAN SEKARANG
-              </button>
+            <div className="hub-data-state hub-question-empty-state">
+              <div className="hub-question-empty-copy">
+                <span>BELUM ADA CATATAN KESALAHAN</span>
+                <p>Tidak ada soal yang pernah dijawab salah, atau Anda belum memulai sesi latihan.</p>
+              </div>
+              <div className="hub-question-empty-actions">
+                <button type="button" onClick={() => setActiveTab("practice")} className="hub-primary-action">
+                  <Play size={15} aria-hidden="true" /> Mulai latihan sekarang
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ display: "grid", gap: "0.75rem" }}>
