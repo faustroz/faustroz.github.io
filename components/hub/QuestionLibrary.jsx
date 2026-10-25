@@ -75,6 +75,7 @@ export default function QuestionLibrary() {
   const [notification, setNotification] = useState("");
   const [examCategories, setExamCategories] = useState([]);
   const [subjectCategories, setSubjectCategories] = useState([]);
+  const [blockCategories, setBlockCategories] = useState([]);
   const [examTypeFilter, setExamTypeFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [formatFilter, setFormatFilter] = useState("");
@@ -166,9 +167,10 @@ export default function QuestionLibrary() {
         return { ...question, image_url: signError ? "" : signed?.signedUrl || "" };
       }));
       setQuestions(withImages);
-      const [examRows, subjectRows] = await Promise.all([repository.listCategories("exam_type"), repository.listCategories("subject")]);
+      const [examRows, subjectRows, blockRows] = await Promise.all([repository.listCategories("exam_type"), repository.listCategories("subject"), repository.listCategories("block")]);
       setExamCategories(examRows.map((row) => row.name));
       setSubjectCategories(subjectRows.map((row) => row.name));
+      setBlockCategories(blockRows.map((row) => row.name));
     } catch (err) {
       setError(err.message || "Failed to load question bank.");
     } finally {
@@ -211,6 +213,8 @@ export default function QuestionLibrary() {
   }, [activeTab, loadMistakes]);
 
   const filterOptions = useMemo(() => extractFilterOptions(questions), [questions]);
+
+  const availableBlocks = useMemo(() => [...new Set([...blockCategories, ...filterOptions.blocks])].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [blockCategories, filterOptions.blocks]);
 
   const filteredQuestions = useMemo(() => {
     return filterQuestions(questions, {
@@ -511,15 +515,17 @@ export default function QuestionLibrary() {
   };
 
   const handleAddCategory = async (kind) => {
-    const value = window.prompt(kind === "exam_type" ? "Nama jenis ujian baru:" : "Nama subject baru:")?.trim();
+    const categoryName = kind === "exam_type" ? "Exam Type" : kind === "subject" ? "Subject" : "Blok";
+    const value = window.prompt(`Nama ${categoryName} baru:`)?.trim();
     if (!value) return;
     try {
       await repository.addCategory(kind, value);
       const rows = await repository.listCategories(kind);
       setCategoryRows(rows);
       if (kind === "exam_type") setExamCategories(rows.map((row) => row.name));
-      else setSubjectCategories(rows.map((row) => row.name));
-      setNotification(`${kind === "exam_type" ? "Exam type" : "Subject"} disimpan.`);
+      else if (kind === "subject") setSubjectCategories(rows.map((row) => row.name));
+      else setBlockCategories(rows.map((row) => row.name));
+      setNotification(`${categoryName} disimpan.`);
     } catch (categoryError) { setError(categoryError.message || "Kategori gagal disimpan."); }
   };
 
@@ -537,7 +543,8 @@ export default function QuestionLibrary() {
       await repository.updateCategory(row.id, name);
       setCategoryRows(await repository.listCategories(categoryManagerKind));
       if (row.kind === "exam_type") setExamCategories((prev) => [...new Set([...prev.filter((item) => item !== row.name), name])]);
-      else setSubjectCategories((prev) => [...new Set([...prev.filter((item) => item !== row.name), name])]);
+      else if (row.kind === "subject") setSubjectCategories((prev) => [...new Set([...prev.filter((item) => item !== row.name), name])]);
+      else setBlockCategories((prev) => [...new Set([...prev.filter((item) => item !== row.name), name])]);
     } catch (categoryError) { setError(categoryError.message || "Kategori gagal diubah."); }
   };
 
@@ -547,7 +554,8 @@ export default function QuestionLibrary() {
       await repository.removeCategory(row.id);
       setCategoryRows((prev) => prev.filter((item) => item.id !== row.id));
       if (row.kind === "exam_type") setExamCategories((prev) => prev.filter((item) => item !== row.name));
-      if (row.kind === "subject") setSubjectCategories((prev) => prev.filter((item) => item !== row.name));
+      else if (row.kind === "subject") setSubjectCategories((prev) => prev.filter((item) => item !== row.name));
+      else setBlockCategories((prev) => prev.filter((item) => item !== row.name));
     } catch (categoryError) { setError(categoryError.message || "Kategori gagal dihapus."); }
   };
 
@@ -758,7 +766,7 @@ export default function QuestionLibrary() {
                       style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}
                     >
                       <option value="">Semua Blok ({questions.length} soal)</option>
-                      {filterOptions.blocks.map((b) => (
+                      {availableBlocks.map((b) => (
                         <option key={b} value={b}>{b}</option>
                       ))}
                     </select>
@@ -1062,8 +1070,10 @@ export default function QuestionLibrary() {
                 <button type="button" onClick={() => { handleExportCsv(); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export CSV</button>
                 <button type="button" onClick={() => { handleAddCategory("exam_type"); setMoreMenuOpen(false); }}>Tambah Exam Type</button>
                 <button type="button" onClick={() => { handleAddCategory("subject"); setMoreMenuOpen(false); }}>Tambah Subject</button>
+                <button type="button" onClick={() => { handleAddCategory("block"); setMoreMenuOpen(false); }}>Tambah Blok</button>
                 <button type="button" onClick={() => { openCategoryManager("exam_type"); setMoreMenuOpen(false); }}>Kelola Exam Types</button>
                 <button type="button" onClick={() => { openCategoryManager("subject"); setMoreMenuOpen(false); }}>Kelola Subjects</button>
+                <button type="button" onClick={() => { openCategoryManager("block"); setMoreMenuOpen(false); }}>Kelola Blok</button>
               </div>
             </details>
           </div>
@@ -1071,7 +1081,7 @@ export default function QuestionLibrary() {
           <div id="question-filter-panel" className="hub-question-filter-panel" hidden={!filterPanelOpen}>
             <div className="hub-question-filter-grid">
               <label><span>EXAM TYPE</span><select aria-label="Filter exam type" value={examTypeFilter} onChange={(e) => setExamTypeFilter(e.target.value)}><option value="">Semua jenis ujian</option>{examCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-              <label><span>BLOCK</span><select aria-label="Filter block" value={blockFilter} onChange={(e) => setBlockFilter(e.target.value)}><option value="">Semua block</option>{filterOptions.blocks.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <label><span>BLOCK</span><select aria-label="Filter block" value={blockFilter} onChange={(e) => setBlockFilter(e.target.value)}><option value="">Semua block</option>{availableBlocks.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
               <label><span>SUBJECT</span><select aria-label="Filter subject" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}><option value="">Semua subject</option>{subjectCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
               <label><span>TOPIC</span><select aria-label="Filter topic" value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)}><option value="">Semua topic</option>{filterOptions.topics.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
               <label><span>FORMAT</span><select aria-label="Filter format" value={formatFilter} onChange={(e) => setFormatFilter(e.target.value)}><option value="">MCQ + Essay</option><option value="mcq">MCQ</option><option value="essay">Essay</option></select></label>
@@ -1575,15 +1585,15 @@ export default function QuestionLibrary() {
       )}
 
       {categoryManagerKind && <div className="hub-crud-modal-backdrop" onMouseDown={() => setCategoryManagerKind("")}>
-        <section className="hub-crud-form hub-crud-modal" role="dialog" aria-modal="true" aria-label={categoryManagerKind === "subject" ? "Kelola subjects" : "Kelola exam types"} onMouseDown={(event) => event.stopPropagation()} style={{ maxWidth: "32rem", width: "95%", maxHeight: "min(80dvh, 36rem)", overflowY: "auto" }}>
-          <div className="hub-crud-form-head"><span>{categoryManagerKind === "subject" ? "KELOLA SUBJECT" : "KELOLA EXAM TYPE"}</span><button type="button" aria-label="Tutup" onClick={() => setCategoryManagerKind("")}><X /></button></div>
+        <section className="hub-crud-form hub-crud-modal" role="dialog" aria-modal="true" aria-label={`Kelola ${categoryManagerKind === "subject" ? "subjects" : categoryManagerKind === "block" ? "blok" : "exam types"}`} onMouseDown={(event) => event.stopPropagation()} style={{ maxWidth: "32rem", width: "95%", maxHeight: "min(80dvh, 36rem)", overflowY: "auto" }}>
+          <div className="hub-crud-form-head"><span>{`KELOLA ${categoryManagerKind === "subject" ? "SUBJECT" : categoryManagerKind === "block" ? "BLOK" : "EXAM TYPE"}`}</span><button type="button" aria-label="Tutup" onClick={() => setCategoryManagerKind("")}><X /></button></div>
           <div style={{ display: "grid", gap: "0.5rem", padding: "1rem" }}>
             <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.8rem" }}>Ubah atau hapus kategori pribadi. Metadata pada soal yang sudah tersimpan tidak ikut dihapus.</p>
             {categoryRows.length === 0 && <p style={{ color: "var(--hub-muted)", fontSize: "0.8rem" }}>Belum ada kategori tambahan tersimpan.</p>}
             {categoryRows.map((row) => <div key={row.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.55rem 0", borderBottom: "1px solid var(--hub-line)" }}>
               <span>{row.name}</span><div style={{ display: "flex", gap: "0.4rem" }}><button type="button" onClick={() => renameCategory(row)} aria-label={"Ubah " + row.name}><Pencil size={14} /></button><button type="button" onClick={() => deleteCategory(row)} aria-label={"Hapus " + row.name}><Trash2 size={14} /></button></div>
             </div>)}
-            <button type="button" className="hub-primary-action" onClick={() => handleAddCategory(categoryManagerKind)}>+ TAMBAH KATEGORI</button>
+            <button type="button" className="hub-primary-action" onClick={() => handleAddCategory(categoryManagerKind)}>{`+ TAMBAH ${categoryManagerKind === "subject" ? "SUBJECT" : categoryManagerKind === "block" ? "BLOK" : "EXAM TYPE"}`}</button>
           </div>
         </section>
       </div>}
@@ -1628,13 +1638,12 @@ export default function QuestionLibrary() {
               {/* Block & topic */}
               <label>
                 <span>BLOK KEDOKTERAN (OPSIONAL)</span>
-                <input
-                  type="text"
-                  placeholder="Nama block (opsional)"
-                  value={form.block}
-                  onChange={(e) => setForm({ ...form, block: e.target.value })}
-                  style={{ fontSize: "16px" }}
-                />
+                <select value={form.block} onChange={(e) => setForm({ ...form, block: e.target.value })} style={{ fontSize: "16px" }}>
+                  <option value="">Tanpa blok</option>
+                  {form.block && !availableBlocks.includes(form.block) && <option value={form.block}>Tersimpan · {form.block}</option>}
+                  {availableBlocks.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+                {!availableBlocks.length && <small style={{ color: "var(--hub-muted)" }}>Belum ada pilihan. Tambahkan melalui menu Aksi lainnya.</small>}
               </label>
 
               <label>
