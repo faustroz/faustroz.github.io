@@ -24,7 +24,10 @@ test("Vault Drive uses owner-scoped folder IDs for nested navigation and files",
   assert.match(migration, /Document folder must belong to the same owner/);
   assert.match(migration, /Folder hierarchy cannot contain a cycle/);
   assert.match(panel, /select\("id,name,parent_id,created_at"\)/);
-  assert.match(panel, /folder_id: activeFolderId/);
+  assert.match(panel, /folder_id: destination\.folderId/);
+  assert.match(panel, /multiple aria-label="Upload multiple files"/);
+  assert.match(panel, /multiple webkitdirectory/);
+  assert.match(panel, /ensureFolderPath\(folderSegments\)/);
   assert.match(panel, /folder_id: folderId \|\| null/);
   assert.match(panel, /hub-vault-breadcrumb/);
   assert.match(panel, /hub-vault-browser--\$\{view\}/);

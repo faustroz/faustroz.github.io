@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Archive, ChevronRight, Download, File, FileImage, FileSpreadsheet, FileText, Folder, FolderOpen, FolderPlus, Grid2X2, Home, List, MoreHorizontal, Pencil, Search, Trash2, Upload, X } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
+import { prepareVaultUpload } from "@/lib/hub/vault-upload.mjs";
 
 const safeName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "-");
 const cleanName = (value) => value.trim().replace(/\s+/g, " ").slice(0, 80);
@@ -28,6 +29,7 @@ export default function VaultPanel() {
   const [view, setView] = useState("grid");
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [menuId, setMenuId] = useState(null);
   const [folderDialog, setFolderDialog] = useState(null);
   const [folderName, setFolderName] = useState("");
@@ -83,31 +85,73 @@ export default function VaultPanel() {
     if (activeFolderId === folder.id) setActiveFolderId(folder.parent_id || null);
     await load();
   };
-  const upload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 26214400) return setStatus("Maximum file size is 25 MB.");
-    setUploading(true); setStatus("");
+  const upload = async (event, fromFolder = false) => {
+    const input = event.currentTarget;
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    setUploading(true); setUploadProgress(`0/${files.length}`); setStatus("");
+    let uploadedCount = 0;
+    const failures = [];
     try {
       const supabase = requireSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sign in required.");
-      const storagePath = `${user.id}/${crypto.randomUUID()}-${safeName(file.name)}`;
-      const searchText = await extractSearchText(file);
-      const { error: storageError } = await supabase.storage.from("document-vault").upload(storagePath, file, { contentType: file.type, upsert: false });
-      if (storageError) throw storageError;
-      const currentFolder = activeFolderId ? folderById.get(activeFolderId) : null;
-      const payload = { storage_path: storagePath, file_name: file.name, mime_type: file.type || "application/octet-stream", byte_size: file.size, folder_id: activeFolderId, folder: currentFolder?.name || "" };
-      if (searchText) payload.search_text = searchText;
-      let { error } = await supabase.from("vault_documents").insert(payload);
-      // Keep uploads working during a staggered GitHub Pages / migration rollout.
-      if (error && searchText && /search_text/i.test(`${error.message || ""} ${error.details || ""}`)) {
-        delete payload.search_text;
-        ({ error } = await supabase.from("vault_documents").insert(payload));
+
+      const folderCache = new Map();
+      const ensureFolderPath = async (segments) => {
+        let parentId = activeFolderId;
+        let leafName = parentId ? folderById.get(parentId)?.name || "" : "";
+        for (const name of segments) {
+          const cacheKey = `${parentId || "root"}\u0000${name}`;
+          let folder = folderCache.get(cacheKey) || folders.find((item) => item.parent_id === parentId && item.name === name);
+          if (!folder) {
+            const { data, error } = await supabase.from("vault_folders").insert({ name, parent_id: parentId }).select("id,name,parent_id").single();
+            if (error) throw error;
+            folder = data;
+          }
+          folderCache.set(cacheKey, folder);
+          parentId = folder.id;
+          leafName = folder.name;
+        }
+        return { folderId: parentId, folderName: leafName };
+      };
+
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index];
+        let storagePath = "";
+        try {
+          const { folderSegments, fileName } = prepareVaultUpload(file, { fromFolder });
+          const destination = await ensureFolderPath(folderSegments);
+          storagePath = `${user.id}/${crypto.randomUUID()}-${safeName(fileName)}`;
+          const searchText = await extractSearchText(file);
+          const { error: storageError } = await supabase.storage.from("document-vault").upload(storagePath, file, { contentType: file.type, upsert: false });
+          if (storageError) throw storageError;
+          const payload = { storage_path: storagePath, file_name: fileName, mime_type: file.type || "application/octet-stream", byte_size: file.size, folder_id: destination.folderId, folder: destination.folderName };
+          if (searchText) payload.search_text = searchText;
+          let { error } = await supabase.from("vault_documents").insert(payload);
+          // Keep uploads working during a staggered GitHub Pages / migration rollout.
+          if (error && searchText && /search_text/i.test(`${error.message || ""} ${error.details || ""}`)) {
+            delete payload.search_text;
+            ({ error } = await supabase.from("vault_documents").insert(payload));
+          }
+          if (error) { await supabase.storage.from("document-vault").remove([storagePath]); storagePath = ""; throw error; }
+          uploadedCount += 1;
+        } catch (error) {
+          if (storagePath) await supabase.storage.from("document-vault").remove([storagePath]);
+          failures.push(`${file.name}: ${error.message || "upload gagal"}`);
+        }
+        setUploadProgress(`${index + 1}/${files.length}`);
       }
-      if (error) { await supabase.storage.from("document-vault").remove([storagePath]); throw error; }
+
       await load();
-    } catch (error) { setStatus(error.message); } finally { setUploading(false); event.target.value = ""; }
+      setStatus(failures.length
+        ? `${uploadedCount} file berhasil diunggah; ${failures.length} gagal. ${failures.slice(0, 2).join(" · ")}`
+        : `${uploadedCount} file berhasil diunggah.`);
+    } catch (error) {
+      setStatus(error.message || "Upload gagal.");
+    } finally {
+      setUploading(false); setUploadProgress(""); input.value = "";
+    }
   };
   const move = async (document, folderId) => {
     const destination = folderId ? folderById.get(folderId) : null;
@@ -128,7 +172,7 @@ export default function VaultPanel() {
   };
 
   return <section className="hub-vault-drive">
-    <header className="hub-vault-drive-head"><div><span>PRIVATE CLOUD DRIVE</span><h2>My Vault</h2><p>{docs.length} files · {formatSize(usedBytes)} used · private by default</p></div><div className="hub-vault-drive-actions"><button type="button" className="hub-vault-new" onClick={() => beginFolder()}><FolderPlus /> NEW FOLDER</button><label className="hub-vault-upload"><Upload /><span>{uploading ? "UPLOADING…" : "UPLOAD"}</span><input type="file" onChange={upload} disabled={uploading} /></label></div></header>
+    <header className="hub-vault-drive-head"><div><span>PRIVATE CLOUD DRIVE</span><h2>My Vault</h2><p>{docs.length} files · {formatSize(usedBytes)} used · private by default</p></div><div className="hub-vault-drive-actions"><button type="button" className="hub-vault-new" onClick={() => beginFolder()}><FolderPlus /> NEW FOLDER</button><label className="hub-vault-upload"><Upload /><span>{uploading ? `UPLOADING ${uploadProgress}` : "UPLOAD FILES"}</span><input type="file" multiple aria-label="Upload multiple files" onChange={(event) => upload(event, false)} disabled={uploading} /></label><label className="hub-vault-upload hub-vault-upload--folder"><FolderPlus /><span>{uploading ? `UPLOADING ${uploadProgress}` : "UPLOAD FOLDER"}</span><input type="file" multiple webkitdirectory="" aria-label="Upload folder and its contents" onChange={(event) => upload(event, true)} disabled={uploading} /></label></div></header>
     <div className="hub-vault-toolbar"><nav aria-label="Vault path" className="hub-vault-breadcrumb"><button type="button" onClick={() => openFolder(null)} aria-label="Vault root"><Home /></button>{path.map((folder) => <span key={folder.id}><ChevronRight /><button type="button" onClick={() => openFolder(folder.id)}>{folder.name}</button></span>)}</nav><label className="hub-vault-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search files and folders" /><button type="button" aria-label="Clear search" onClick={() => setQuery("")} hidden={!query}><X /></button></label><div className="hub-vault-view-switch" aria-label="View mode"><button type="button" className={view === "grid" ? "is-active" : ""} onClick={() => setView("grid")} aria-label="Grid view"><Grid2X2 /></button><button type="button" className={view === "list" ? "is-active" : ""} onClick={() => setView("list")} aria-label="List view"><List /></button></div></div>
     {status && <p className="hub-data-error">{status}</p>}
     <div className={`hub-vault-browser hub-vault-browser--${view}`}>
