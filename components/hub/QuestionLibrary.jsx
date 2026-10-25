@@ -38,6 +38,7 @@ import {
   writePracticeRun,
 } from "@/lib/hub/academic-practice.mjs";
 import {
+  carryQuestionMetadata,
   createQuestionRepository,
   extractFilterOptions,
   filterQuestions,
@@ -401,7 +402,7 @@ export default function QuestionLibrary() {
     }
     setQuestionDrafts((drafts) => [...drafts, { ...form, options: { ...form.options } }]);
     if (questionFormRef.current?.elements.namedItem("question_image")) questionFormRef.current.elements.namedItem("question_image").value = "";
-    setForm(DEFAULT_FORM);
+    setForm({ ...DEFAULT_FORM, ...carryQuestionMetadata(form) });
     setImagePreview("");
     setFormError("");
   };
@@ -1696,9 +1697,9 @@ export default function QuestionLibrary() {
               </label>
               {/* Block & topic */}
               <label>
-                <span>BLOK KEDOKTERAN (OPSIONAL)</span>
-                <select value={form.block} onChange={(e) => setForm({ ...form, block: e.target.value })} style={{ fontSize: "16px" }}>
-                  <option value="">Tanpa blok</option>
+                <span>BLOK KEDOKTERAN *</span>
+                <select required value={form.block} onChange={(e) => setForm({ ...form, block: e.target.value })} style={{ fontSize: "16px" }}>
+                  <option value="">Pilih blok</option>
                   {form.block && !availableBlocks.includes(form.block) && <option value={form.block}>Tersimpan · {form.block}</option>}
                   {availableBlocks.map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>

@@ -14,7 +14,7 @@ test("question bank supports owner-managed reusable block categories and legacy 
   assert.match(library, /repository\.listCategories\("block"\)/);
   assert.match(library, /handleAddCategory\("block"\)/);
   assert.match(library, /openCategoryManager\("block"\)/);
-  assert.match(library, /<select value=\{form\.block\}/);
+  assert.match(library, /<select required value=\{form\.block\}/);
   assert.match(library, /Tersimpan · \{form\.block\}/);
   assert.match(library, /filterOptions\.blocks/);
 });

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  carryQuestionMetadata,
   createPracticeSession,
   createQuestionRepository,
   extractFilterOptions,
@@ -124,17 +125,30 @@ test("question validation supports essay and does not invent exam or subject cat
   assert.equal(essay.exam_type, "OSPE");
   assert.throws(() => validateQuestionPayload({ question_type: "essay", question_text: "Essay tanpa rujukan" }), /Reference answer is required/);
   assert.throws(() => validateQuestionPayload({ question_type: "mcq", question_text: "MCQ tanpa opsi" }), /Option A cannot be empty/);
-  assert.equal(validateQuestionPayload({ question_text: "Legacy question", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" }).question_type, "mcq");
-  const unclassified = validateQuestionPayload({ question_text: "No category yet", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" });
+  assert.throws(() => validateQuestionPayload({ question_text: "No block", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" }), /Block is required/);
+  assert.equal(validateQuestionPayload({ question_text: "Legacy question", block: "Umum", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" }).question_type, "mcq");
+  const unclassified = validateQuestionPayload({ question_text: "No category yet", block: "Umum", options: { A: "a", B: "b", C: "c", D: "d", E: "e" }, correct_answer: "A" });
   assert.equal(unclassified.exam_type, null);
   assert.equal(unclassified.subject, null);
 });
 
 test("question image identity is a storage path, not an expiring URL", () => {
   const path = "owner-uuid/asset-uuid.webp";
-  const question = validateQuestionPayload({ question_text: "Identify the specimen", question_type: "essay", reference_answer: "Reference", image_path: path });
+  const question = validateQuestionPayload({ question_text: "Identify the specimen", question_type: "essay", block: "Histologi", reference_answer: "Reference", image_path: path });
   assert.equal(question.image_path, path);
   assert.equal(Object.hasOwn(question, "image_url"), false);
+});
+
+test("next question keeps classification selections but resets question-specific content", () => {
+  assert.deepEqual(carryQuestionMetadata({ exam_type: "OSPE", block: "Hepatobilier", subject: "PK", topic: "Bilirubin", subtopic: "Konjugasi", question_type: "essay", difficulty: "hard", question_text: "Do not carry", tags: "not carried" }), {
+    exam_type: "OSPE",
+    block: "Hepatobilier",
+    subject: "PK",
+    topic: "Bilirubin",
+    subtopic: "Konjugasi",
+    question_type: "essay",
+    difficulty: "hard",
+  });
 });
 
 test("filters use exam type, subject, format, tags and search metadata", () => {
@@ -295,10 +309,10 @@ test("modern CSV preview validates MCQ and Essay rows without accepting invalid 
 
 test("CSV category validation accepts user-managed categories and never invents defaults", () => {
   const csv = [
-    "exam_type,subject,question_type,question_text,option_a,option_b,option_c,option_d,option_e,correct_answer,reference_answer",
-    "Ujian Buatan,Subjek Buatan,mcq,Pertanyaan,A,B,C,D,E,A,",
-    "Default Asing,Subjek Buatan,mcq,Pertanyaan lain,A,B,C,D,E,A,",
-    ",,mcq,Tanpa metadata,A,B,C,D,E,A,",
+    "exam_type,block,subject,question_type,question_text,option_a,option_b,option_c,option_d,option_e,correct_answer,reference_answer",
+    "Ujian Buatan,Umum,Subjek Buatan,mcq,Pertanyaan,A,B,C,D,E,A,",
+    "Default Asing,Umum,Subjek Buatan,mcq,Pertanyaan lain,A,B,C,D,E,A,",
+    ",Umum,,mcq,Tanpa metadata,A,B,C,D,E,A,",
   ].join("\n");
   const result = validateCsvRows(csv, { examTypes: ["Ujian Buatan"], subjects: ["Subjek Buatan"] });
   assert.equal(result.valid.length, 2);
@@ -408,6 +422,7 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   // Create question
   const created = await repo.create({
     question_text: "Test question",
+    block: "Blok 1",
     options: { A: "1", B: "2", C: "3", D: "4", E: "5" },
     correct_answer: "B",
   });

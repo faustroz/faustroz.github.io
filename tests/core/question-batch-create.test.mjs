@@ -11,6 +11,8 @@ test("Question Bank queues validated drafts and saves them together, including a
   assert.match(source, /const batch = \[\.\.\.questionDrafts, \{ \.\.\.form, options: \{ \.\.\.form\.options \} \}\]/);
   assert.match(source, /for \(const item of batch\)/);
   assert.match(source, /delete payload\.image_file/);
+  assert.match(source, /\.\.\.carryQuestionMetadata\(form\)/);
+  assert.match(source, /<select required value=\{form\.block\}/);
   assert.match(source, /SIMPAN SEMUA \(\$\{questionDrafts\.length \+ 1\}\)/);
   assert.match(source, /TAMBAH SOAL/);
 });
