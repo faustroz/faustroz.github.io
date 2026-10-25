@@ -11,6 +11,7 @@ import {
   shuffleQuestionOptions,
   validateCsvRows,
   validateQuestionPayload,
+  generateCsvTemplate,
 } from "../../lib/hub/question-bank.mjs";
 
 test("Phase 31 schema defines owner-scoped tables, RLS, and 30-day trash retention for Question Bank", async () => {
@@ -288,6 +289,18 @@ test("parseCsv and validateCsvRows correctly handle RFC-4180 CSV with quotes and
   assert.match(invalidResult.errors[1].reason, /Invalid answer 'Z'/);
   assert.equal(invalidResult.errors[2].rowNumber, 4);
   assert.match(invalidResult.errors[2].reason, /Question text is empty/);
+});
+
+test("CSV templates provide separate MCQ and Essay starter rows with required metadata columns", () => {
+  const header = "\"exam_type\",\"block\",\"subject\",\"topic\",\"subtopic\",\"question_type\",\"question_text\",\"option_a\",\"option_b\",\"option_c\",\"option_d\",\"option_e\",\"correct_answer\",\"reference_answer\",\"explanation\",\"tags\"";
+  const mcqRows = generateCsvTemplate("mcq").trimEnd().split("\n");
+  const essayRows = generateCsvTemplate("essay").trimEnd().split("\n");
+
+  assert.equal(mcqRows[0], header);
+  assert.equal(essayRows[0], header);
+  assert.equal(parseCsv(mcqRows[1])[0][5], "mcq");
+  assert.equal(parseCsv(essayRows[1])[0][5], "essay");
+  assert.equal(generateCsvTemplate().trimEnd(), header);
 });
 
 test("modern CSV preview validates MCQ and Essay rows without accepting invalid rows", () => {

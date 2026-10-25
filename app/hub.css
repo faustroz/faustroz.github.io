@@ -3486,6 +3486,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-import-header { min-width:0; display:flex; align-items:flex-start; justify-content:space-between; gap:.85rem; flex-wrap:wrap; }
 .hub-import-intro { flex:1 1 15rem; min-width:0; overflow-wrap:anywhere; }
 .hub-import-intro code { overflow-wrap:anywhere; white-space:normal; }
+.hub-csv-template-actions { min-width:0; max-width:100%; display:flex; flex:0 1 auto; flex-wrap:wrap; gap:.5rem; }
 .hub-csv-template-button { min-height:2.75rem; max-width:100%; display:inline-flex; align-items:center; justify-content:center; gap:.45rem; padding:.55rem .75rem; border:1px solid var(--hub-line); border-radius:5px; color:var(--hub-text); background:var(--hub-panel-raised); font-size:.76rem; cursor:pointer; }
 .hub-csv-upload-area { min-width:0; width:100%; margin-top:1rem; padding:1rem; display:flex; align-items:center; gap:.75rem; border:1px dashed var(--hub-line-bright); border-radius:7px; color:var(--hub-muted); background:var(--hub-panel-raised); }
 .hub-csv-upload-area > svg { flex:0 0 auto; }

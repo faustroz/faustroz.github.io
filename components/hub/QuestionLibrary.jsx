@@ -628,16 +628,17 @@ export default function QuestionLibrary() {
     }
   };
 
-  const handleDownloadTemplate = () => {
-    const csvContent = generateCsvTemplate();
+  const handleDownloadTemplate = (questionType) => {
+    const csvContent = generateCsvTemplate(questionType);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "medical_questions_template.csv");
+    link.setAttribute("download", `medical_questions_${questionType}_template.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   const handleExportCsv = () => {
@@ -1447,13 +1448,14 @@ export default function QuestionLibrary() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleDownloadTemplate}
-                className="hub-csv-template-button"
-              >
-                <Download size={14} /> Unduh Template CSV
-              </button>
+              <div className="hub-csv-template-actions" aria-label="Unduh template CSV">
+                <button type="button" onClick={() => handleDownloadTemplate("mcq")} className="hub-csv-template-button">
+                  <Download size={14} /> Template MCQ
+                </button>
+                <button type="button" onClick={() => handleDownloadTemplate("essay")} className="hub-csv-template-button">
+                  <Download size={14} /> Template Essay
+                </button>
+              </div>
             </div>
 
             <div className="hub-csv-upload-area">
