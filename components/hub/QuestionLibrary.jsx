@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- private signed question images and local preview blobs are not static assets. */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -60,6 +60,7 @@ const DEFAULT_FORM = Object.freeze({
   explanation: "",
   reference_answer: "",
   image_path: "",
+  image_file: null,
   tags: "",
   is_bookmarked: false,
 });
@@ -101,6 +102,8 @@ export default function QuestionLibrary() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(DEFAULT_FORM);
+  const [questionDrafts, setQuestionDrafts] = useState([]);
+  const questionFormRef = useRef(null);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -342,6 +345,7 @@ export default function QuestionLibrary() {
   const openCreateForm = () => {
     setEditingId(null);
     setForm(DEFAULT_FORM);
+    setQuestionDrafts([]);
     setFormError("");
     setImagePreview("");
     setFormOpen(true);
@@ -369,9 +373,11 @@ export default function QuestionLibrary() {
       explanation: question.explanation || "",
       reference_answer: question.reference_answer || "",
       image_path: question.image_path || "",
+      image_file: null,
       tags: (question.tags || []).join(", "),
       is_bookmarked: Boolean(question.is_bookmarked),
     });
+    setQuestionDrafts([]);
     setImagePreview(question.image_url || "");
     setFormError("");
     setFormOpen(true);
@@ -382,6 +388,21 @@ export default function QuestionLibrary() {
     setFormOpen(false);
     setEditingId(null);
     setForm(DEFAULT_FORM);
+    setQuestionDrafts([]);
+    setImagePreview("");
+    setFormError("");
+  };
+
+  const queueCurrentQuestion = () => {
+    if (!questionFormRef.current?.reportValidity()) return;
+    if (!form.question_text.trim()) {
+      setFormError("Teks pertanyaan wajib diisi.");
+      return;
+    }
+    setQuestionDrafts((drafts) => [...drafts, { ...form, options: { ...form.options } }]);
+    if (questionFormRef.current?.elements.namedItem("question_image")) questionFormRef.current.elements.namedItem("question_image").value = "";
+    setForm(DEFAULT_FORM);
+    setImagePreview("");
     setFormError("");
   };
 
@@ -393,38 +414,67 @@ export default function QuestionLibrary() {
     }
     setSubmitting(true);
     setFormError("");
-    let uploadedImagePath = null;
-
     try {
       const client = requireSupabase();
-      let imagePath = form.image_path || null;
-      const imageFile = event.currentTarget.elements.namedItem("question_image")?.files?.[0];
-      if (imageFile) {
-        if (!/^image\/(jpeg|png|webp|gif)$/.test(imageFile.type) || imageFile.size > 5 * 1024 * 1024) throw new Error("Gambar harus JPG, PNG, WebP, atau GIF dengan ukuran maksimal 5 MB.");
-        const { data: authData, error: authError } = await client.auth.getUser();
-        if (authError || !authData.user) throw new Error("Sesi login tidak valid. Silakan masuk kembali.");
-        const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[imageFile.type];
-        const uploadedPath = authData.user.id + "/" + crypto.randomUUID() + "." + extension;
-        uploadedImagePath = uploadedPath;
-        const { error: uploadError } = await client.storage.from("academic-question-images").upload(uploadedPath, imageFile, { contentType: imageFile.type, upsert: false });
-        if (uploadError) throw new Error(`Upload gambar gagal: ${uploadError.message}`);
-        imagePath = uploadedPath;
-      }
-      const payload = { ...form, image_path: imagePath };
       if (editingId) {
+        const imageFile = form.image_file;
+        let uploadedImagePath = null;
+        let imagePath = form.image_path || null;
+        if (imageFile) {
+          const { data: authData, error: authError } = await client.auth.getUser();
+          if (authError || !authData.user) throw new Error("Sesi login tidak valid. Silakan masuk kembali.");
+          const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[imageFile.type];
+          uploadedImagePath = `${authData.user.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await client.storage.from("academic-question-images").upload(uploadedImagePath, imageFile, { contentType: imageFile.type, upsert: false });
+          if (uploadError) throw new Error(`Upload gambar gagal: ${uploadError.message}`);
+          imagePath = uploadedImagePath;
+        }
+        const payload = { ...form, image_path: imagePath };
+        delete payload.image_file;
         const previousImagePath = questions.find((item) => item.id === editingId)?.image_path;
-        const updated = await repository.update(editingId, payload);
+        let updated;
+        try {
+          updated = await repository.update(editingId, payload);
+        } catch (error) {
+          if (uploadedImagePath) await client.storage.from("academic-question-images").remove([uploadedImagePath]);
+          throw error;
+        }
         if (previousImagePath && previousImagePath !== imagePath) await client.storage.from("academic-question-images").remove([previousImagePath]);
         const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
         setQuestions((prev) => prev.map((q) => (q.id === editingId ? { ...updated, image_url: signed?.data?.signedUrl || "" } : q)));
       } else {
-        const created = await repository.create(payload);
-        const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
-        setQuestions((prev) => [{ ...created, image_url: signed?.data?.signedUrl || "" }, ...prev]);
+        const batch = [...questionDrafts, { ...form, options: { ...form.options } }];
+        let savedDraftCount = 0;
+        for (const item of batch) {
+          let uploadedImagePath = null;
+          try {
+            let imagePath = item.image_path || null;
+            const imageFile = item.image_file;
+            if (imageFile) {
+              if (!/^image\/(jpeg|png|webp|gif)$/.test(imageFile.type) || imageFile.size > 5 * 1024 * 1024) throw new Error("Gambar harus JPG, PNG, WebP, atau GIF dengan ukuran maksimal 5 MB.");
+              const { data: authData, error: authError } = await client.auth.getUser();
+              if (authError || !authData.user) throw new Error("Sesi login tidak valid. Silakan masuk kembali.");
+              const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[imageFile.type];
+              uploadedImagePath = `${authData.user.id}/${crypto.randomUUID()}.${extension}`;
+              const { error: uploadError } = await client.storage.from("academic-question-images").upload(uploadedImagePath, imageFile, { contentType: imageFile.type, upsert: false });
+              if (uploadError) throw new Error(`Upload gambar gagal: ${uploadError.message}`);
+              imagePath = uploadedImagePath;
+            }
+            const payload = { ...item, image_path: imagePath };
+            delete payload.image_file;
+            const created = await repository.create(payload);
+            const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
+            setQuestions((prev) => [{ ...created, image_url: signed?.data?.signedUrl || "" }, ...prev]);
+            savedDraftCount += 1;
+          } catch (error) {
+            if (uploadedImagePath) await client.storage.from("academic-question-images").remove([uploadedImagePath]);
+            setQuestionDrafts((drafts) => drafts.slice(savedDraftCount));
+            throw new Error(`Soal ${savedDraftCount + 1} gagal disimpan: ${error.message || "Kesalahan tidak diketahui"} Soal yang sudah berhasil tetap tersimpan; coba simpan lagi untuk melanjutkan.`);
+          }
+        }
       }
       closeForm();
     } catch (err) {
-      if (uploadedImagePath) await requireSupabase().storage.from("academic-question-images").remove([uploadedImagePath]);
       setFormError(err.message || "Failed to save question.");
     } finally {
       setSubmitting(false);
@@ -1604,7 +1654,8 @@ export default function QuestionLibrary() {
       {formOpen && (
         <div className="hub-crud-modal-backdrop" onMouseDown={closeForm}>
           <form
-            className="hub-crud-form hub-crud-modal"
+            ref={questionFormRef}
+            className={`hub-crud-form hub-crud-modal hub-question-form${editingId ? "" : " hub-question-form--create"}`}
             onSubmit={handleSave}
             role="dialog"
             aria-modal="true"
@@ -1624,6 +1675,14 @@ export default function QuestionLibrary() {
                 {formError}
               </p>
             )}
+
+            {!editingId && questionDrafts.length > 0 && <section className="hub-question-draft-queue" aria-label="Soal yang siap disimpan">
+              <div><strong>{questionDrafts.length} soal siap disimpan</strong><span>Soal berikutnya masih bisa ditambahkan sebelum disimpan.</span></div>
+              <ol>{questionDrafts.map((draft, index) => <li key={`draft-${index}`}>
+                <span><b>{String(index + 1).padStart(2, "0")}</b><span><strong>{draft.question_text.trim().slice(0, 84) || "Soal tanpa judul"}</strong><small>{draft.exam_type || "Tanpa exam type"} · {(draft.question_type || "mcq").toUpperCase()}</small></span></span>
+                <button type="button" aria-label={`Hapus soal ke-${index + 1} dari antrean`} onClick={() => setQuestionDrafts((drafts) => drafts.filter((_, draftIndex) => draftIndex !== index))}><X size={14} /></button>
+              </li>)}</ol>
+            </section>}
 
             <div className="hub-form-grid" style={{ padding: "1rem" }}>
               <label>
@@ -1688,13 +1747,14 @@ export default function QuestionLibrary() {
                   if (!file) return;
                   if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type) || file.size > 5 * 1024 * 1024) { setFormError("Gambar harus JPG, PNG, WebP, atau GIF dengan ukuran maksimal 5 MB."); e.target.value = ""; return; }
                   setFormError("");
+                  setForm({ ...form, image_file: file });
                   setImagePreview(URL.createObjectURL(file));
                 }} style={{ fontSize: "16px" }} />
                 {imagePreview && <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
                   <img src={imagePreview} alt="Preview gambar soal" style={{ maxWidth: "100%", maxHeight: "13rem", objectFit: "contain", borderRadius: "6px" }} />
                   <button type="button" onClick={async (e) => {
                     e.currentTarget.form.elements.namedItem("question_image").value = "";
-                    setForm({ ...form, image_path: "" }); setImagePreview("");
+                    setForm({ ...form, image_path: "", image_file: null }); setImagePreview("");
                   }} style={{ minHeight: "42px" }}>HAPUS GAMBAR</button>
                 </div>}
               </label>
@@ -1809,8 +1869,11 @@ export default function QuestionLibrary() {
               <button type="button" onClick={closeForm} disabled={submitting} style={{ minHeight: "44px", padding: "0.5rem 1rem" }}>
                 BATAL
               </button>
+              {!editingId && <button type="button" onClick={queueCurrentQuestion} disabled={submitting} className="hub-question-tool-button" style={{ minHeight: "44px", padding: "0.5rem 1rem" }}>
+                <Plus size={15} aria-hidden="true" /> TAMBAH SOAL
+              </button>}
               <button type="submit" disabled={submitting} className="hub-primary-action" style={{ minHeight: "44px", padding: "0.5rem 1.4rem" }}>
-                {submitting ? "MENYIMPAN…" : editingId ? "UPDATE SOAL" : "SIMPAN SOAL"}
+                {submitting ? "MENYIMPAN…" : editingId ? "UPDATE SOAL" : questionDrafts.length ? `SIMPAN SEMUA (${questionDrafts.length + 1})` : "SIMPAN SOAL"}
               </button>
             </div>
           </form>
