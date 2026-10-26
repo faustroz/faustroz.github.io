@@ -24,4 +24,6 @@ test("practice page centers within the viewport and preserves question line brea
   assert.match(css, /\.hub-shell--practice\s*\{\s*padding-left:0;/);
   assert.match(css, /\.academic-practice__content\s*\{\s*width:min\(100%,54rem\)/);
   assert.match(css, /\.academic-practice__question\s*\{[^}]*white-space:pre-wrap/s);
+  assert.match(css, /\.academic-practice__actions\s*\{[^}]*gap:1rem/s);
+  assert.match(css, /\.academic-practice__text-button\s*\{[^}]*white-space:nowrap/s);
 });
