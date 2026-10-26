@@ -940,7 +940,7 @@ export default function QuestionLibrary() {
           </section>
           {!practiceActive ? (
             /* Practice Setup Screen */
-            <div style={{ maxWidth: "34rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
+            <div style={{ maxWidth: "62rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
               <div style={{ border: "1px solid var(--hub-line)", padding: "1.25rem", borderRadius: "8px", background: "var(--hub-panel)" }}>
                 <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                   SETUP PRACTICE SESSION
