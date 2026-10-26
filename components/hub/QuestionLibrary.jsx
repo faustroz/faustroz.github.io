@@ -906,14 +906,14 @@ export default function QuestionLibrary() {
             </div>
             {performanceError && <p className="hub-data-error" role="alert">{performanceError}</p>}
             {loadingPerformance && !performanceData ? <p className="hub-data-state">Memuat riwayat latihan…</p> : performanceData && <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 8rem), 1fr))", gap: "0.6rem", marginTop: "0.75rem" }}>
+              <div className="hub-learning-stat-grid">
                 {[
                   ["MCQ DIKERJAKAN", performanceData.totals.mcqGraded],
                   ["BENAR / SALAH", `${performanceData.totals.correct} / ${performanceData.totals.wrong}`],
                   ["AKURASI MCQ", performanceData.totals.accuracy === null ? "—" : `${performanceData.totals.accuracy}%`],
                   ["SESI TERCATAT", performanceData.sessions.length],
                   ["PERUBAHAN SESI", performanceData.accuracyChange === null ? "Belum cukup data" : `${performanceData.accuracyChange > 0 ? "+" : ""}${performanceData.accuracyChange} poin`],
-                ].map(([label, value]) => <div key={label} style={{ minWidth: 0, padding: "0.55rem 0.65rem", border: "1px solid var(--hub-line)", borderRadius: "6px" }}><span style={{ display: "block", font: "0.58rem var(--font-geist-mono), monospace", color: "var(--hub-muted)" }}>{label}</span><strong style={{ display: "block", marginTop: "0.3rem", color: "var(--hub-text)", fontSize: "0.95rem", overflowWrap: "anywhere" }}>{value}</strong></div>)}
+                ].map(([label, value]) => <div className="hub-learning-stat" key={label}><span>{label}</span><strong>{value}</strong></div>)}
               </div>
               {performanceData.weakAreas.length > 0 && <p style={{ margin: "0.7rem 0 0", fontSize: "0.78rem", color: "var(--hub-muted)" }}><strong style={{ color: "var(--hub-text)" }}>Area untuk ditinjau:</strong> {performanceData.weakAreas.map((area) => `${area.category} ${area.name} (${area.accuracy}%, ${area.graded} soal)`).join(" · ")}</p>}
               {performanceData.totals.mcqGraded === 0 && <p style={{ margin: "0.7rem 0 0", fontSize: "0.78rem", color: "var(--hub-muted)" }}>Belum ada attempt MCQ yang dapat dihitung. Mulai latihan untuk membangun ringkasan berbasis data.</p>}
