@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Check, CircleAlert, RotateCcw } from "lucide-rea
 import { requireSupabase } from "@/lib/supabase/client";
 import { createPracticeRun, readPracticeRun, writePracticeRun } from "@/lib/hub/academic-practice.mjs";
 import { createQuestionRepository, VALID_OPTIONS } from "@/lib/hub/question-bank.mjs";
+import { buildSessionSnapshot } from "@/lib/hub/academic-performance.mjs";
 
 const percent = (part, total) => total ? Math.round((part / total) * 100) : 0;
 const isEssay = (question) => question?.question_type === "essay";
@@ -24,6 +25,7 @@ export default function AcademicPracticePage() {
   const [essayAttemptId, setEssayAttemptId] = useState("");
   const submitLock = useRef(false);
   const questionStartedAt = useRef(Date.now());
+  const finishLock = useRef(false);
 
   useEffect(() => { setRun(readPracticeRun(window.sessionStorage)); setReady(true); }, []);
   useEffect(() => { if (ready && run) writePracticeRun(window.sessionStorage, run); }, [ready, run]);
@@ -55,8 +57,9 @@ export default function AcademicPracticePage() {
     if (essay ? !run.essayAnswer.trim() : !run.selectedAnswer) return;
     submitLock.current = true;
     const correct = !essay && run.selectedAnswer === question.shuffledCorrectAnswer;
+    const timeSpentSeconds = Math.max(0, Math.round((Date.now() - questionStartedAt.current) / 1000));
     const nextResponses = [...run.responses];
-    nextResponses[run.index] = { ...nextResponses[run.index], selectedAnswer: run.selectedAnswer, essayAnswer: run.essayAnswer, submitted: true, isCorrect: essay ? null : correct, selfAssessed: essay ? (essayAssessment === "" ? null : essayAssessment === "yes") : null };
+    nextResponses[run.index] = { ...nextResponses[run.index], selectedAnswer: run.selectedAnswer, essayAnswer: run.essayAnswer, submitted: true, isCorrect: essay ? null : correct, selfAssessed: essay ? (essayAssessment === "" ? null : essayAssessment === "yes") : null, timeSpentSeconds };
     const nextRun = {
       ...run, submitted: true, lastAnswerCorrect: essay ? null : correct, responses: nextResponses,
       stats: { ...run.stats, correct: run.stats.correct + (correct ? 1 : 0), wrong: run.stats.wrong + (!essay && !correct ? 1 : 0), essaysToReview: run.stats.essaysToReview + (essay ? 1 : 0), incorrectQuestions: correct || essay ? run.stats.incorrectQuestions : [...run.stats.incorrectQuestions, question] },
@@ -65,13 +68,13 @@ export default function AcademicPracticePage() {
     try {
       const repository = createQuestionRepository(requireSupabase());
       if (essay) {
-        const attempt = await repository.recordEssayAttempt({ question_id: question.id, response_text: run.essayAnswer, reference_answer: question.reference_answer, time_spent_seconds: Math.max(0, Math.round((Date.now() - questionStartedAt.current) / 1000)) });
+        const attempt = await repository.recordEssayAttempt({ question_id: question.id, exam_session_id: run.sessionId || null, response_text: run.essayAnswer, reference_answer: question.reference_answer, time_spent_seconds: timeSpentSeconds });
         setEssayAttemptId(attempt.id);
         nextResponses[run.index] = { ...nextResponses[run.index], attemptId: attempt.id, reviewRating: attempt.review_rating || null };
         setRun({ ...nextRun, responses: nextResponses });
       }
       else {
-        const attempt = await repository.recordAttempt({ question_id: question.id, selected_answer: run.selectedAnswer, correct_answer: question.shuffledCorrectAnswer, correct_answer_text: question.shuffledOptions?.[question.shuffledCorrectAnswer], is_correct: correct, time_spent_seconds: Math.max(0, Math.round((Date.now() - questionStartedAt.current) / 1000)) });
+        const attempt = await repository.recordAttempt({ question_id: question.id, exam_session_id: run.sessionId || null, selected_answer: run.selectedAnswer, correct_answer: question.shuffledCorrectAnswer, correct_answer_text: question.shuffledOptions?.[question.shuffledCorrectAnswer], is_correct: correct, time_spent_seconds: timeSpentSeconds });
         nextResponses[run.index] = { ...nextResponses[run.index], attemptId: attempt.id, reviewRating: attempt.review_rating || null };
         setRun({ ...nextRun, responses: nextResponses });
       }
@@ -81,6 +84,29 @@ export default function AcademicPracticePage() {
       setAttemptMessage("Jawaban tampil, tetapi attempt belum tersimpan.");
     } finally { setSavingAttempt(false); }
   }, [essay, essayAssessment, question, run]);
+
+  const persistCompletion = useCallback(async (finishedRun) => {
+    if (!finishedRun?.sessionId || finishLock.current) return finishedRun;
+    finishLock.current = true;
+    const graded = finishedRun.stats.correct + finishedRun.stats.wrong;
+    try {
+      await createQuestionRepository(requireSupabase()).completeSession(finishedRun.sessionId, {
+        score: finishedRun.stats.correct,
+        accuracy_percent: graded ? percent(finishedRun.stats.correct, graded) : null,
+        time_taken_seconds: Math.max(0, Math.round((Date.now() - new Date(finishedRun.startedAt || Date.now()).getTime()) / 1000)),
+        answers: buildSessionSnapshot(finishedRun),
+      });
+      return { ...finishedRun, historySaved: true, historyError: "" };
+    } catch (error) {
+      return { ...finishedRun, historySaved: false, historyError: error?.message || "Riwayat sesi belum tersimpan." };
+    } finally { finishLock.current = false; }
+  }, []);
+
+  const finishRun = useCallback(async (unfinishedRun) => {
+    const completed = await persistCompletion({ ...unfinishedRun, finished: true });
+    setRun(completed);
+    if (completed.historyError) setAttemptMessage("Hasil tersedia, tetapi riwayat sesi belum tersimpan.");
+  }, [persistCompletion]);
 
   const saveReviewRating = useCallback(async (rating) => {
     if (!response?.attemptId || response.reviewRating || savingRating) return;
@@ -103,7 +129,7 @@ export default function AcademicPracticePage() {
     if (!run?.submitted) return;
     submitLock.current = false; setAttemptMessage(""); setEssayAssessment("");
     setEssayAttemptId("");
-    if (run.index + 1 >= run.questions.length) { setRun({ ...run, finished: true }); return; }
+    if (run.index + 1 >= run.questions.length) { void finishRun(run); return; }
     const nextIndex = run.index + 1;
     const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
     setRun({ ...run, index: nextIndex, selectedAnswer: nextResponse.selectedAnswer || "", essayAnswer: nextResponse.essayAnswer || "", submitted: nextResponse.submitted || false, lastAnswerCorrect: nextResponse.isCorrect });
@@ -114,16 +140,26 @@ export default function AcademicPracticePage() {
     submitLock.current = false;
     setAttemptMessage("");
     setEssayAssessment("");
-    if (run.index + 1 >= run.questions.length) { setRun({ ...run, finished: true }); return; }
+    if (run.index + 1 >= run.questions.length) { void finishRun(run); return; }
     const nextIndex = run.index + 1;
     const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
     setRun({ ...run, index: nextIndex, selectedAnswer: nextResponse.selectedAnswer || "", essayAnswer: nextResponse.essayAnswer || "", submitted: nextResponse.submitted || false, lastAnswerCorrect: nextResponse.isCorrect });
   };
 
-  const startNewRun = (questions) => {
-    const nextRun = createPracticeRun(questions, { examType: run?.examType, block: run?.block, subject: run?.subject, topic: run?.topic, questionType: run?.questionType });
+  const startNewRun = async (questions) => {
+    const startedAt = new Date().toISOString();
+    const nextRun = createPracticeRun(questions, { examType: run?.examType, block: run?.block, subject: run?.subject, topic: run?.topic, questionType: run?.questionType, reviewKind: run?.reviewKind, startedAt });
     if (!nextRun) return;
-    submitLock.current = false; setAttemptMessage(""); setRun(nextRun);
+    try {
+      const saved = await createQuestionRepository(requireSupabase()).createSession({
+        title: nextRun.reviewKind === "mistakes" ? "Review Mistakes" : nextRun.reviewKind === "due" ? "Spaced Review" : "Practice Session",
+        session_kind: nextRun.reviewKind || "practice", total_questions: questions.length, duration_minutes: null,
+        filters: { examType: nextRun.examType, block: nextRun.block, subject: nextRun.subject, topic: nextRun.topic, questionType: nextRun.questionType },
+        question_ids: questions.map((item) => item.id), answers: {}, status: "in_progress", started_at: startedAt,
+      });
+      nextRun.sessionId = saved.id;
+      submitLock.current = false; finishLock.current = false; setAttemptMessage(""); setRun(nextRun);
+    } catch (error) { setAttemptMessage(error?.message || "Sesi baru gagal dicatat."); }
   };
 
   const updateAnswer = (key, value) => {
@@ -151,6 +187,8 @@ export default function AcademicPracticePage() {
         <h1>{answeredMcq ? percent(run.stats.correct, answeredMcq) : "—"}{answeredMcq > 0 && <small>%</small>}</h1>
         <p className="academic-practice__result-summary">{run.stats.correct} MCQ benar <span>·</span> {run.stats.wrong} salah <span>·</span> {unanswered} belum dijawab</p>
         <p className="academic-practice__result-summary">{run.stats.essaysToReview} essay untuk ditinjau sendiri</p>
+        {run.historyError && <div className="academic-practice__feedback is-wrong" role="alert"><p>Riwayat sesi belum tersimpan.</p><button type="button" className="academic-practice__text-button" onClick={async () => setRun(await persistCompletion(run))}>Coba simpan riwayat lagi</button></div>}
+        {run.historySaved && <p className="academic-practice__save-state" role="status">Riwayat sesi tersimpan</p>}
         {answeredMcq > 0 && <div className="academic-practice__result-bar" role="progressbar" aria-valuenow={percent(run.stats.correct, answeredMcq)} aria-valuemin="0" aria-valuemax="100"><span style={{ width: percent(run.stats.correct, answeredMcq) + "%" }} /></div>}
         <details className="academic-practice__review">
           <summary>Review {run.questions.length} soal</summary>

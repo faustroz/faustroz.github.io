@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  FileJson,
   Eye,
   EyeOff,
   FileSpreadsheet,
@@ -43,9 +44,14 @@ import {
   extractFilterOptions,
   filterQuestions,
   generateCsvTemplate,
+  generateQuestionCsv,
+  createQuestionBackup,
+  reviewQuestionQuality,
+  validateQuestionBackup,
   VALID_OPTIONS,
   validateCsvRows,
 } from "@/lib/hub/question-bank.mjs";
+import { buildAcademicPerformance } from "@/lib/hub/academic-performance.mjs";
 
 const DEFAULT_FORM = Object.freeze({
   exam_type: "",
@@ -139,6 +145,11 @@ export default function QuestionLibrary() {
   const [dueReviews, setDueReviews] = useState([]);
   const [unmasteredReviewCount, setUnmasteredReviewCount] = useState(0);
   const [loadingMistakes, setLoadingMistakes] = useState(false);
+  const [performanceData, setPerformanceData] = useState(null);
+  const [loadingPerformance, setLoadingPerformance] = useState(false);
+  const [performanceError, setPerformanceError] = useState("");
+  const [expandedSessionId, setExpandedSessionId] = useState("");
+  const [restoringBackup, setRestoringBackup] = useState(false);
 
   // ---------------------------------------------------------------------------
   // CSV IMPORT STATE
@@ -221,6 +232,19 @@ export default function QuestionLibrary() {
     }
   }, [activeTab, loadMistakes]);
 
+  const loadPerformance = useCallback(async () => {
+    if (!repository) return;
+    setLoadingPerformance(true);
+    setPerformanceError("");
+    try {
+      setPerformanceData(buildAcademicPerformance(await repository.listLearningData()));
+    } catch (loadError) {
+      setPerformanceError(loadError.message || "Riwayat belajar gagal dimuat.");
+    } finally { setLoadingPerformance(false); }
+  }, [repository]);
+
+  useEffect(() => { if (activeTab === "practice") loadPerformance(); }, [activeTab, loadPerformance]);
+
   const filterOptions = useMemo(() => extractFilterOptions(questions), [questions]);
 
   const availableBlocks = useMemo(() => [...new Set([...blockCategories, ...filterOptions.blocks])].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [blockCategories, filterOptions.blocks]);
@@ -276,17 +300,40 @@ export default function QuestionLibrary() {
     });
   }, [questions, practiceExamType, practiceBlock, practiceSubject, practiceTopic, practiceFormat]);
 
-  const startPractice = (targetQuestions = null, reviewKind = "") => {
+  const startPractice = async (targetQuestions = null, reviewKind = "") => {
+    if (!repository) { setNotification("Supabase belum terhubung. Sesi latihan tidak dapat dicatat."); return; }
     const filteredPool = targetQuestions || matchingPracticeQuestions;
     const pool = practiceCount === "all" || targetQuestions ? filteredPool : filteredPool.slice(0, Math.max(1, Number(practiceCount) || filteredPool.length));
     if (!pool.length) return;
-    const session = createPracticeRun(pool, { examType: practiceExamType, subject: practiceSubject, block: practiceBlock, topic: practiceTopic, questionType: practiceFormat, reviewKind });
+    const startedAt = new Date().toISOString();
+    const selection = { examType: practiceExamType, subject: practiceSubject, block: practiceBlock, topic: practiceTopic, questionType: practiceFormat, reviewKind, startedAt };
+    const session = createPracticeRun(pool, selection);
+    if (!session) return;
+    try {
+      const savedSession = await repository.createSession({
+        title: reviewKind === "mistakes" ? "Review Mistakes" : reviewKind === "due" ? "Spaced Review" : "Practice Session",
+        session_kind: reviewKind || "practice",
+        total_questions: pool.length,
+        duration_minutes: null,
+        filters: { examType: selection.examType, block: selection.block, subject: selection.subject, topic: selection.topic, questionType: selection.questionType },
+        question_ids: pool.map((question) => question.id),
+        answers: {},
+        status: "in_progress",
+        started_at: startedAt,
+      });
+      session.sessionId = savedSession.id;
+    } catch (sessionError) {
+      setNotification(sessionError.message || "Sesi latihan tidak dapat disimpan ke riwayat.");
+      return;
+    }
     if (!session || !writePracticeRun(window.sessionStorage, session)) {
+      if (session?.sessionId) repository.abandonSession(session.sessionId).catch(() => {});
       setNotification("Sesi latihan tidak dapat disiapkan. Periksa penyimpanan browser lalu coba lagi.");
       return;
     }
     if (!writePracticeFilters(window.sessionStorage, { examType: practiceExamType, block: practiceBlock, subject: practiceSubject, topic: practiceTopic, questionType: practiceFormat, count: practiceCount })) {
       window.sessionStorage.removeItem(PRACTICE_RUN_STORAGE_KEY);
+      if (session.sessionId) repository.abandonSession(session.sessionId).catch(() => {});
       setNotification("Pilihan latihan tidak dapat disimpan. Periksa penyimpanan browser lalu coba lagi.");
       return;
     }
@@ -456,11 +503,26 @@ export default function QuestionLibrary() {
         setQuestions((prev) => prev.map((q) => (q.id === editingId ? { ...updated, image_url: signed?.data?.signedUrl || "" } : q)));
       } else {
         const batch = [...questionDrafts, { ...form, options: { ...form.options } }];
+        const quality = reviewQuestionQuality(batch, questions);
+        if (quality.errors.length) {
+          setFormError(quality.errors.map((item) => `Soal ${item.rowNumber}: ${item.reason}`).join(" "));
+          return;
+        }
+        const duplicateRows = new Set(quality.warnings.map((item) => item.rowNumber - 1));
+        if (duplicateRows.size && !window.confirm(`${duplicateRows.size} soal tampak duplikat berdasarkan format, metadata, dan teks. Lewati duplikat dan simpan sisanya?`)) return;
+        if (duplicateRows.size === batch.length) {
+          setFormError("Semua soal terdeteksi sebagai duplikat. Tidak ada data yang disimpan.");
+          return;
+        }
         let savedDraftCount = 0;
+        let batchIndex = 0;
         for (const item of batch) {
+          const currentIndex = batchIndex++;
+          if (duplicateRows.has(currentIndex)) { savedDraftCount += 1; continue; }
+          const validatedItem = quality.valid[currentIndex];
           let uploadedImagePath = null;
           try {
-            let imagePath = item.image_path || null;
+            let imagePath = validatedItem.image_path || null;
             const imageFile = item.image_file;
             if (imageFile) {
               if (!/^image\/(jpeg|png|webp|gif)$/.test(imageFile.type) || imageFile.size > 5 * 1024 * 1024) throw new Error("Gambar harus JPG, PNG, WebP, atau GIF dengan ukuran maksimal 5 MB.");
@@ -472,9 +534,10 @@ export default function QuestionLibrary() {
               if (uploadError) throw new Error(`Upload gambar gagal: ${uploadError.message}`);
               imagePath = uploadedImagePath;
             }
-            const payload = { ...item, image_path: imagePath };
+            const payload = { ...item, ...validatedItem, image_path: imagePath };
             delete payload.image_file;
-            const created = await repository.create(payload);
+            const [created] = await repository.createBatch([payload]);
+            if (!created) { savedDraftCount += 1; continue; }
             const signed = imagePath ? await client.storage.from("academic-question-images").createSignedUrl(imagePath, 3600) : null;
             setQuestions((prev) => [{ ...created, image_url: signed?.data?.signedUrl || "" }, ...prev]);
             savedDraftCount += 1;
@@ -566,7 +629,7 @@ export default function QuestionLibrary() {
 
     try {
       const text = await file.text();
-      const validation = validateCsvRows(text, { examTypes: examCategories, subjects: subjectCategories });
+      const validation = validateCsvRows(text, { examTypes: examCategories, subjects: subjectCategories, existingQuestions: questions });
       setImportPreview(validation);
     } catch (parseErr) {
       setImportPreview({
@@ -626,6 +689,11 @@ export default function QuestionLibrary() {
     setImporting(true);
     setImportMessage("");
 
+    if (importPreview.warnings?.length && !window.confirm(`${importPreview.warnings.length} baris terdeteksi mirip/duplikat. Baris duplikat akan dilewati. Lanjutkan impor baris lainnya?`)) {
+      setImporting(false);
+      return;
+    }
+
     try {
       const inserted = await repository.createBatch(importPreview.valid);
       setQuestions((prev) => [...inserted, ...prev]);
@@ -653,20 +721,53 @@ export default function QuestionLibrary() {
   };
 
   const handleExportCsv = () => {
-    const escapeCell = (value) => '"' + String(value ?? "").replaceAll('"', '""') + '"';
-    const headers = ["exam_type", "block", "subject", "topic", "subtopic", "question_type", "question_text", "option_a", "option_b", "option_c", "option_d", "option_e", "correct_answer", "reference_answer", "explanation", "tags"].join(",");
-    const rows = questions.map((q) => [
-      q.exam_type || "", q.block, q.subject, q.topic, q.subtopic, q.question_type || "mcq", q.question_text,
-      q.options?.A, q.options?.B, q.options?.C, q.options?.D, q.options?.E, q.correct_answer,
-      q.reference_answer, q.explanation, (q.tags || []).join(";"),
-    ].map(escapeCell).join(","));
-    const blob = new Blob([[headers, ...rows].join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([generateQuestionCsv(questions)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "4allx-question-bank.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  const handleExportJson = () => {
+    const backup = createQuestionBackup(questions, new Date().toISOString(), { examTypes: examCategories, subjects: subjectCategories, blocks: blockCategories });
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a"); link.href = url; link.download = "4allx-question-bank-backup.json"; link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  const handleJsonBackupChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImportFile(file); setImportMessage("");
+    try {
+      const backup = JSON.parse(await file.text());
+      setImportPreview({ ...validateQuestionBackup(backup, questions), source: "json" });
+    } catch (error) {
+      setImportPreview({ valid: [], warnings: [], errors: [{ rowNumber: 1, reason: error.message || "File backup JSON tidak valid." }], source: "json" });
+    }
+  };
+
+  const handleExecuteJsonRestore = async () => {
+    if (!repository || !importPreview?.valid?.length || restoringBackup) return;
+    if (importPreview.warnings?.length && !window.confirm(`${importPreview.warnings.length} soal duplikat akan dilewati. Lanjutkan pemulihan?`)) return;
+    setRestoringBackup(true); setImportMessage("");
+    try {
+      for (const [kind, names] of [["exam_type", importPreview.categories?.examTypes || []], ["subject", importPreview.categories?.subjects || []], ["block", importPreview.categories?.blocks || []]]) {
+        for (const name of names) await repository.addCategory(kind, name);
+      }
+      if (importPreview.categories) {
+        const [examRows, subjectRows, blockRows] = await Promise.all([repository.listCategories("exam_type"), repository.listCategories("subject"), repository.listCategories("block")]);
+        setExamCategories(examRows.map((row) => row.name)); setSubjectCategories(subjectRows.map((row) => row.name)); setBlockCategories(blockRows.map((row) => row.name));
+      }
+      const inserted = await repository.createBatch(importPreview.valid);
+      setQuestions((previous) => [...inserted, ...previous]);
+      setImportMessage(`Pemulihan selesai: ${inserted.length} soal ditambahkan, ${importPreview.valid.length - inserted.length} duplikat dilewati. Referensi path gambar disimpan; file privat tidak ikut disalin.`);
+      setImportPreview(null); setImportFile(null);
+    } catch (error) { setImportMessage(`Pemulihan gagal: ${error.message}`); }
+    finally { setRestoringBackup(false); }
   };
 
   return (
@@ -798,6 +899,45 @@ export default function QuestionLibrary() {
       {/* ===================================================================== */}
       {activeTab === "practice" && (
         <div className="hub-practice-container" style={{ padding: "0.75rem clamp(0.5rem, 3vw, 1.25rem)" }}>
+          <section className="hub-learning-summary" aria-label="Analitik dan riwayat latihan" style={{ maxWidth: "62rem", margin: "0 auto 1rem", borderBottom: "1px solid var(--hub-line)", padding: "0.5rem 0 1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+              <div><h3 style={{ margin: 0, fontSize: "1rem", color: "var(--hub-text)" }}>Performa &amp; riwayat latihan</h3><p style={{ margin: "0.25rem 0 0", color: "var(--hub-muted)", fontSize: "0.78rem" }}>Akurasi dihitung dari attempt MCQ yang dinilai; essay tidak dimasukkan.</p></div>
+              <button type="button" className="hub-question-tool-button" onClick={loadPerformance} disabled={loadingPerformance} style={{ minHeight: "40px" }}>{loadingPerformance ? "Memuat…" : "Muat ulang"}</button>
+            </div>
+            {performanceError && <p className="hub-data-error" role="alert">{performanceError}</p>}
+            {loadingPerformance && !performanceData ? <p className="hub-data-state">Memuat riwayat latihan…</p> : performanceData && <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 8rem), 1fr))", gap: "0.6rem", marginTop: "0.75rem" }}>
+                {[
+                  ["MCQ DIKERJAKAN", performanceData.totals.mcqGraded],
+                  ["BENAR / SALAH", `${performanceData.totals.correct} / ${performanceData.totals.wrong}`],
+                  ["AKURASI MCQ", performanceData.totals.accuracy === null ? "—" : `${performanceData.totals.accuracy}%`],
+                  ["SESI TERCATAT", performanceData.sessions.length],
+                  ["PERUBAHAN SESI", performanceData.accuracyChange === null ? "Belum cukup data" : `${performanceData.accuracyChange > 0 ? "+" : ""}${performanceData.accuracyChange} poin`],
+                ].map(([label, value]) => <div key={label} style={{ minWidth: 0, padding: "0.55rem 0.65rem", border: "1px solid var(--hub-line)", borderRadius: "6px" }}><span style={{ display: "block", font: "0.58rem var(--font-geist-mono), monospace", color: "var(--hub-muted)" }}>{label}</span><strong style={{ display: "block", marginTop: "0.3rem", color: "var(--hub-text)", fontSize: "0.95rem", overflowWrap: "anywhere" }}>{value}</strong></div>)}
+              </div>
+              {performanceData.weakAreas.length > 0 && <p style={{ margin: "0.7rem 0 0", fontSize: "0.78rem", color: "var(--hub-muted)" }}><strong style={{ color: "var(--hub-text)" }}>Area untuk ditinjau:</strong> {performanceData.weakAreas.map((area) => `${area.category} ${area.name} (${area.accuracy}%, ${area.graded} soal)`).join(" · ")}</p>}
+              {performanceData.totals.mcqGraded === 0 && <p style={{ margin: "0.7rem 0 0", fontSize: "0.78rem", color: "var(--hub-muted)" }}>Belum ada attempt MCQ yang dapat dihitung. Mulai latihan untuk membangun ringkasan berbasis data.</p>}
+              {(performanceData.byBlock.length > 0 || performanceData.bySubject.length > 0) && <details style={{ marginTop: "0.65rem" }}><summary style={{ cursor: "pointer", color: "var(--hub-muted)", fontSize: "0.78rem" }}>Rincian per blok &amp; subject</summary><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 13rem), 1fr))", gap: "1rem", marginTop: "0.55rem" }}>{[["Blok", performanceData.byBlock], ["Subject", performanceData.bySubject]].map(([title, groups]) => <div key={title}><strong style={{ color: "var(--hub-text)", fontSize: "0.76rem" }}>{title}</strong>{groups.map((group) => <p key={group.name} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", margin: "0.35rem 0", color: "var(--hub-muted)", fontSize: "0.75rem" }}><span>{group.name} · {group.graded} MCQ</span><b style={{ color: "var(--hub-text)", flexShrink: 0 }}>{group.accuracy}%</b></p>)}</div>)}</div></details>}
+              <details style={{ marginTop: "0.75rem" }}>
+                <summary style={{ cursor: "pointer", color: "var(--hub-text)", fontSize: "0.82rem" }}>Riwayat sesi ({performanceData.sessions.length})</summary>
+                {performanceData.sessions.length ? <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--hub-line)" }}>{performanceData.sessions.slice(0, 12).map((session) => {
+                  const snapshot = Array.isArray(session.answers) ? session.answers : [];
+                  const correct = snapshot.filter((answer) => answer.status === "correct").length;
+                  const wrong = snapshot.filter((answer) => answer.status === "wrong").length;
+                  const unanswered = snapshot.filter((answer) => answer.status === "unanswered").length;
+                  return <article key={session.id} style={{ padding: "0.7rem 0", borderBottom: "1px solid var(--hub-line)" }}>
+                    <button type="button" onClick={() => setExpandedSessionId((id) => id === session.id ? "" : session.id)} aria-expanded={expandedSessionId === session.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem", width: "100%", textAlign: "left", border: 0, padding: 0, background: "transparent", color: "var(--hub-text)", cursor: "pointer" }}>
+                      <span style={{ minWidth: 0 }}><strong>{session.title || "Practice Session"}</strong><small style={{ display: "block", color: "var(--hub-muted)", marginTop: "0.2rem" }}>{new Date(session.started_at || session.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {session.total_questions} soal · {[session.filters?.examType, session.filters?.block, session.filters?.subject].filter(Boolean).join(" / ") || "Semua filter"}</small></span>
+                      <span style={{ flexShrink: 0, textAlign: "right", fontSize: "0.76rem", color: "var(--hub-muted)" }}>{session.status === "completed" ? (session.accuracy_percent == null ? "Essay / belum ada nilai MCQ" : `${session.accuracy_percent}% MCQ`) : session.status === "in_progress" ? "Belum selesai" : "Ditinggalkan"}<small style={{ display: "block", marginTop: "0.2rem" }}>{session.status === "completed" ? `${correct} benar · ${wrong} salah · ${unanswered} kosong` : ""}</small></span>
+                    </button>
+                    {expandedSessionId === session.id && <div style={{ marginTop: "0.65rem", paddingTop: "0.6rem", borderTop: "1px solid var(--hub-line)" }}>
+                      {snapshot.length ? snapshot.map((answer, index) => <div key={`${session.id}-${answer.questionId}-${index}`} style={{ padding: "0.5rem 0", borderBottom: "1px solid var(--hub-line)", fontSize: "0.78rem" }}><strong>{String(index + 1).padStart(2, "0")} · {answer.status === "correct" ? "Benar" : answer.status === "wrong" ? "Salah" : answer.status === "essay" ? "Essay · tinjau sendiri" : "Belum dijawab"}</strong><p style={{ margin: "0.25rem 0", whiteSpace: "pre-wrap", color: "var(--hub-text)" }}>{answer.questionText}</p>{answer.questionType === "essay" ? <p style={{ margin: 0, color: "var(--hub-muted)", whiteSpace: "pre-wrap" }}>Jawaban: {answer.essayAnswer || "—"}<br />Referensi: {answer.referenceAnswer || "—"}</p> : <p style={{ margin: 0, color: "var(--hub-muted)" }}>Jawaban Anda: {answer.selectedAnswer || "—"} · Kunci: {answer.correctAnswer || "—"}</p>}{answer.timeSpentSeconds != null && <small style={{ display: "block", marginTop: "0.2rem", color: "var(--hub-muted)" }}>Waktu soal: {answer.timeSpentSeconds} detik</small>}</div>) : <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.78rem" }}>Sesi lama atau belum selesai belum memiliki snapshot jawaban.</p>}
+                    </div>}
+                  </article>;
+                })}</div> : <p style={{ margin: "0.6rem 0 0", color: "var(--hub-muted)", fontSize: "0.78rem" }}>Riwayat akan muncul setelah sesi latihan diselesaikan.</p>}
+              </details>
+            </>}
+          </section>
           {!practiceActive ? (
             /* Practice Setup Screen */
             <div style={{ maxWidth: "34rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
@@ -1131,6 +1271,7 @@ export default function QuestionLibrary() {
               <summary aria-label="Aksi lainnya" title="Aksi lainnya"><MoreHorizontal size={19} aria-hidden="true" /></summary>
               <div className="hub-question-more-menu" aria-label="Aksi Question Bank lainnya">
                 <button type="button" onClick={() => { handleExportCsv(); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export CSV</button>
+                <button type="button" onClick={() => { handleExportJson(); setMoreMenuOpen(false); }} disabled={!questions.length}><FileJson size={14} /> Backup JSON</button>
                 <button type="button" onClick={() => { handleAddCategory("exam_type"); setMoreMenuOpen(false); }}>Tambah Exam Type</button>
                 <button type="button" onClick={() => { handleAddCategory("subject"); setMoreMenuOpen(false); }}>Tambah Subject</button>
                 <button type="button" onClick={() => { handleAddCategory("block"); setMoreMenuOpen(false); }}>Tambah Blok</button>
@@ -1494,6 +1635,14 @@ export default function QuestionLibrary() {
               )}
             </div>
 
+            <label className="hub-csv-file-label" style={{ width: "fit-content", maxWidth: "100%" }}>
+              <span><FileJson size={14} /> Pulihkan backup JSON</span>
+              <input type="file" aria-label="Pulihkan backup JSON" accept=".json,application/json" onChange={handleJsonBackupChange} className="hub-csv-file-input" />
+            </label>
+            <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.75rem", lineHeight: 1.45 }}>
+              Backup JSON mencakup data soal dan metadata. Path gambar privat dipertahankan, tetapi file gambar tidak ikut diekspor.
+            </p>
+
             {importMessage && (
               <p className={importMessage.includes("Gagal") ? "hub-data-error" : "hub-data-state"} style={{ marginTop: "1rem" }}>
                 {importMessage}
@@ -1531,6 +1680,11 @@ export default function QuestionLibrary() {
                   </div>
                 )}
 
+                {importPreview.warnings?.length > 0 && <div role="status" style={{ marginBottom: "1rem", color: "var(--hub-muted)", fontSize: "0.78rem" }}>
+                  <strong>{importPreview.warnings.length} baris mirip/duplikat</strong> — item yang sudah ada akan dilewati saat penyimpanan.
+                  <ul style={{ margin: "0.3rem 0 0", paddingLeft: "1.2rem" }}>{importPreview.warnings.slice(0, 10).map((warning) => <li key={`duplicate-${warning.rowNumber}`}>{importPreview.source === "json" ? `Item ${warning.rowNumber}` : `Baris ${warning.rowNumber}`}: {warning.reason}</li>)}</ul>
+                </div>}
+
                 {/* Valid Preview Table (Responsive scroll) */}
                 {importPreview.valid.length > 0 && (
                   <div>
@@ -1560,12 +1714,12 @@ export default function QuestionLibrary() {
                       </button>
                       <button
                         type="button"
-                        onClick={handleExecuteImport}
-                        disabled={importing}
+                        onClick={importPreview.source === "json" ? handleExecuteJsonRestore : handleExecuteImport}
+                        disabled={importing || restoringBackup}
                         className="hub-primary-action"
                         style={{ padding: "0.6rem 1.4rem", minHeight: "44px" }}
                       >
-                        {importing ? "MENGIMPOR…" : `IMPOR ${importPreview.valid.length} SOAL VALID`}
+                        {importing || restoringBackup ? "MENYIMPAN…" : importPreview.source === "json" ? `PULIHKAN ${importPreview.valid.length} SOAL` : `IMPOR ${importPreview.valid.length} SOAL VALID`}
                       </button>
                     </div>
                   </div>

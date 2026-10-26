@@ -65,10 +65,11 @@ vi.mock("@/lib/supabase/client", () => {
       select: vi.fn(() => builder),
       is: vi.fn(() => builder),
       order: vi.fn(() => {
-        if (table === "academic_question_review_state") return builder;
+        if (["academic_question_review_state", "academic_question_attempts", "academic_exam_sessions"].includes(table)) return builder;
         const data = table === "academic_questions" ? mockDbQuestions : [];
         return Promise.resolve({ data, error: null });
       }),
+      limit: vi.fn(() => builder),
       eq: vi.fn(() => builder),
       gt: vi.fn(() => builder),
       gte: vi.fn(() => builder),
@@ -117,7 +118,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     fireEvent.change(screen.getByLabelText(/topik \(opsional\)/i), { target: { value: "Aritmia" } });
     fireEvent.click(screen.getByRole("button", { name: /mulai latihan/i }));
 
-    expect(mockPush).toHaveBeenCalledWith("/academic/practice");
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/academic/practice"));
     const run = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1"));
     expect(run.questions).toHaveLength(2);
     expect(run.block).toBe("Kardiovaskular");

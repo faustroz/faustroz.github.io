@@ -12,7 +12,12 @@ import {
   validateCsvRows,
   validateQuestionPayload,
   generateCsvTemplate,
+  generateQuestionCsv,
+  createQuestionBackup,
+  validateQuestionBackup,
+  reviewQuestionQuality,
 } from "../../lib/hub/question-bank.mjs";
+import { buildAcademicPerformance, buildSessionSnapshot } from "../../lib/hub/academic-performance.mjs";
 
 test("Phase 31 schema defines owner-scoped tables, RLS, and 30-day trash retention for Question Bank", async () => {
   const sql = await readFile(
@@ -62,6 +67,14 @@ test("Phase 35 keeps attempt history and creates an owner-scoped review schedule
   assert.match(sql, /greatest\(1\.30/);
   assert.match(sql, /two consecutive Good\/Easy recalls/);
   assert.doesNotMatch(sql, /truncate\s+table|delete\s+from\s+public\.academic_question_attempts/i);
+});
+
+test("Phase 36 preserves old sessions and enables untimed owner-private practice history", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/036-academic-practice-history.sql", import.meta.url), "utf8");
+  assert.match(sql, /duration_minutes drop not null/i);
+  assert.match(sql, /session_kind text not null default 'exam'/i);
+  assert.match(sql, /check \(session_kind in \('exam', 'practice', 'mistakes', 'due'\)\)/i);
+  assert.doesNotMatch(sql, /truncate\s+table|delete\s+from\s+public\.academic_exam_sessions/i);
 });
 
 test("Phase 33 removes implicit categories without deleting existing question data", async () => {
@@ -310,7 +323,7 @@ test("parseCsv and validateCsvRows correctly handle RFC-4180 CSV with quotes and
 });
 
 test("CSV templates provide separate MCQ and Essay starter rows with required metadata columns", () => {
-  const header = "\"exam_type\",\"block\",\"subject\",\"topic\",\"subtopic\",\"question_type\",\"question_text\",\"option_a\",\"option_b\",\"option_c\",\"option_d\",\"option_e\",\"correct_answer\",\"reference_answer\",\"explanation\",\"tags\"";
+  const header = "\"exam_type\",\"block\",\"subject\",\"topic\",\"subtopic\",\"question_type\",\"question_text\",\"option_a\",\"option_b\",\"option_c\",\"option_d\",\"option_e\",\"correct_answer\",\"reference_answer\",\"explanation\",\"tags\",\"difficulty\",\"image_path\",\"is_bookmarked\"";
   const mcqRows = generateCsvTemplate("mcq").trimEnd().split("\n");
   const essayRows = generateCsvTemplate("essay").trimEnd().split("\n");
 
@@ -319,6 +332,102 @@ test("CSV templates provide separate MCQ and Essay starter rows with required me
   assert.equal(parseCsv(mcqRows[1])[0][5], "mcq");
   assert.equal(parseCsv(essayRows[1])[0][5], "essay");
   assert.equal(generateCsvTemplate().trimEnd(), header);
+});
+
+test("quality review validates batch questions and flags normalized existing and in-file duplicates", () => {
+  const base = { question_type: "mcq", block: "Hepatobilier", subject: "PK", topic: "Bilirubin", question_text: "Apa fungsi enzim?", options: { A: "1", B: "2", C: "3", D: "4", E: "5" }, correct_answer: "A" };
+  const reviewed = reviewQuestionQuality([base, { ...base, question_text: "  Apa   fungsi ENZIM? " }, { ...base, question_text: "Soal baru" }], [{ ...base, question_text: "Pertanyaan lain" }]);
+  assert.equal(reviewed.valid.length, 3);
+  assert.equal(reviewed.errors.length, 0);
+  assert.deepEqual(reviewed.warnings.map((item) => item.rowNumber), [2]);
+  assert.equal(reviewQuestionQuality([{ ...base, block: "" }]).errors.length, 1);
+});
+
+test("CSV export round-trips all supported question metadata and marks possible duplicates", () => {
+  const question = { question_type: "essay", block: "Hepatobilier", subject: "PK", question_text: "Jelaskan, singkat", reference_answer: "Jawaban", difficulty: "hard", image_path: "owner/q.webp", is_bookmarked: true, tags: ["bilirubin"] };
+  const csv = generateQuestionCsv([question]);
+  const parsed = validateCsvRows(csv, { existingQuestions: [question] });
+  assert.equal(parsed.valid.length, 1);
+  assert.equal(parsed.valid[0].difficulty, "hard");
+  assert.equal(parsed.valid[0].image_path, "owner/q.webp");
+  assert.equal(parsed.valid[0].is_bookmarked, true);
+  assert.equal(parsed.warnings.length, 1);
+});
+
+test("JSON question backup is versioned, excludes owner identity, and safely reports duplicates", () => {
+  const backup = createQuestionBackup([{ id: "db-id", user_id: "private-owner", image_url: "signed-url", question_type: "essay", block: "Block", question_text: "Question", reference_answer: "Answer", image_path: "owner/private.webp" }], "2026-10-26T00:00:00.000Z", { subjects: ["Subject"] });
+  assert.equal(backup.version, 1);
+  assert.equal(backup.questions[0].image_path, "owner/private.webp");
+  assert.deepEqual(backup.categories.subjects, ["Subject"]);
+  assert.equal("user_id" in backup.questions[0], false);
+  assert.equal("image_url" in backup.questions[0], false);
+  assert.equal(validateQuestionBackup(backup).valid.length, 1);
+  assert.equal(validateQuestionBackup(backup, backup.questions).warnings.length, 1);
+  assert.equal(validateQuestionBackup({ format: "other", version: 1, questions: [] }).errors.length, 1);
+});
+
+test("academic performance excludes essays from MCQ accuracy and calculates groups and session change", () => {
+  const questions = [
+    { id: "q1", block: "Hepatobilier", subject: "PK", question_type: "mcq" },
+    { id: "q2", block: "Hepatobilier", subject: "PK", question_type: "mcq" },
+    { id: "q3", block: "Hepatobilier", subject: "PK", question_type: "essay" },
+    { id: "q4", block: "Hepatobilier", subject: "PK", question_type: "mcq" },
+  ];
+  const attempts = [
+    { id: "a1", question_id: "q1", is_correct: false },
+    { id: "a2", question_id: "q2", is_correct: false },
+    { id: "a3", question_id: "q3", is_correct: null, response_text: "Essay" },
+    { id: "a3", question_id: "q3", is_correct: null, response_text: "Essay" },
+    { id: "a4", question_id: "q4", is_correct: false },
+  ];
+  const analytics = buildAcademicPerformance({ attempts, questions, sessions: [
+    { id: "s1", status: "completed", accuracy_percent: 40, completed_at: "2026-01-01" },
+    { id: "s2", status: "completed", accuracy_percent: 60, completed_at: "2026-01-02" },
+  ] });
+  assert.equal(analytics.totals.attempts, 4);
+  assert.equal(analytics.totals.essays, 1);
+  assert.equal(analytics.totals.accuracy, 0);
+  assert.equal(analytics.byBlock[0].name, "Hepatobilier");
+  assert.equal(analytics.weakAreas[0].accuracy, 0);
+  assert.equal(analytics.accuracyChange, 20);
+  assert.equal(buildAcademicPerformance().totals.accuracy, null);
+});
+
+test("session detail snapshot keeps unanswered, MCQ and essay review states distinct", () => {
+  const snapshot = buildSessionSnapshot({ questions: [
+    { id: "q1", question_text: "MCQ", options: {}, shuffledOptions: { A: "A" }, shuffledCorrectAnswer: "A" },
+    { id: "q2", question_type: "essay", question_text: "Essay", reference_answer: "Reference" },
+  ], responses: [
+    { submitted: true, selectedAnswer: "A", isCorrect: true, timeSpentSeconds: 25 },
+    { submitted: false, essayAnswer: "" },
+  ] });
+  assert.equal(snapshot[0].status, "correct");
+  assert.equal(snapshot[0].timeSpentSeconds, 25);
+  assert.equal(snapshot[1].status, "unanswered");
+  assert.equal(snapshot[1].questionType, "essay");
+});
+
+test("practice attempts link to their owner-scoped session and sessions can be created or completed", async () => {
+  const operations = [];
+  let currentPayload;
+  const client = { from(table) {
+    return {
+      insert(payload) { currentPayload = payload; operations.push({ table, operation: "insert", payload }); return this; },
+      update(payload) { currentPayload = payload; operations.push({ table, operation: "update", payload }); return this; },
+      eq() { return this; },
+      select() { return this; },
+      single: async () => ({ data: { id: "session-1", ...currentPayload }, error: null }),
+    };
+  } };
+  const repository = createQuestionRepository(client);
+  await repository.recordAttempt({ question_id: "q-1", exam_session_id: "session-1", selected_answer: "A", is_correct: false });
+  await repository.recordEssayAttempt({ question_id: "q-2", exam_session_id: "session-1", response_text: "Answer" });
+  await repository.createSession({ title: "Practice Session", session_kind: "practice", total_questions: 1, duration_minutes: null });
+  await repository.completeSession("session-1", { score: 0, accuracy_percent: null, answers: [] });
+  assert.equal(operations[0].payload.exam_session_id, "session-1");
+  assert.equal(operations[1].payload.exam_session_id, "session-1");
+  assert.equal(operations[2].payload.duration_minutes, null);
+  assert.equal(operations[3].payload.status, "completed");
 });
 
 test("modern CSV preview validates MCQ and Essay rows without accepting invalid rows", () => {
