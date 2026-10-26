@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { Check, ChevronDown, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { createCrudRepository } from "@/lib/hub/crud.mjs";
@@ -108,6 +108,7 @@ function budgetProgress(budget, expenses) {
 }
 
 export default function CrudPanel({ table, title, description, fields, displayFields, orderBy, ledger, filter, recordScope, fixedValues, onRecordsChange }) {
+  const realtimeInstanceId = useId().replace(/:/g, "");
   const repository = useMemo(
     () => createCrudRepository(requireSupabase(), table, { orderBy }),
     [table, orderBy]
@@ -155,11 +156,11 @@ export default function CrudPanel({ table, title, description, fields, displayFi
   useEffect(() => {
     const client = requireSupabase();
     const channel = client
-      .channel(`hub-crud-${table}`)
+      .channel(`hub-crud-${table}-${realtimeInstanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, () => { load(); })
       .subscribe();
     return () => { client.removeChannel(channel); };
-  }, [load, table]);
+  }, [load, realtimeInstanceId, table]);
 
   useEffect(() => {
     if (!ledger?.accountField) return undefined;
