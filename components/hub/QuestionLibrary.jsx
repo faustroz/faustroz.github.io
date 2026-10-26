@@ -42,6 +42,7 @@ import {
   carryQuestionMetadata,
   createQuestionRepository,
   extractFilterOptions,
+  extractPracticeTopics,
   filterQuestions,
   generateCsvTemplate,
   generateQuestionCsv,
@@ -246,6 +247,15 @@ export default function QuestionLibrary() {
   useEffect(() => { if (activeTab === "practice") loadPerformance(); }, [activeTab, loadPerformance]);
 
   const filterOptions = useMemo(() => extractFilterOptions(questions), [questions]);
+  const practiceAvailableTopics = useMemo(() => extractPracticeTopics(questions, {
+    examType: practiceExamType,
+    block: practiceBlock,
+    subject: practiceSubject,
+  }), [questions, practiceExamType, practiceBlock, practiceSubject]);
+
+  useEffect(() => {
+    if (!loading && practiceTopic && !practiceAvailableTopics.includes(practiceTopic)) setPracticeTopic("");
+  }, [loading, practiceAvailableTopics, practiceTopic]);
 
   const availableBlocks = useMemo(() => [...new Set([...blockCategories, ...filterOptions.blocks])].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [blockCategories, filterOptions.blocks]);
 
@@ -1004,7 +1014,8 @@ export default function QuestionLibrary() {
                         style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}
                       >
                         <option value="">Semua Topik</option>
-                        {filterOptions.topics.map((t) => (
+                        {practiceAvailableTopics.length === 0 && <option value="" disabled>Topik belum tersedia untuk pilihan ini</option>}
+                        {practiceAvailableTopics.map((t) => (
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>

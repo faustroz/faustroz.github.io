@@ -6,6 +6,7 @@ import {
   createPracticeSession,
   createQuestionRepository,
   extractFilterOptions,
+  extractPracticeTopics,
   filterQuestions,
   parseCsv,
   shuffleQuestionOptions,
@@ -200,6 +201,16 @@ test("filters use exam type, subject, format, tags and search metadata", () => {
     { id: "essay", exam_type: "MP", question_type: "essay", subject: "Fisiologi", topic: "Bilirubin", tags: ["hepar"] },
   ];
   assert.deepEqual(filterQuestions(items, { examType: "OSPE", subject: "Biokimia", questionType: "mcq", tag: "heme", search: "konjugasi" }).map((item) => item.id), ["mcq"]);
+});
+
+test("practice topics are children of the currently selected exam type, block, and subject", () => {
+  const questions = [
+    { exam_type: "OSPE", block: "Hepatobilier", subject: "PK", topic: "Nutrisi pada Kelainan GIT" },
+    { exam_type: "OSPE", block: "Hepatobilier", subject: "Biokimia", topic: "Metabolisme Bilirubin" },
+    { exam_type: "MP", block: "Hepatobilier", subject: "PK", topic: "Pemeriksaan Laboratorium" },
+  ];
+  assert.deepEqual(extractPracticeTopics(questions, { examType: "OSPE", block: "Hepatobilier", subject: "PK" }), ["Nutrisi pada Kelainan GIT"]);
+  assert.deepEqual(extractPracticeTopics(questions, { examType: "OSPE", block: "Hepatobilier" }), ["Metabolisme Bilirubin", "Nutrisi pada Kelainan GIT"]);
 });
 
 test("filterQuestions and extractFilterOptions work accurately on question collections", () => {
