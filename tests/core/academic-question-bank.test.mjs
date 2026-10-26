@@ -46,6 +46,24 @@ test("Phase 32 migration extends existing questions, keeps categories and image 
   assert.match(sql, /academic_question_attempts_answer_shape_check/);
 });
 
+test("Phase 35 keeps attempt history and creates an owner-scoped review schedule with SM-2 rating RPC", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/035-academic-review-schedule.sql", import.meta.url), "utf8");
+  assert.match(sql, /add column if not exists review_rating/);
+  assert.match(sql, /add column if not exists correct_answer text/);
+  assert.match(sql, /add column if not exists correct_answer_text text/);
+  assert.match(sql, /add column if not exists reference_answer text/);
+  assert.match(sql, /latest_attempt_failure_counted boolean not null default false/);
+  assert.match(sql, /create table if not exists public\.academic_question_review_state/);
+  assert.match(sql, /unique \(user_id, question_id\)/);
+  assert.match(sql, /academic_question_review_state enable row level security/);
+  assert.match(sql, /auth\.uid\(\) = user_id/);
+  assert.match(sql, /create trigger track_academic_question_attempt/);
+  assert.match(sql, /create or replace function public\.rate_academic_question_attempt/);
+  assert.match(sql, /greatest\(1\.30/);
+  assert.match(sql, /two consecutive Good\/Easy recalls/);
+  assert.doesNotMatch(sql, /truncate\s+table|delete\s+from\s+public\.academic_question_attempts/i);
+});
+
 test("Phase 33 removes implicit categories without deleting existing question data", async () => {
   const sql = await readFile(new URL("../../supabase/migrations/033-question-bank-no-default-categories.sql", import.meta.url), "utf8");
   assert.match(sql, /alter column exam_type drop default/);
@@ -446,11 +464,17 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   const attempt = await repo.recordAttempt({
     question_id: "q1",
     selected_answer: "B",
+    correct_answer: "B",
+    correct_answer_text: "Correct choice",
     is_correct: true,
     time_spent_seconds: 12,
   });
   assert.equal(inserted.question_id, "q1");
   assert.equal(inserted.is_correct, true);
+  assert.equal(inserted.correct_answer_text, "Correct choice");
+  await repo.recordEssayAttempt({ question_id: "q1", response_text: "My response", reference_answer: "Reference response", time_spent_seconds: 21 });
+  assert.equal(inserted.response_text, "My response");
+  assert.equal(inserted.reference_answer, "Reference response");
 
   // Soft delete question
   await repo.remove("q1");
@@ -469,4 +493,45 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   // Toggle bookmark
   const toggled = await repo.toggleBookmark("q1", false);
   assert.equal(toggled.is_bookmarked, true);
+});
+
+test("review repository deduplicates by question state and exposes due, mistake, and rating actions", async () => {
+  const stateRows = [
+    { question_id: "q-1", latest_attempt_id: "a-1", due_at: "2026-01-01T00:00:00Z", lapse_count: 2, attempts_count: 3, mastered: false },
+    { question_id: "q-2", latest_attempt_id: "a-2", due_at: "2026-12-01T00:00:00Z", lapse_count: 0, attempts_count: 1, mastered: false },
+  ];
+  const tableRows = {
+    academic_question_review_state: stateRows,
+    academic_questions: [{ id: "q-1", question_text: "Question 1", deleted_at: null }, { id: "q-2", question_text: "Question 2", deleted_at: null }],
+    academic_question_attempts: [{ id: "a-1", question_id: "q-1", selected_answer: "A", is_correct: false }],
+  };
+  const rpcCalls = [];
+  const client = {
+    from(table) {
+      const filters = [];
+      const builder = {
+        select() { return builder; },
+        eq(field, value) { filters.push((row) => row[field] === value); return builder; },
+        gt(field, value) { filters.push((row) => row[field] > value); return builder; },
+        lte(field, value) { filters.push((row) => row[field] <= value); return builder; },
+        order() { return builder; },
+        in(field, values) { filters.push((row) => values.includes(row[field])); return builder; },
+        is(field, value) { filters.push((row) => row[field] === value); return builder; },
+        then(resolve) { return resolve({ data: (tableRows[table] || []).filter((row) => filters.every((filter) => filter(row))), error: null }); },
+      };
+      return builder;
+    },
+    rpc(name, args) { rpcCalls.push({ name, args }); return Promise.resolve({ data: { id: args.p_attempt_id }, error: null }); },
+  };
+  const repository = createQuestionRepository(client);
+  const mistakes = await repository.listMistakes();
+  const due = await repository.listDueReviews();
+  const unmastered = await repository.listUnmasteredReviews();
+  assert.equal(mistakes.length, 1);
+  assert.equal(mistakes[0].question.id, "q-1");
+  assert.equal(mistakes[0].mistakeCount, 2);
+  assert.equal(due.length, 1);
+  assert.equal(unmastered.length, 2);
+  await repository.rateAttempt("a-1", "good");
+  assert.deepEqual(rpcCalls, [{ name: "rate_academic_question_attempt", args: { p_attempt_id: "a-1", p_rating: "good" } }]);
 });

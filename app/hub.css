@@ -3398,6 +3398,16 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .academic-practice__feedback-title { margin-bottom:.35rem !important; font-weight:650; }
 .academic-practice__explanation { margin-top:.65rem !important; color:#b6b6bf; white-space:pre-wrap; }
 .academic-practice__save-state { display:block; margin-top:.65rem; color:var(--practice-muted); font-size:.72rem; }
+.academic-practice__review-rating { display:grid; gap:.55rem; margin-top:.9rem; padding-top:.75rem; border-top:1px solid var(--practice-line); }
+.academic-practice__review-rating > p { margin:0; color:var(--practice-muted); font:500 .68rem/1.4 var(--font-geist-mono),monospace; }
+.academic-practice__review-rating > div { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; }
+.academic-practice__review-rating button { min-width:0; min-height:2.75rem; padding:.5rem .35rem; border:1px solid var(--practice-line); border-radius:.45rem; color:inherit; background:rgba(255,255,255,.025); font:600 .7rem/1.2 var(--font-geist-mono),monospace; cursor:pointer; }
+.academic-practice__review-rating button:hover:not(:disabled),.academic-practice__review-rating button[aria-pressed="true"] { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.09); }
+.academic-practice__review-rating button:focus-visible { outline:2px solid rgba(220,225,235,.8); outline-offset:2px; }
+.academic-practice__review-rating button:disabled { cursor:default; opacity:.65; }
+.academic-practice__review-rating .academic-practice__save-state { margin-top:0; }
+.hub-review-summary { display:flex; flex-wrap:wrap; gap:.5rem 1.25rem; margin:-.35rem 0 1rem; padding:.7rem 0; border-bottom:1px solid var(--hub-line); color:var(--hub-muted); font-size:.76rem; }
+.hub-review-summary strong { color:var(--hub-text); font-variant-numeric:tabular-nums; }
 .academic-practice__actions { display:flex; justify-content:flex-end; margin-top:1.25rem; }
 .academic-practice__button { min-height:3rem; display:inline-flex; align-items:center; justify-content:center; gap:.55rem; padding:.75rem 1rem; border:1px solid var(--practice-line); border-radius:.5rem; color:inherit; background:transparent; font:600 .72rem/1.2 var(--font-geist-mono),monospace; letter-spacing:.035em; cursor:pointer; text-decoration:none; }
 .academic-practice__button:hover:not(:disabled),.academic-practice__button:focus-visible { background:rgba(255,255,255,.08); }

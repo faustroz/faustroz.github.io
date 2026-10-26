@@ -32,6 +32,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 029 | `029-live-bank-reconciliation.sql` | Live account-balance reconciliation sync, existing-row backfill, and realtime publication | 028 |
 | 030 | `030-retire-bank-reconciliation.sql` | Retire Bank Reconciliation triggers/realtime while preserving owner data for backups | 029 |
 | 034 | `034-question-bank-block-categories.sql` | Allow owners to manage reusable Question Bank block options | 032 |
+| 035 | `035-academic-review-schedule.sql` | Persist owner-scoped mistakes and SM-2 inspired review schedules from Question Bank attempts | 031, 032 |
 
 ## Safety notes
 
@@ -42,3 +43,4 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 - Text and Markdown uploaded after migration 023 receive a private, 32 KiB search projection. Existing/binary Vault files remain metadata-searchable until safely re-uploaded or indexed separately.
 - Edge Function provider secrets belong in Supabase project secrets, never in these SQL files or the frontend.
 - OSINT lookup results remain non-persistent. Migration 024 stores only findings the owner explicitly adds to a case; case deletion is permanent and cascades to its findings.
+- Migration 035 adds private per-question review schedules; all historical answers remain in `academic_question_attempts`. Apply it before using the new rating and scheduled-review controls.

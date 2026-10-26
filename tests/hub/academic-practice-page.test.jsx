@@ -6,6 +6,7 @@ import { createPracticeRun, writePracticeRun } from "@/lib/hub/academic-practice
 const { mockBack } = vi.hoisted(() => ({ mockBack: vi.fn() }));
 const attemptInsert = vi.fn();
 const attemptUpdate = vi.fn();
+const attemptRate = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
@@ -20,6 +21,7 @@ vi.mock("@/lib/supabase/client", () => ({
       },
       update: (payload) => { attemptUpdate(payload); return { eq: () => ({ select: () => ({ single: async () => ({ data: payload, error: null }) }) }) }; },
     }),
+    rpc: (name, args) => { attemptRate(name, args); return Promise.resolve({ data: { id: args.p_attempt_id, review_rating: args.p_rating }, error: null }); },
     storage: { from: () => ({ createSignedUrl: async (path) => ({ data: { signedUrl: "signed:" + path }, error: null }) }) },
   }),
 }));
@@ -35,6 +37,7 @@ describe("standalone Academic Practice page", () => {
     mockBack.mockClear();
     attemptInsert.mockClear();
     attemptUpdate.mockClear();
+    attemptRate.mockClear();
     writePracticeRun(window.sessionStorage, createPracticeRun(questions, { block: "Block 1", topic: "Topic A" }));
   });
 
@@ -81,6 +84,8 @@ describe("standalone Academic Practice page", () => {
     expect(screen.getByText(/Belum tepat/i)).toBeInTheDocument();
     expect(screen.getByText(firstQuestion.explanation)).toBeInTheDocument();
     expect(screen.getByText(/Jawaban yang benar:/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Again" }));
+    await waitFor(() => expect(attemptRate).toHaveBeenCalledWith("rate_academic_question_attempt", { p_attempt_id: "attempt-test", p_rating: "again" }));
 
     fireEvent.click(screen.getByRole("button", { name: /NEXT QUESTION/i }));
     expect(await screen.findByText(secondQuestion.question_text)).toBeInTheDocument();

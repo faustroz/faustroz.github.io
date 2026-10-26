@@ -126,6 +126,7 @@ export default function QuestionLibrary() {
   const [practiceActive, setPracticeActive] = useState(false);
   const [practiceQuestions, setPracticeQuestions] = useState([]);
   const [practiceIndex, setPracticeIndex] = useState(0);
+  const practiceQuestionStartedAt = useRef(Date.now());
   const [practiceSelectedAnswer, setPracticeSelectedAnswer] = useState("");
   const [practiceSubmitted, setPracticeSubmitted] = useState(false);
   const [practiceStats, setPracticeStats] = useState({ correct: 0, wrong: 0, incorrectQuestions: [] });
@@ -135,6 +136,8 @@ export default function QuestionLibrary() {
   // MISTAKES REVIEW STATE
   // ---------------------------------------------------------------------------
   const [mistakes, setMistakes] = useState([]);
+  const [dueReviews, setDueReviews] = useState([]);
+  const [unmasteredReviewCount, setUnmasteredReviewCount] = useState(0);
   const [loadingMistakes, setLoadingMistakes] = useState(false);
 
   // ---------------------------------------------------------------------------
@@ -201,8 +204,10 @@ export default function QuestionLibrary() {
     if (!repository) return;
     setLoadingMistakes(true);
     try {
-      const data = await repository.listMistakes();
-      setMistakes(data);
+      const [mistakeData, dueData, unmasteredData] = await Promise.all([repository.listMistakes(), repository.listDueReviews(), repository.listUnmasteredReviews()]);
+      setMistakes(mistakeData);
+      setDueReviews(dueData);
+      setUnmasteredReviewCount(unmasteredData.length);
     } catch (err) {
       setError(err.message || "Failed to load mistake notebook.");
     } finally {
@@ -271,11 +276,11 @@ export default function QuestionLibrary() {
     });
   }, [questions, practiceExamType, practiceBlock, practiceSubject, practiceTopic, practiceFormat]);
 
-  const startPractice = (targetQuestions = null) => {
+  const startPractice = (targetQuestions = null, reviewKind = "") => {
     const filteredPool = targetQuestions || matchingPracticeQuestions;
     const pool = practiceCount === "all" || targetQuestions ? filteredPool : filteredPool.slice(0, Math.max(1, Number(practiceCount) || filteredPool.length));
     if (!pool.length) return;
-    const session = createPracticeRun(pool, { block: practiceBlock, topic: practiceTopic });
+    const session = createPracticeRun(pool, { examType: practiceExamType, subject: practiceSubject, block: practiceBlock, topic: practiceTopic, questionType: practiceFormat, reviewKind });
     if (!session || !writePracticeRun(window.sessionStorage, session)) {
       setNotification("Sesi latihan tidak dapat disiapkan. Periksa penyimpanan browser lalu coba lagi.");
       return;
@@ -289,6 +294,10 @@ export default function QuestionLibrary() {
   };
 
   const currentQuestion = practiceQuestions[practiceIndex] || null;
+
+  useEffect(() => {
+    practiceQuestionStartedAt.current = Date.now();
+  }, [practiceIndex, practiceActive]);
 
   const handlePracticeSubmit = async () => {
     if (!practiceSelectedAnswer || practiceSubmitted || !currentQuestion) return;
@@ -316,8 +325,10 @@ export default function QuestionLibrary() {
         await repository.recordAttempt({
           question_id: currentQuestion.id,
           selected_answer: practiceSelectedAnswer,
+          correct_answer: currentQuestion.shuffledCorrectAnswer,
+          correct_answer_text: currentQuestion.shuffledOptions?.[currentQuestion.shuffledCorrectAnswer],
           is_correct: isCorrect,
-          time_spent_seconds: 0,
+          time_spent_seconds: Math.max(0, Math.round((Date.now() - practiceQuestionStartedAt.current) / 1000)),
         });
       } catch (attemptErr) {
         console.error("Failed to record attempt:", attemptErr);
@@ -1339,16 +1350,23 @@ export default function QuestionLibrary() {
               <button
                 type="button"
                 onClick={() => {
-                  const mistakeQuestionsList = mistakes.map((m) => m.question);
-                  startPractice(mistakeQuestionsList);
-                  setActiveTab("practice");
+                  startPractice(mistakes.map((m) => m.question), "mistakes");
                 }}
                 className="hub-primary-action"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", minHeight: "44px", width: "100%", maxWidth: "18rem" }}
               >
-                <Play size={13} fill="currentColor" /> LATIHAN ULANG SEMUA SOAL SALAH ({mistakes.length})
+                <Play size={13} fill="currentColor" /> REVIEW SOAL SALAH ({mistakes.length})
               </button>
             )}
+            {dueReviews.length > 0 && (
+              <button type="button" onClick={() => startPractice(dueReviews.map((item) => item.question), "due")} className="hub-question-tool-button" style={{ minHeight: "44px" }}>
+                <RotateCcw size={14} /> REVIEW TERJADWAL ({dueReviews.length})
+              </button>
+            )}
+          </div>
+          <div className="hub-review-summary" aria-live="polite">
+            <span><strong>{unmasteredReviewCount}</strong> soal belum dikuasai</span>
+            <span><strong>{dueReviews.length}</strong> soal jatuh tempo</span>
           </div>
 
           {loadingMistakes ? (
@@ -1356,8 +1374,8 @@ export default function QuestionLibrary() {
           ) : mistakes.length === 0 ? (
             <div className="hub-data-state hub-question-empty-state">
               <div className="hub-question-empty-copy">
-                <span>BELUM ADA CATATAN KESALAHAN</span>
-                <p>Tidak ada soal yang pernah dijawab salah, atau Anda belum memulai sesi latihan.</p>
+                <span>{dueReviews.length ? "TIDAK ADA KESALAHAN AKTIF" : "REVIEW MISTAKES KOSONG"}</span>
+                <p>{dueReviews.length ? "Kesalahan yang pernah dibuat sudah dikuasai. Soal yang jatuh tempo tetap dapat diulang melalui Review Terjadwal." : "Soal yang dijawab salah akan muncul di sini. Jadwal review tersimpan otomatis setelah attempt."}</p>
               </div>
               <div className="hub-question-empty-actions">
                 <button type="button" onClick={() => setActiveTab("practice")} className="hub-primary-action">
@@ -1367,7 +1385,7 @@ export default function QuestionLibrary() {
             </div>
           ) : (
             <div style={{ display: "grid", gap: "0.75rem" }}>
-              {mistakes.map(({ question: q, mistakeCount, lastAttempt }) => (
+              {mistakes.map(({ question: q, mistakeCount, lastAttempt, dueAt, totalAttempts }) => (
                 <article
                   key={q.id}
                   style={{
@@ -1383,7 +1401,7 @@ export default function QuestionLibrary() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "0.62rem", padding: "0.15rem 0.45rem", background: "rgba(239, 68, 68, 0.15)", color: "#f87171", borderRadius: "4px", fontFamily: "var(--font-geist-mono), monospace" }}>
-                        SALAH {mistakeCount}x
+                        PERLU DIKUASAI · {mistakeCount} GAGAL
                       </span>
                       {q.block && <span style={{ fontSize: "0.62rem", border: "1px solid var(--hub-line)", padding: "0.15rem 0.4rem", borderRadius: "4px", color: "var(--hub-muted)" }}>{q.block}</span>}
                       {q.topic && <span style={{ fontSize: "0.62rem", border: "1px solid var(--hub-line)", padding: "0.15rem 0.4rem", borderRadius: "4px", color: "var(--hub-muted)" }}>{q.topic}</span>}
@@ -1392,8 +1410,7 @@ export default function QuestionLibrary() {
                     <button
                       type="button"
                       onClick={() => {
-                        startPractice([q]);
-                        setActiveTab("practice");
+                        startPractice([q], "mistakes");
                       }}
                       className="hub-primary-action"
                       style={{ fontSize: "0.72rem", padding: "0.4rem 0.75rem", minHeight: "36px", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
@@ -1407,14 +1424,13 @@ export default function QuestionLibrary() {
                   </p>
 
                   <div style={{ padding: "0.6rem 0.8rem", background: "var(--hub-panel-raised)", borderRadius: "6px", fontSize: "0.8rem" }}>
-                    <p style={{ margin: "0 0 0.3rem", color: "#4ade80" }}>
-                      Kunci Jawaban: <b>{q.correct_answer}. {q.options?.[q.correct_answer]}</b>
-                    </p>
+                    {q.question_type === "essay" ? <p style={{ margin: "0 0 0.3rem", color: "var(--hub-text)" }}><b>Reference answer:</b> {lastAttempt?.reference_answer || q.reference_answer}</p> : <p style={{ margin: "0 0 0.3rem", color: "#4ade80" }}>Kunci Jawaban: <b>{lastAttempt?.correct_answer || q.correct_answer}. {lastAttempt?.correct_answer_text || q.options?.[lastAttempt?.correct_answer || q.correct_answer]}</b></p>}
                     {lastAttempt && (
                       <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.75rem" }}>
-                        Jawaban terakhir Anda: <b>{lastAttempt.selected_answer}</b> ({lastAttempt.is_correct ? "Benar" : "Salah"})
+                        Jawaban terakhir Anda: <b>{lastAttempt.response_text || lastAttempt.selected_answer}</b> ({lastAttempt.is_correct === null ? (lastAttempt.self_assessed === false ? "Perlu ditinjau" : "Essay") : (lastAttempt.is_correct ? "Benar" : "Salah")})
                       </p>
                     )}
+                    {dueAt && <p style={{ margin: "0.35rem 0 0", color: "var(--hub-muted)", fontSize: "0.72rem" }}>Review berikutnya: {new Date(dueAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {totalAttempts} attempt</p>}
                   </div>
 
                   {q.explanation && (

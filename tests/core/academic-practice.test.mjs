@@ -40,6 +40,14 @@ test("practice run storage rejects malformed data and unavailable storage", () =
   assert.equal(createPracticeRun([]), null);
 });
 
+test("practice runs preserve the selected mistake or due-review queue", () => {
+  const review = createPracticeRun([question("q-1")], { reviewKind: "due" });
+  assert.equal(review.reviewKind, "due");
+  assert.equal(readPracticeRun({ getItem: () => JSON.stringify(review) }).reviewKind, "due");
+  const normal = createPracticeRun([question("q-2")]);
+  assert.equal(normal.reviewKind, "");
+});
+
 test("practice includes essays without MCQ grading and persists each answer in session state", () => {
   const essay = { id: "essay-1", question_text: "Explain", question_type: "essay", reference_answer: "Reference", options: {} };
   const run = createPracticeRun([essay], { examType: "MP", subject: "Fisiologi", questionType: "essay" });

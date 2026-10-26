@@ -65,10 +65,16 @@ vi.mock("@/lib/supabase/client", () => {
       select: vi.fn(() => builder),
       is: vi.fn(() => builder),
       order: vi.fn(() => {
+        if (table === "academic_question_review_state") return builder;
         const data = table === "academic_questions" ? mockDbQuestions : [];
         return Promise.resolve({ data, error: null });
       }),
       eq: vi.fn(() => builder),
+      gt: vi.fn(() => builder),
+      gte: vi.fn(() => builder),
+      lt: vi.fn(() => builder),
+      lte: vi.fn(() => builder),
+      in: vi.fn(() => builder),
       update: vi.fn(() => builder),
       insert: vi.fn(() => builder),
       single: vi.fn(() => Promise.resolve({ data: mockDbQuestions[0] || null, error: null })),
