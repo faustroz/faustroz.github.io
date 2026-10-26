@@ -55,6 +55,8 @@ describe("standalone Academic Practice page", () => {
     expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(0);
     fireEvent.change(screen.getByLabelText(/self-assessment essay/i), { target: { value: "no" } });
     await waitFor(() => expect(attemptUpdate).toHaveBeenCalledWith({ self_assessed: false }));
+    fireEvent.click(screen.getByRole("button", { name: "Again" }));
+    await waitFor(() => expect(attemptRate).toHaveBeenCalledWith("rate_academic_question_attempt", { p_attempt_id: "attempt-test", p_rating: "again" }));
   });
 
   it("resolves question images through a private signed URL at display time", async () => {
@@ -84,8 +86,8 @@ describe("standalone Academic Practice page", () => {
     expect(screen.getByText(/Belum tepat/i)).toBeInTheDocument();
     expect(screen.getByText(firstQuestion.explanation)).toBeInTheDocument();
     expect(screen.getByText(/Jawaban yang benar:/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Again" }));
-    await waitFor(() => expect(attemptRate).toHaveBeenCalledWith("rate_academic_question_attempt", { p_attempt_id: "attempt-test", p_rating: "again" }));
+    expect(screen.queryByRole("button", { name: "Again" })).not.toBeInTheDocument();
+    expect(attemptRate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: /NEXT QUESTION/i }));
     expect(await screen.findByText(secondQuestion.question_text)).toBeInTheDocument();

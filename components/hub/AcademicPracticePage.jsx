@@ -31,6 +31,7 @@ export default function AcademicPracticePage() {
   useEffect(() => { if (ready && run) writePracticeRun(window.sessionStorage, run); }, [ready, run]);
   const question = useMemo(() => run?.questions?.[run.index] || null, [run]);
   const essay = isEssay(question);
+  const questionType = question?.question_type || "mcq";
   const isCorrect = Boolean(run?.submitted && question && !essay && run.selectedAnswer === question.shuffledCorrectAnswer);
   const response = run?.responses?.[run.index];
 
@@ -109,11 +110,11 @@ export default function AcademicPracticePage() {
   }, [persistCompletion]);
 
   const saveReviewRating = useCallback(async (rating) => {
-    if (!response?.attemptId || response.reviewRating || savingRating) return;
+    if (!essay || !response?.attemptId || response.reviewRating || savingRating) return;
     setSavingRating(true);
     setAttemptMessage("");
     try {
-      await createQuestionRepository(requireSupabase()).rateAttempt(response.attemptId, rating);
+      await createQuestionRepository(requireSupabase()).rateAttempt(response.attemptId, rating, questionType);
       const responses = [...run.responses];
       responses[run.index] = { ...responses[run.index], reviewRating: rating, selfAssessed: essay ? (rating === "again" || essayAssessment === "no" ? false : true) : null };
       setRun({ ...run, responses });
@@ -123,7 +124,7 @@ export default function AcademicPracticePage() {
       console.error("Failed to save academic review rating:", error);
       setAttemptMessage("Jadwal review gagal disimpan. Coba pilih rating lagi.");
     } finally { setSavingRating(false); }
-  }, [essay, essayAssessment, response, run, savingRating]);
+  }, [essay, essayAssessment, questionType, response, run, savingRating]);
 
   const nextQuestion = () => {
     if (!run?.submitted) return;
@@ -249,11 +250,11 @@ export default function AcademicPracticePage() {
           return <button key={option} type="button" role="radio" aria-checked={selected} disabled={run.submitted} className={classes.join(" ")} onClick={() => updateAnswer("selectedAnswer", option)}><span className="academic-practice__option-letter">{option}</span><span className="academic-practice__option-text">{question.shuffledOptions[option]}</span>{run.submitted && correctOption && <Check size={17} aria-label="Jawaban benar" />}{wrongSelected && <CircleAlert size={17} aria-label="Jawaban Anda salah" />}</button>;
         })}
         {run.submitted && <div className={"academic-practice__feedback " + (isCorrect ? "is-correct" : "is-wrong")}><p className="academic-practice__feedback-title">{isCorrect ? "Jawaban benar" : "Belum tepat"}</p>{!isCorrect && <p><span>Jawaban yang benar:</span> <strong>{question.shuffledCorrectAnswer}. {question.shuffledOptions[question.shuffledCorrectAnswer]}</strong></p>}{question.explanation && <p className="academic-practice__explanation">{question.explanation}</p>}</div>}
-        {run.submitted && <div className="academic-practice__review-rating" aria-label="Nilai tingkat ingatan">
-          <p>Seberapa mudah Anda mengingatnya?</p>
-          <div>{[["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]].map(([value, label]) => <button key={value} type="button" aria-pressed={response?.reviewRating === value} disabled={!response?.attemptId || savingAttempt || savingRating || Boolean(response?.reviewRating)} onClick={() => saveReviewRating(value)}>{savingRating ? "Menyimpan…" : label}</button>)}</div>
-          {attemptMessage && <span className="academic-practice__save-state" aria-live="polite">{savingAttempt ? "Menyimpan jawaban…" : attemptMessage}</span>}
-        </div>}
+      </div>}
+      {run.submitted && essay && <div className="academic-practice__review-rating" aria-label="Nilai tingkat ingatan">
+        <p>Seberapa mudah Anda mengingatnya?</p>
+        <div>{[["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]].map(([value, label]) => <button key={value} type="button" aria-pressed={response?.reviewRating === value} disabled={!response?.attemptId || savingAttempt || savingRating || Boolean(response?.reviewRating)} onClick={() => saveReviewRating(value)}>{savingRating ? "Menyimpan…" : label}</button>)}</div>
+        {attemptMessage && <span className="academic-practice__save-state" aria-live="polite">{savingAttempt ? "Menyimpan jawaban…" : attemptMessage}</span>}
       </div>}
       <div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Periksa jawaban"} <ArrowRight size={16} /></button></> : <button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button>}</div>
     </section>

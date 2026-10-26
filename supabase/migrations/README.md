@@ -34,6 +34,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 034 | `034-question-bank-block-categories.sql` | Allow owners to manage reusable Question Bank block options | 032 |
 | 035 | `035-academic-review-schedule.sql` | Persist owner-scoped mistakes and SM-2 inspired review schedules from Question Bank attempts | 031, 032 |
 | 036 | `036-academic-practice-history.sql` | Reuse owner-private exam sessions for untimed practice history and completion snapshots | 031 |
+| 037 | `037-essay-only-spaced-repetition.sql` | Restrict spaced-repetition ratings to essay attempts while preserving MCQ mistake history | 035 |
 
 ## Safety notes
 
@@ -46,4 +47,5 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 - OSINT lookup results remain non-persistent. Migration 024 stores only findings the owner explicitly adds to a case; case deletion is permanent and cascades to its findings.
 - Migration 035 adds private per-question review schedules; all historical answers remain in `academic_question_attempts`. Apply it before using the new rating and scheduled-review controls.
 - Migration 036 is additive and preserves existing exam sessions. It makes planned duration optional for untimed practice and adds a session kind; apply it before starting sessions that should appear in the new practice history.
+- Migration 037 keeps MCQ mistakes in Review Mistakes but limits scheduled/due reviews and recall ratings to essay questions; existing attempt and mistake history is preserved.
 - Question Bank JSON backup excludes owner IDs, signed URLs, and image file bytes. It keeps private image storage paths only; restore adds questions without deleting or replacing existing records.
