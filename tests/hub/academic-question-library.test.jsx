@@ -159,6 +159,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     // Practice mode is active by default
     expect(screen.getByRole("tab", { name: /practice/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("button", { name: /mulai latihan/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/jumlah soal latihan/i)).not.toBeInTheDocument();
 
     // Switch to LIBRARY tab
     const libraryTab = screen.getByRole("tab", { name: /library/i });

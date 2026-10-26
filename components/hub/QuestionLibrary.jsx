@@ -94,7 +94,6 @@ export default function QuestionLibrary() {
   const [practiceExamType, setPracticeExamType] = useState("");
   const [practiceSubject, setPracticeSubject] = useState("");
   const [practiceFormat, setPracticeFormat] = useState("");
-  const [practiceCount, setPracticeCount] = useState("all");
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [imagePreview, setImagePreview] = useState("");
   const [categoryManagerKind, setCategoryManagerKind] = useState("");
@@ -209,7 +208,6 @@ export default function QuestionLibrary() {
     setPracticeSubject(savedFilters.subject);
     setPracticeTopic(savedFilters.topic);
     setPracticeFormat(savedFilters.questionType);
-    setPracticeCount(savedFilters.count);
   }, []);
 
   const loadMistakes = useCallback(async () => {
@@ -313,7 +311,7 @@ export default function QuestionLibrary() {
   const startPractice = async (targetQuestions = null, reviewKind = "") => {
     if (!repository) { setNotification("Supabase belum terhubung. Sesi latihan tidak dapat dicatat."); return; }
     const filteredPool = targetQuestions || matchingPracticeQuestions;
-    const pool = practiceCount === "all" || targetQuestions ? filteredPool : filteredPool.slice(0, Math.max(1, Number(practiceCount) || filteredPool.length));
+    const pool = filteredPool;
     if (!pool.length) return;
     const startedAt = new Date().toISOString();
     const selection = { examType: practiceExamType, subject: practiceSubject, block: practiceBlock, topic: practiceTopic, questionType: practiceFormat, reviewKind, startedAt };
@@ -341,7 +339,7 @@ export default function QuestionLibrary() {
       setNotification("Sesi latihan tidak dapat disiapkan. Periksa penyimpanan browser lalu coba lagi.");
       return;
     }
-    if (!writePracticeFilters(window.sessionStorage, { examType: practiceExamType, block: practiceBlock, subject: practiceSubject, topic: practiceTopic, questionType: practiceFormat, count: practiceCount })) {
+    if (!writePracticeFilters(window.sessionStorage, { examType: practiceExamType, block: practiceBlock, subject: practiceSubject, topic: practiceTopic, questionType: practiceFormat })) {
       window.sessionStorage.removeItem(PRACTICE_RUN_STORAGE_KEY);
       if (session.sessionId) repository.abandonSession(session.sessionId).catch(() => {});
       setNotification("Pilihan latihan tidak dapat disimpan. Periksa penyimpanan browser lalu coba lagi.");
@@ -996,13 +994,6 @@ export default function QuestionLibrary() {
                       <option value="">MCQ + Essay</option><option value="mcq">Hanya MCQ</option><option value="essay">Hanya Essay</option>
                     </select>
                   </label>
-                  <label style={{ display: "grid", gap: "0.3rem" }}>
-                    <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>JUMLAH SOAL</span>
-                    <select aria-label="Jumlah soal latihan" value={practiceCount} onChange={(e) => setPracticeCount(e.target.value)} style={{ padding: "0.65rem 0.75rem", border: "1px solid var(--hub-line)", background: "var(--hub-panel-raised)", color: "var(--hub-text)", borderRadius: "6px", fontSize: "16px", minHeight: "44px" }}>
-                      <option value="all">Semua soal tersedia</option>{[10, 20, 30, 50].map((count) => <option key={count} value={count}>{count} soal</option>)}
-                    </select>
-                  </label>
-
                   {filterOptions.topics.length > 0 && (
                     <label style={{ display: "grid", gap: "0.3rem" }}>
                       <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
@@ -1025,7 +1016,7 @@ export default function QuestionLibrary() {
 
                 <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
                   <span style={{ fontSize: "0.75rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
-                    {matchingPracticeQuestions.length} SOAL TERSEDIA{practiceCount !== "all" && matchingPracticeQuestions.length < Number(practiceCount) ? " · sesi berisi " + matchingPracticeQuestions.length + " soal" : ""}
+                    {matchingPracticeQuestions.length} SOAL TERSEDIA
                   </span>
 
                   <button
