@@ -365,6 +365,17 @@ test("quality review validates batch questions and flags normalized existing and
   assert.equal(reviewQuestionQuality([{ ...base, block: "" }]).errors.length, 1);
 });
 
+test("essay duplicate checks distinguish shared prompts with different reference answers", () => {
+  const essay = { question_type: "essay", block: "Hepatobilier", subject: "PK", topic: "Bilirubin", question_text: "Jelaskan interpretasi hasil pemeriksaan.", reference_answer: "Interpretasi A" };
+  const reviewed = reviewQuestionQuality([
+    { ...essay, reference_answer: "Interpretasi B" },
+    { ...essay, reference_answer: " interpretasi   b " },
+  ], [essay]);
+
+  assert.equal(reviewed.valid.length, 2);
+  assert.deepEqual(reviewed.warnings.map(({ rowNumber }) => rowNumber), [2]);
+});
+
 test("CSV export round-trips all supported question metadata and marks possible duplicates", () => {
   const question = { question_type: "essay", block: "Hepatobilier", subject: "PK", question_text: "Jelaskan, singkat", reference_answer: "Jawaban", difficulty: "hard", image_path: "owner/q.webp", is_bookmarked: true, tags: ["bilirubin"] };
   const csv = generateQuestionCsv([question]);
