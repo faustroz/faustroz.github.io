@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createImageOcclusionRun, createImageOcclusionRepository, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
 
-const emptyDraft = () => ({ id: null, title: "", mode: "hide_one", imagePath: "", imageFile: null, imageUrl: "", masks: [] });
+const emptyDraft = () => ({ id: null, title: "", mode: "hide_one", answerMode: "answer", imagePath: "", imageFile: null, imageUrl: "", masks: [] });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function normalizedPoint(event, element) {
@@ -21,12 +21,13 @@ function makeRect(start, end) {
   return { x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) };
 }
 
-function MaskPreview({ imageUrl, masks, targetIndex, mode = "hide_one" }) {
+function MaskPreview({ imageUrl, masks, targetIndex, mode = "hide_one", answerMode = "answer" }) {
   return <div className="hub-occlusion-preview-image">
     <img src={imageUrl} alt="Preview kartu Image Occlusion" />
     <div className="hub-occlusion-preview-mask-layer">{masks.map((mask, index) => {
       const reveal = mode === "hide_one" && index !== targetIndex;
-      return <div key={mask.id || index} className={`hub-occlusion-mask${reveal ? " is-revealed" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }}>{reveal ? mask.answer : index + 1}</div>;
+      const maskOnlyOpen = reveal && answerMode === "mask_only";
+      return <div key={mask.id || index} className={`hub-occlusion-mask${reveal && !maskOnlyOpen ? " is-revealed" : ""}${maskOnlyOpen ? " is-open" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }}>{reveal ? (answerMode === "answer" ? mask.answer : "") : index + 1}</div>;
     })}</div>
   </div>;
 }
@@ -95,7 +96,7 @@ export default function ImageOcclusionWorkspace() {
   const startNew = () => { setDraft(emptyDraft()); setPast([]); setFuture([]); setSelectedMaskId(""); setPreviewOpen(false); setStatus(""); setError(""); };
   const editSet = (set) => {
     const masks = set.cards.map(({ id, position, x, y, width, height, answer }) => ({ id, position, x: Number(x), y: Number(y), width: Number(width), height: Number(height), answer }));
-    setDraft({ id: set.id, title: set.title, mode: set.mode, imagePath: set.image_path, imageFile: null, imageUrl: set.imageUrl, masks });
+    setDraft({ id: set.id, title: set.title, mode: set.mode, answerMode: set.answer_mode || "answer", imagePath: set.image_path, imageFile: null, imageUrl: set.imageUrl, masks });
     masksRef.current = masks; setPast([]); setFuture([]); setSelectedMaskId(masks[0]?.id || ""); setPreviewOpen(false); setStatus(""); setError("");
   };
 
@@ -177,7 +178,7 @@ export default function ImageOcclusionWorkspace() {
     if (!draft || saving) return;
     setSaving(true); setError(""); setStatus("");
     try {
-      const result = await repository.saveSet({ id: draft.id, title: draft.title, mode: draft.mode, imagePath: draft.imagePath, imageFile: draft.imageFile, masks: draft.masks });
+      const result = await repository.saveSet({ id: draft.id, title: draft.title, mode: draft.mode, answerMode: draft.answerMode, imagePath: draft.imagePath, imageFile: draft.imageFile, masks: draft.masks });
       setStatus(`Kumpulan “${result.title}” tersimpan dengan ${draft.masks.length} kartu.`);
       setDraft(null); setSelectedMaskId(""); setPreviewOpen(false); await load();
     } catch (saveError) { setError(saveError?.message || "Kumpulan gagal disimpan."); }
@@ -214,8 +215,9 @@ export default function ImageOcclusionWorkspace() {
       <div className="hub-occlusion-form-grid">
         <label><span>Nama kumpulan</span><input value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Contoh: Anatomi hepatobilier" /></label>
         <label><span>Mode kartu</span><select value={draft.mode} onChange={(event) => setDraft({ ...draft, mode: event.target.value })}><option value="hide_one">Hide One · satu mask per kartu</option><option value="hide_all">Hide All · semua mask tertutup</option></select></label>
+        <label><span>Konten kartu</span><select value={draft.answerMode} onChange={(event) => setDraft({ ...draft, answerMode: event.target.value })}><option value="answer">Mask + jawaban</option><option value="mask_only">Mask saja · tanpa jawaban teks</option></select></label>
       </div>
-      <div className="hub-occlusion-upload-row"><input ref={fileInputRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFile(event.target.files?.[0])} aria-label="Upload gambar PNG atau JPG" /><span>PNG / JPG · maksimal 5 MB · gambar privat di Supabase Storage.</span></div>
+      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFile(event.target.files?.[0])} aria-label="Upload gambar PNG atau JPG" /><ImagePlus size={15} /><span>{draft.imageFile?.name || (draft.imageUrl ? "Ganti gambar" : "Pilih file gambar")}</span></label><span>PNG / JPG · maksimal 5 MB · gambar privat di Supabase Storage.</span></div>
 
       {imageUrl ? <div className="hub-occlusion-editor-layout">
         <div className="hub-occlusion-stage-column">
@@ -230,18 +232,18 @@ export default function ImageOcclusionWorkspace() {
         </div>
         <aside className="hub-occlusion-mask-details">
           <span>MASK DETAILS</span>
-          {!selectedMask ? <p>Pilih mask atau buat area baru di gambar.</p> : <><label><span>Jawaban / label mask {draft.masks.findIndex((mask) => mask.id === selectedMask.id) + 1}</span><textarea rows={4} value={selectedMask.answer} onChange={(event) => updateSelectedAnswer(event.target.value)} placeholder="Isi jawaban yang akan di-reveal" /></label><small>Posisi tersimpan relatif terhadap ukuran gambar.</small></>}
+          {!selectedMask ? <p>Pilih mask atau buat area baru di gambar.</p> : <>{draft.answerMode === "answer" ? <label><span>Jawaban / label mask {draft.masks.findIndex((mask) => mask.id === selectedMask.id) + 1}</span><textarea rows={4} value={selectedMask.answer} onChange={(event) => updateSelectedAnswer(event.target.value)} placeholder="Isi jawaban yang akan di-reveal" /></label> : <p>Mode mask saja aktif. Reveal akan membuka area gambar tanpa menampilkan jawaban teks.</p>}<small>Posisi tersimpan relatif terhadap ukuran gambar.</small></>}
         </aside>
       </div> : <button type="button" className="hub-occlusion-empty-upload" onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /><span>Pilih gambar untuk mulai membuat mask</span></button>}
 
       <footer className="hub-occlusion-editor-actions"><span>{draft.masks.length} kartu akan dihasilkan dari mask yang dibuat.</span><div><button type="button" className="hub-question-tool-button" disabled={!draft.masks.length || !imageUrl} onClick={() => setPreviewOpen(!previewOpen)}>{previewOpen ? "Tutup preview" : "Preview kartu"}</button><button type="button" className="hub-question-add-button" disabled={saving || !imageUrl || !draft.masks.length} onClick={save}><Save size={15} />{saving ? "Menyimpan…" : "Simpan kumpulan"}</button></div></footer>
-      {previewOpen && imageUrl && <div className="hub-occlusion-card-preview-grid" aria-label="Preview semua kartu">{draft.masks.map((mask, index) => <article key={mask.id}><div className="hub-occlusion-card-preview-label">{String(index + 1).padStart(2, "0")} / {draft.masks.length}</div><MaskPreview imageUrl={imageUrl} masks={draft.masks} targetIndex={index} mode={draft.mode} /><strong>{mask.answer || "Jawaban belum diisi"}</strong><small>{draft.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"}</small></article>)}</div>}
+      {previewOpen && imageUrl && <div className="hub-occlusion-card-preview-grid" aria-label="Preview semua kartu">{draft.masks.map((mask, index) => <article key={mask.id}><div className="hub-occlusion-card-preview-label">{String(index + 1).padStart(2, "0")} / {draft.masks.length}</div><MaskPreview imageUrl={imageUrl} masks={draft.masks} targetIndex={index} mode={draft.mode} answerMode={draft.answerMode} /><strong>{draft.answerMode === "answer" ? mask.answer || "Jawaban belum diisi" : "Mask saja · tanpa jawaban teks"}</strong><small>{draft.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"}</small></article>)}</div>}
     </section>}
 
     <div className="hub-occlusion-library-heading"><span>IMAGE SETS</span><span>{sets.length} KUMPULAN</span></div>
     {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-data-state hub-question-empty-state"><span>BELUM ADA IMAGE OCCLUSION</span><p>Unggah gambar untuk mulai membuat kartu berbasis mask.</p><button type="button" className="hub-primary-action" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : <div className="hub-occlusion-set-list">{sets.map((set) => {
       const dueCount = set.cards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= Date.now()).length;
-      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"} · {set.cards.length} KARTU</span><h4>{set.title}</h4><small>{set.cards.filter((card) => card.reviewState?.mastered).length} dikuasai · {dueCount} jatuh tempo</small></div><div className="hub-occlusion-set-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!set.cards.length} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" aria-label={`Review kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review {dueCount}</button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></article>;
+      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"} · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.cards.length} KARTU</span><h4>{set.title}</h4><small>{set.cards.filter((card) => card.reviewState?.mastered).length} dikuasai · {dueCount} jatuh tempo</small></div><div className="hub-occlusion-set-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!set.cards.length} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" aria-label={`Review kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review {dueCount}</button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></article>;
     })}</div>}
   </section>;
 }

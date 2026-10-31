@@ -14,16 +14,30 @@ test("Image Occlusion masks require normalized bounds and an answer per card", (
   assert.throws(() => validateOcclusionMasks([{ ...cards[0], answer: " " }]), /Jawaban mask/);
 });
 
+test("mask-only cards may omit text answers while answer mode still requires them", () => {
+  const masks = validateOcclusionMasks([{ ...cards[0], answer: "" }], "mask_only");
+  assert.equal(masks[0].answer, null);
+  assert.throws(() => validateOcclusionMasks([{ ...cards[0], answer: "" }], "answer"), /Jawaban mask/);
+  assert.throws(() => validateOcclusionMasks(cards, "unknown"), /mode jawaban/i);
+});
+
 test("Hide One is default, Hide All persists, and study runs round-trip without losing per-card schedule", () => {
   const set = { id: "set-1", title: "Anatomi", image_path: "owner/occlusion/a.png" };
   const run = createImageOcclusionRun(set, cards);
   assert.equal(run.mode, "hide_one");
+  assert.equal(run.answerMode, "answer");
   assert.equal(run.cards.length, 2);
   assert.equal(run.cards[0].reviewState, null);
   const hideAll = createImageOcclusionRun(set, cards, "hide_all");
   const storage = new Map();
   assert.equal(writeImageOcclusionRun({ setItem: (key, value) => storage.set(key, value) }, hideAll), true);
   assert.equal(readImageOcclusionRun({ getItem: (key) => storage.get(key) }).mode, "hide_all");
+  const maskOnlyRun = createImageOcclusionRun({ ...set, answer_mode: "mask_only" }, [{ ...cards[0], answer: null }]);
+  assert.equal(maskOnlyRun.answerMode, "mask_only");
+  assert.equal(maskOnlyRun.cards[0].answer, null);
+  const legacyRun = { ...run };
+  delete legacyRun.answerMode;
+  assert.equal(isValidImageOcclusionRun(legacyRun), true);
   assert.equal(isValidImageOcclusionRun({ ...hideAll, index: 9 }), false);
 });
 
@@ -38,4 +52,22 @@ test("Image Occlusion migration is private and does not erase old Question Bank 
   assert.match(sql, /drop trigger if exists track_academic_question_attempt/i);
   assert.match(sql, /revoke all on function public\.rate_academic_question_attempt/i);
   assert.doesNotMatch(sql, /delete\s+from\s+public\.academic_question_attempts|delete\s+from\s+public\.academic_question_review_state|truncate\s+table/i);
+});
+
+test("mask-only migration preserves old answer data and accepts null card answers", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/039-image-occlusion-mask-only.sql", import.meta.url), "utf8");
+  assert.match(sql, /add column if not exists answer_mode text not null default 'answer'/i);
+  assert.match(sql, /alter column answer drop not null/i);
+  assert.match(sql, /answer is null or length\(trim\(answer\)\)/i);
+  assert.doesNotMatch(sql, /delete\s+from|truncate\s+table|drop\s+table/i);
+});
+
+test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
+  const study = await readFile(new URL("../../components/hub/ImageOcclusionStudyPage.jsx", import.meta.url), "utf8");
+  const editor = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
+  assert.match(study, /event\.code !== "Space"/);
+  assert.match(study, /aria-keyshortcuts="Space"/);
+  assert.match(study, /Area gambar terbuka/);
+  assert.match(editor, /value="answer">Mask \+ jawaban/);
+  assert.match(editor, /value="mask_only">Mask saja/);
 });
