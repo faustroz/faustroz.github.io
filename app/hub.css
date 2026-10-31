@@ -343,7 +343,8 @@ body {
 .hub-occlusion-mask.is-selected { outline: 2px solid var(--hub-accent); outline-offset: 1px; }
 .hub-occlusion-mask.is-revealed { background: rgba(21, 30, 29, .9); }
 .hub-occlusion-mask.is-open { border-color: transparent; background: transparent; color: transparent; box-shadow: none; }
-.hub-occlusion-study-image .hub-occlusion-mask.is-current { z-index:1; border:2px solid var(--hub-accent); background:var(--hub-accent); color:#101412; box-shadow:0 0 0 2px rgba(100,239,173,.28); font-weight:700; }
+.hub-occlusion-study-image .hub-occlusion-mask.is-current { z-index:1; overflow:visible; border:2px solid var(--hub-accent); background:var(--hub-accent); color:#101412; box-shadow:0 0 0 2px rgba(100,239,173,.28); font-weight:700; }
+.hub-occlusion-study-mask-number { position:absolute; z-index:2; top:50%; left:50%; display:grid; place-items:center; width:1.6rem; height:1.6rem; transform:translate(-50%,-50%); border:1px solid #fff; border-radius:4px; background:#101412; color:#fff; font-size:.85rem; line-height:1; }
 .hub-occlusion-study-image .hub-occlusion-mask.is-current.is-revealed { background:rgba(21,30,29,.92); color:var(--hub-text); }
 .hub-occlusion-study-image .hub-occlusion-mask.is-current.is-open { border-color:var(--hub-accent); background:rgba(100,239,173,.12); color:transparent; }
 .hub-occlusion-handle { position: absolute; width: 12px; height: 12px; border: 1px solid #fff; border-radius: 50%; background: var(--hub-accent); }
