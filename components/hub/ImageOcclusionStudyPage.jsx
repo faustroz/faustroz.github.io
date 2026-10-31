@@ -14,9 +14,9 @@ export default function ImageOcclusionStudyPage() {
   const [run, setRun] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [pendingRatings, setPendingRatings] = useState(() => new Set());
   const [error, setError] = useState("");
-  const ratingLock = useRef(false);
+  const ratingLock = useRef(new Set());
   const card = run?.cards?.[run.index];
   const activeImagePath = card?.imagePath || run?.imagePath;
   useEffect(() => { setRun(readImageOcclusionRun(window.sessionStorage)); setReady(true); }, []);
@@ -46,14 +46,23 @@ export default function ImageOcclusionStudyPage() {
   const progress = run ? Math.round(((run.index + 1) / run.cards.length) * 100) : 0;
   const next = (index) => setRun((current) => ({ ...current, index, responses: current.responses.map((item) => ({ ...item, revealed: false })) }));
   const rate = async (rating) => {
-    if (!card || busy || ratingLock.current || response?.rating) return;
-    ratingLock.current = true;
-    setBusy(true); setError("");
+    if (!card || ratingLock.current.has(card.id) || response?.rating) return;
+    const targetCardId = card.id;
+    const targetIndex = run.index;
+    ratingLock.current.add(targetCardId);
+    setPendingRatings((current) => new Set(current).add(targetCardId));
+    setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex ? { ...item, rating } : item) }));
+    setError("");
     try {
-      const result = await createImageOcclusionRepository(requireSupabase()).rateCard(card.id, rating);
-      setRun((current) => ({ ...current, cards: current.cards.map((item, i) => i === current.index ? { ...item, reviewState: result.state } : item), responses: current.responses.map((item, i) => i === current.index ? { ...item, rating } : item) }));
-    } catch (saveError) { setError(saveError?.message || "Rating belum tersimpan. Silakan coba lagi."); }
-    finally { ratingLock.current = false; setBusy(false); }
+      const result = await createImageOcclusionRepository(requireSupabase()).rateCard(targetCardId, rating);
+      setRun((current) => ({ ...current, cards: current.cards.map((item) => item.id === targetCardId ? { ...item, reviewState: result.state } : item) }));
+    } catch (saveError) {
+      setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex && item.rating === rating ? { ...item, rating: null } : item) }));
+      setError(`Rating kartu ${String(targetIndex + 1).padStart(2, "0")} belum tersimpan. ${saveError?.message || "Silakan coba lagi."}`);
+    } finally {
+      ratingLock.current.delete(targetCardId);
+      setPendingRatings((current) => { const next = new Set(current); next.delete(targetCardId); return next; });
+    }
   };
 
   const maskOnly = (run?.answerMode || "answer") === "mask_only";
@@ -75,7 +84,7 @@ export default function ImageOcclusionStudyPage() {
       <p className="hub-occlusion-study-instruction">Coba ingat bagian yang tertutup, lalu tekan Space atau tombol Reveal.</p>
       {imageUrl ? <div className="hub-occlusion-study-image"><img src={imageUrl} alt="Gambar belajar dengan bagian tertutup" />{masks.map((mask) => maskOnly && mask.open ? null : <div key={mask.id} className={`hub-occlusion-mask${mask.id === card.id ? " is-current" : ""}${mask.open && !maskOnly ? " is-revealed" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }}>{mask.open ? mask.answer : mask.id === card.id ? <span className="hub-occlusion-study-mask-number">{mask.index + 1}</span> : mask.index + 1}</div>)}</div> : <p role="alert">Gambar privat tidak dapat dimuat. Periksa koneksi dan coba kembali.</p>}
       <div className="hub-occlusion-study-answer"><span>MASK {String(run.index + 1).padStart(2, "0")}</span>{response?.revealed ? (maskOnly ? <strong>Area gambar terbuka · tanpa jawaban teks</strong> : <strong>{card.answer}</strong>) : <button type="button" className="hub-question-tool-button" aria-keyshortcuts="Space" onClick={() => setRun((current) => ({ ...current, responses: current.responses.map((item, i) => i === current.index ? { ...item, revealed: true } : item) }))}><Eye size={15} /> {maskOnly ? "Buka area · Space" : "Reveal jawaban · Space"}</button>}</div>
-      {response?.revealed && <div className="hub-occlusion-study-rating"><span>{response.rating ? `Tersimpan: ${response.rating.toUpperCase()}` : "Seberapa baik Anda mengingatnya?"}</span><div>{ratings.map(([value, label]) => <button type="button" key={value} disabled={busy || Boolean(response.rating)} aria-pressed={response.rating === value} onClick={() => rate(value)}>{busy ? "Menyimpan..." : label}</button>)}</div></div>}
+      {response?.revealed && <div className="hub-occlusion-study-rating"><span aria-live="polite">{response.rating ? `${pendingRatings.has(card.id) ? "Dipilih" : "Tersimpan"}: ${response.rating.toUpperCase()}` : "Seberapa baik Anda mengingatnya?"}</span><div>{ratings.map(([value, label]) => <button type="button" key={value} disabled={pendingRatings.has(card.id) || Boolean(response.rating)} aria-pressed={response.rating === value} onClick={() => rate(value)}>{label}</button>)}</div></div>}
       {error && <p className="hub-data-error" role="alert">{error}</p>}
       <nav className="hub-occlusion-study-nav" aria-label="Navigasi kartu"><button type="button" className="hub-question-tool-button" disabled={run.index === 0} onClick={() => next(run.index - 1)}><ArrowLeft size={15} /> Sebelumnya</button><span>{run.cards.length} kartu</span><button type="button" className="hub-question-add-button" onClick={() => run.index === run.cards.length - 1 ? router.push("/academic") : next(run.index + 1)}>{run.index === run.cards.length - 1 ? "Selesai" : <>Berikutnya <ArrowRight size={15} /></>}</button></nav>
       {run.cards.length === 1 && <p className="hub-occlusion-study-single"><RotateCcw size={14} /> Satu kartu dalam sesi ini</p>}

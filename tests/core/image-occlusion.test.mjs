@@ -86,6 +86,9 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   const study = await readFile(new URL("../../components/hub/ImageOcclusionStudyPage.jsx", import.meta.url), "utf8");
   const editor = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
   assert.match(study, /event\.code !== "Space"/);
+  assert.match(study, /pendingRatings/);
+  assert.match(study, /index === targetIndex \? \{ \.\.\.item, rating \}/);
+  assert.doesNotMatch(study, /Menyimpan\.\.\./);
   assert.match(study, /maskOnly && mask\.open \? null :/);
   assert.match(study, /responses\.map\(\(item\) => \(\{ \.\.\.item, revealed: false \}\)\)/);
   assert.match(study, /mask\.id === card\.id \? " is-current"/);
