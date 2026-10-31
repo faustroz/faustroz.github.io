@@ -62,6 +62,26 @@ test("mask-only migration preserves old answer data and accepts null card answer
   assert.doesNotMatch(sql, /delete\s+from|truncate\s+table|drop\s+table/i);
 });
 
+test("multi-image migration backfills legacy collections and scopes image ownership", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/040-image-occlusion-multiple-images.sql", import.meta.url), "utf8");
+  assert.match(sql, /academic_image_occlusion_images/);
+  assert.match(sql, /select user_id, id, image_path, 0\s+from public\.academic_image_occlusion_sets/i);
+  assert.match(sql, /update public\.academic_image_occlusion_cards[\s\S]*set image_id = image\.id/i);
+  assert.match(sql, /foreign key \(user_id, image_id\)[\s\S]*references public\.academic_image_occlusion_images\(user_id, id\)[\s\S]*on delete cascade/i);
+  assert.match(sql, /auth\.uid\(\) = user_id/);
+  assert.doesNotMatch(sql, /delete\s+from|truncate\s+table|drop\s+table/i);
+});
+
+test("Image Occlusion runs retain a separate source image path per card", () => {
+  const set = { id: "set-1", title: "Anatomi", image_path: "owner/occlusion/a.png", images: [{ image_path: "owner/occlusion/a.png" }] };
+  const run = createImageOcclusionRun(set, [
+    { ...cards[0], image_id: "image-a", image_path: "owner/occlusion/a.png" },
+    { ...cards[1], image_id: "image-b", image_path: "owner/occlusion/b.png" },
+  ]);
+  assert.equal(run.cards[0].imagePath, "owner/occlusion/a.png");
+  assert.equal(run.cards[1].imagePath, "owner/occlusion/b.png");
+});
+
 test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
   const study = await readFile(new URL("../../components/hub/ImageOcclusionStudyPage.jsx", import.meta.url), "utf8");
   const editor = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
@@ -70,4 +90,6 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /Area gambar terbuka/);
   assert.match(editor, /value="answer">Mask \+ jawaban/);
   assert.match(editor, /value="mask_only">Mask saja/);
+  assert.match(editor, /multiple accept="image\/png,image\/jpeg/);
+  assert.match(editor, /hub-occlusion-image-strip/);
 });

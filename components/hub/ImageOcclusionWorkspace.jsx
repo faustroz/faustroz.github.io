@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createImageOcclusionRun, createImageOcclusionRepository, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
 
-const emptyDraft = () => ({ id: null, title: "", mode: "hide_one", answerMode: "answer", imagePath: "", imageFile: null, imageUrl: "", masks: [] });
+const emptyDraft = () => ({ id: null, title: "", mode: "hide_one", answerMode: "answer", activeImageId: null, images: [] });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function normalizedPoint(event, element) {
@@ -42,7 +42,6 @@ export default function ImageOcclusionWorkspace() {
   const [draft, setDraft] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedMaskId, setSelectedMaskId] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [interaction, setInteraction] = useState(null);
   const [past, setPast] = useState([]);
@@ -51,6 +50,15 @@ export default function ImageOcclusionWorkspace() {
   const masksRef = useRef([]);
   const interactionRef = useRef(null);
   const fileInputRef = useRef(null);
+  const objectUrlsRef = useRef(new Map());
+
+  const releaseDraftUrls = (images = []) => {
+    for (const image of images) {
+      const url = objectUrlsRef.current.get(image.id);
+      if (url) URL.revokeObjectURL(url);
+      objectUrlsRef.current.delete(image.id);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -58,8 +66,12 @@ export default function ImageOcclusionWorkspace() {
       const data = await repository.listSets();
       const client = requireSupabase();
       const nextSets = await Promise.all(data.map(async (set) => {
-        const { data: signed, error: signError } = await client.storage.from("academic-question-images").createSignedUrl(set.image_path, 3600);
-        return { ...set, imageUrl: signError ? "" : signed?.signedUrl || "" };
+        const sourceImages = set.images?.length ? set.images : [{ id: null, image_path: set.image_path, cards: set.cards }];
+        const images = await Promise.all(sourceImages.map(async (image) => {
+          const { data: signed, error: signError } = await client.storage.from("academic-question-images").createSignedUrl(image.image_path, 3600);
+          return { ...image, imageUrl: signError ? "" : signed?.signedUrl || "" };
+        }));
+        return { ...set, images, imageUrl: images[0]?.imageUrl || "" };
       }));
       setSets(nextSets);
     } catch (nextError) { setError(nextError?.message || "Kumpulan Image Occlusion gagal dimuat."); }
@@ -67,48 +79,85 @@ export default function ImageOcclusionWorkspace() {
   }, [repository]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!draft?.imageFile) { setImageUrl(draft?.imageUrl || ""); return undefined; }
-    const objectUrl = URL.createObjectURL(draft.imageFile);
-    setImageUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [draft?.imageFile, draft?.imageUrl]);
-  useEffect(() => { masksRef.current = draft?.masks || []; }, [draft?.masks]);
+  useEffect(() => () => {
+    for (const url of objectUrlsRef.current.values()) URL.revokeObjectURL(url);
+    objectUrlsRef.current.clear();
+  }, []);
 
-  const selectedMask = draft?.masks.find((mask) => mask.id === selectedMaskId) || null;
+  const activeImage = draft?.images.find((image) => image.id === draft.activeImageId) || draft?.images[0] || null;
+  const activeMasks = useMemo(() => activeImage?.masks || [], [activeImage]);
+  const allDraftMasks = draft?.images.reduce((total, image) => total + image.masks.length, 0) || 0;
+  useEffect(() => { masksRef.current = activeMasks; }, [activeMasks]);
+
+  const selectedMask = activeMasks.find((mask) => mask.id === selectedMaskId) || null;
   const changeMasks = (next) => {
     masksRef.current = next;
-    setDraft((current) => current ? { ...current, masks: next } : current);
+    setDraft((current) => current ? { ...current, images: current.images.map((image) => image.id === current.activeImageId ? { ...image, masks: next } : image) } : current);
   };
   const remember = (before) => { setPast((current) => [...current.slice(-39), before]); setFuture([]); };
   const undo = () => {
     if (!past.length || !draft) return;
     const nextPast = past.slice(0, -1);
     const previous = past[past.length - 1];
-    setFuture((current) => [draft.masks, ...current]); setPast(nextPast); changeMasks(previous);
+    setFuture((current) => [activeMasks, ...current]); setPast(nextPast); changeMasks(previous);
   };
   const redo = () => {
     if (!future.length || !draft) return;
     const [next, ...remaining] = future;
-    setPast((current) => [...current, draft.masks]); setFuture(remaining); changeMasks(next);
+    setPast((current) => [...current, activeMasks]); setFuture(remaining); changeMasks(next);
   };
 
-  const startNew = () => { setDraft(emptyDraft()); setPast([]); setFuture([]); setSelectedMaskId(""); setPreviewOpen(false); setStatus(""); setError(""); };
+  const startNew = () => { if (draft) releaseDraftUrls(draft.images); setDraft(emptyDraft()); setPast([]); setFuture([]); setSelectedMaskId(""); setPreviewOpen(false); setStatus(""); setError(""); };
   const editSet = (set) => {
-    const masks = set.cards.map(({ id, position, x, y, width, height, answer }) => ({ id, position, x: Number(x), y: Number(y), width: Number(width), height: Number(height), answer }));
-    setDraft({ id: set.id, title: set.title, mode: set.mode, answerMode: set.answer_mode || "answer", imagePath: set.image_path, imageFile: null, imageUrl: set.imageUrl, masks });
-    masksRef.current = masks; setPast([]); setFuture([]); setSelectedMaskId(masks[0]?.id || ""); setPreviewOpen(false); setStatus(""); setError("");
+    const images = (set.images?.length ? set.images : [{ id: null, image_path: set.image_path, imageUrl: set.imageUrl, cards: set.cards }]).map((image) => ({
+      id: image.id || `legacy-${set.id}`,
+      imageId: image.id,
+      imagePath: image.image_path,
+      imageFile: null,
+      imageUrl: image.imageUrl,
+      masks: (image.cards || set.cards.filter((card) => !card.image_id || card.image_id === image.id)).map(({ id, position, x, y, width, height, answer }) => ({ id, position, x: Number(x), y: Number(y), width: Number(width), height: Number(height), answer: answer || "" })),
+    }));
+    if (draft) releaseDraftUrls(draft.images);
+    const activeImageId = images[0]?.id || null;
+    setDraft({ id: set.id, title: set.title, mode: set.mode, answerMode: set.answer_mode || "answer", activeImageId, images });
+    masksRef.current = images[0]?.masks || []; setPast([]); setFuture([]); setSelectedMaskId(images[0]?.masks[0]?.id || ""); setPreviewOpen(false); setStatus(""); setError("");
   };
 
-  const handleFile = (file) => {
-    if (!file) return;
-    if (!IMAGE_OCCLUSION_MIME_TYPES.includes(file.type) || file.size > IMAGE_OCCLUSION_MAX_IMAGE_BYTES) {
-      setError("Pilih gambar PNG, JPG, atau JPEG dengan ukuran maksimal 5 MB.");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-    setError("");
-    setDraft((current) => ({ ...current, imageFile: file }));
+  const handleFiles = (fileList) => {
+    const files = [...(fileList || [])];
+    if (!files.length) return;
+    const valid = files.filter((file) => IMAGE_OCCLUSION_MIME_TYPES.includes(file.type) && file.size <= IMAGE_OCCLUSION_MAX_IMAGE_BYTES);
+    const invalidCount = files.length - valid.length;
+    const additions = valid.map((file) => {
+      const imageId = crypto.randomUUID();
+      const imageUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.set(imageId, imageUrl);
+      return { id: imageId, imageId: null, imagePath: "", imageFile: file, imageUrl, masks: [] };
+    });
+    setError(invalidCount ? `${invalidCount} file dilewati. Setiap gambar harus PNG, JPG, atau JPEG dan maksimal 5 MB.` : "");
+    setDraft((current) => {
+      if (!current) { releaseDraftUrls(additions); return current; }
+      const images = [...current.images, ...additions];
+      return { ...current, images, activeImageId: current.activeImageId || additions[0]?.id || null };
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const selectImage = (image) => {
+    setDraft((current) => current ? { ...current, activeImageId: image.id } : current);
+    masksRef.current = image.masks;
+    setSelectedMaskId(image.masks[0]?.id || "");
+    setPast([]); setFuture([]); setPreviewOpen(false);
+  };
+
+  const removeImage = (image) => {
+    if (image.masks.length && !window.confirm("Menghapus gambar ini juga menghapus mask, kartu, dan jadwal review terkait setelah disimpan. Lanjutkan?")) return;
+    const remaining = draft.images.filter((item) => item.id !== image.id);
+    releaseDraftUrls([image]);
+    const nextActive = image.id === activeImage?.id ? remaining[0] || null : activeImage;
+    setDraft((current) => current ? { ...current, images: remaining, activeImageId: nextActive?.id || null } : current);
+    masksRef.current = nextActive?.masks || [];
+    setSelectedMaskId(nextActive?.masks[0]?.id || ""); setPast([]); setFuture([]); setPreviewOpen(false);
   };
 
   const beginInteraction = (event, kind, mask = null, edge = "") => {
@@ -129,7 +178,7 @@ export default function ImageOcclusionWorkspace() {
   };
 
   const onStagePointerDown = (event) => {
-    if (!draft || !imageUrl || (event.target !== stageRef.current && event.target.tagName !== "IMG")) return;
+    if (!draft || !activeImage?.imageUrl || (event.target !== stageRef.current && event.target.tagName !== "IMG")) return;
     beginInteraction(event, "draw");
   };
   const onPointerMove = (event) => {
@@ -175,11 +224,15 @@ export default function ImageOcclusionWorkspace() {
   };
 
   const save = async () => {
-    if (!draft || saving) return;
+    if (!draft || saving || !draft.images.length || draft.images.some((image) => !image.masks.length)) return;
     setSaving(true); setError(""); setStatus("");
     try {
-      const result = await repository.saveSet({ id: draft.id, title: draft.title, mode: draft.mode, answerMode: draft.answerMode, imagePath: draft.imagePath, imageFile: draft.imageFile, masks: draft.masks });
-      setStatus(`Kumpulan “${result.title}” tersimpan dengan ${draft.masks.length} kartu.`);
+      const result = await repository.saveSet({
+        id: draft.id, title: draft.title, mode: draft.mode, answerMode: draft.answerMode,
+        images: draft.images.map((image) => ({ id: image.imageId, imagePath: image.imagePath, imageFile: image.imageFile, masks: image.masks })),
+      });
+      setStatus(`Kumpulan “${result.title}” tersimpan dengan ${allDraftMasks} kartu dari ${draft.images.length} gambar.`);
+      releaseDraftUrls(draft.images);
       setDraft(null); setSelectedMaskId(""); setPreviewOpen(false); await load();
     } catch (saveError) { setError(saveError?.message || "Kumpulan gagal disimpan."); }
     finally { setSaving(false); }
@@ -211,20 +264,22 @@ export default function ImageOcclusionWorkspace() {
     {error && <p className="hub-data-error" role="alert">{error}</p>}
 
     {draft && <section className="hub-occlusion-editor" aria-label="Image Occlusion editor">
-      <div className="hub-occlusion-editor-heading"><div><span>{draft.id ? "EDIT IMAGE SET" : "NEW IMAGE SET"}</span><h4>{draft.id ? "Edit kartu dan mask" : "Siapkan gambar"}</h4></div><button type="button" className="hub-occlusion-icon-button" aria-label="Tutup editor" onClick={() => { setDraft(null); setPreviewOpen(false); }}><X size={16} /></button></div>
+      <div className="hub-occlusion-editor-heading"><div><span>{draft.id ? "EDIT IMAGE SET" : "NEW IMAGE SET"}</span><h4>{draft.id ? "Edit kartu dan mask" : "Siapkan gambar"}</h4></div><button type="button" className="hub-occlusion-icon-button" aria-label="Tutup editor" onClick={() => { releaseDraftUrls(draft.images); setDraft(null); setPreviewOpen(false); }}><X size={16} /></button></div>
       <div className="hub-occlusion-form-grid">
         <label><span>Nama kumpulan</span><input value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Contoh: Anatomi hepatobilier" /></label>
         <label><span>Mode kartu</span><select value={draft.mode} onChange={(event) => setDraft({ ...draft, mode: event.target.value })}><option value="hide_one">Hide One · satu mask per kartu</option><option value="hide_all">Hide All · semua mask tertutup</option></select></label>
         <label><span>Konten kartu</span><select value={draft.answerMode} onChange={(event) => setDraft({ ...draft, answerMode: event.target.value })}><option value="answer">Mask + jawaban</option><option value="mask_only">Mask saja · tanpa jawaban teks</option></select></label>
       </div>
-      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFile(event.target.files?.[0])} aria-label="Upload gambar PNG atau JPG" /><ImagePlus size={15} /><span>{draft.imageFile?.name || (draft.imageUrl ? "Ganti gambar" : "Pilih file gambar")}</span></label><span>PNG / JPG · maksimal 5 MB · gambar privat di Supabase Storage.</span></div>
+      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih satu atau beberapa PNG / JPG sekaligus · maksimal 5 MB per gambar.</span></div>
 
-      {imageUrl ? <div className="hub-occlusion-editor-layout">
+      {draft.images.length > 0 && <div className="hub-occlusion-image-strip" aria-label="Gambar dalam kumpulan">{draft.images.map((image, index) => <div key={image.id} className={`hub-occlusion-image-chip${image.id === activeImage?.id ? " is-active" : ""}`}><button type="button" onClick={() => selectImage(image)} aria-pressed={image.id === activeImage?.id}><img src={image.imageUrl} alt="" /><span>{String(index + 1).padStart(2, "0")} · {image.imageFile?.name || `Gambar ${index + 1}`} · {image.masks.length} mask</span></button><button type="button" className="hub-occlusion-remove-image" aria-label={`Hapus gambar ${index + 1}`} onClick={() => removeImage(image)}><X size={14} /></button></div>)}</div>}
+
+      {activeImage?.imageUrl ? <div className="hub-occlusion-editor-layout">
         <div className="hub-occlusion-stage-column">
-          <div className="hub-occlusion-tools"><span>{draft.masks.length} MASK / {draft.masks.length} KARTU</span><div><button type="button" aria-label="Undo" title="Undo" disabled={!past.length} onClick={undo}><Undo2 size={15} /></button><button type="button" aria-label="Redo" title="Redo" disabled={!future.length} onClick={redo}><Redo2 size={15} /></button><button type="button" disabled={!selectedMask} onClick={removeSelectedMask}><Trash2 size={14} /> Hapus mask</button></div></div>
+          <div className="hub-occlusion-tools"><span>GAMBAR {String(draft.images.findIndex((image) => image.id === activeImage.id) + 1).padStart(2, "0")} · {activeMasks.length} MASK / KARTU</span><div><button type="button" aria-label="Undo" title="Undo" disabled={!past.length} onClick={undo}><Undo2 size={15} /></button><button type="button" aria-label="Redo" title="Redo" disabled={!future.length} onClick={redo}><Redo2 size={15} /></button><button type="button" disabled={!selectedMask} onClick={removeSelectedMask}><Trash2 size={14} /> Hapus mask</button></div></div>
           <div ref={stageRef} className={`hub-occlusion-stage${interaction ? " is-interacting" : ""}`} onPointerDown={onStagePointerDown} onPointerMove={onPointerMove} onPointerUp={finishInteraction} onPointerCancel={finishInteraction}>
-            <img src={imageUrl} alt="Gambar sumber untuk Image Occlusion" draggable="false" />
-            <div className="hub-occlusion-stage-overlay">{draft.masks.map((mask, index) => <div key={mask.id} className={`hub-occlusion-mask${selectedMaskId === mask.id ? " is-selected" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }} onPointerDown={(event) => beginInteraction(event, "drag", mask)} role="button" tabIndex={0} aria-label={`Mask ${index + 1}${mask.answer ? `: ${mask.answer}` : ""}`} onFocus={() => setSelectedMaskId(mask.id)} onClick={() => setSelectedMaskId(mask.id)}>
+            <img src={activeImage.imageUrl} alt={`Gambar ${draft.images.findIndex((image) => image.id === activeImage.id) + 1} untuk Image Occlusion`} draggable="false" />
+            <div className="hub-occlusion-stage-overlay">{activeMasks.map((mask, index) => <div key={mask.id} className={`hub-occlusion-mask${selectedMaskId === mask.id ? " is-selected" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }} onPointerDown={(event) => beginInteraction(event, "drag", mask)} role="button" tabIndex={0} aria-label={`Mask ${index + 1}${mask.answer ? `: ${mask.answer}` : ""}`} onFocus={() => setSelectedMaskId(mask.id)} onClick={() => setSelectedMaskId(mask.id)}>
               <span>{index + 1}</span>{["tl", "tr", "bl", "br"].map((edge) => <i key={edge} className={`hub-occlusion-handle is-${edge}`} onPointerDown={(event) => beginInteraction(event, "resize", mask, edge)} />)}
             </div>)}</div>
           </div>
@@ -232,18 +287,18 @@ export default function ImageOcclusionWorkspace() {
         </div>
         <aside className="hub-occlusion-mask-details">
           <span>MASK DETAILS</span>
-          {!selectedMask ? <p>Pilih mask atau buat area baru di gambar.</p> : <>{draft.answerMode === "answer" ? <label><span>Jawaban / label mask {draft.masks.findIndex((mask) => mask.id === selectedMask.id) + 1}</span><textarea rows={4} value={selectedMask.answer} onChange={(event) => updateSelectedAnswer(event.target.value)} placeholder="Isi jawaban yang akan di-reveal" /></label> : <p>Mode mask saja aktif. Reveal akan membuka area gambar tanpa menampilkan jawaban teks.</p>}<small>Posisi tersimpan relatif terhadap ukuran gambar.</small></>}
+          {!selectedMask ? <p>Pilih mask atau buat area baru di gambar.</p> : <>{draft.answerMode === "answer" ? <label><span>Jawaban / label mask {activeMasks.findIndex((mask) => mask.id === selectedMask.id) + 1}</span><textarea rows={4} value={selectedMask.answer} onChange={(event) => updateSelectedAnswer(event.target.value)} placeholder="Isi jawaban yang akan di-reveal" /></label> : <p>Mode mask saja aktif. Reveal akan membuka area gambar tanpa menampilkan jawaban teks.</p>}<small>Posisi tersimpan relatif terhadap ukuran gambar.</small></>}
         </aside>
-      </div> : <button type="button" className="hub-occlusion-empty-upload" onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /><span>Pilih gambar untuk mulai membuat mask</span></button>}
+      </div> : <div className="hub-occlusion-empty-upload"><ImagePlus size={18} /><span>{draft.images.length ? "Pilih gambar di atas untuk mulai membuat mask" : "Tambahkan satu atau beberapa gambar untuk mulai"}</span><button type="button" className="hub-question-tool-button" onClick={() => fileInputRef.current?.click()}><Plus size={15} /> Pilih gambar</button></div>}
 
-      <footer className="hub-occlusion-editor-actions"><span>{draft.masks.length} kartu akan dihasilkan dari mask yang dibuat.</span><div><button type="button" className="hub-question-tool-button" disabled={!draft.masks.length || !imageUrl} onClick={() => setPreviewOpen(!previewOpen)}>{previewOpen ? "Tutup preview" : "Preview kartu"}</button><button type="button" className="hub-question-add-button" disabled={saving || !imageUrl || !draft.masks.length} onClick={save}><Save size={15} />{saving ? "Menyimpan…" : "Simpan kumpulan"}</button></div></footer>
-      {previewOpen && imageUrl && <div className="hub-occlusion-card-preview-grid" aria-label="Preview semua kartu">{draft.masks.map((mask, index) => <article key={mask.id}><div className="hub-occlusion-card-preview-label">{String(index + 1).padStart(2, "0")} / {draft.masks.length}</div><MaskPreview imageUrl={imageUrl} masks={draft.masks} targetIndex={index} mode={draft.mode} answerMode={draft.answerMode} /><strong>{draft.answerMode === "answer" ? mask.answer || "Jawaban belum diisi" : "Mask saja · tanpa jawaban teks"}</strong><small>{draft.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"}</small></article>)}</div>}
+      <footer className="hub-occlusion-editor-actions"><span>{allDraftMasks} kartu dari {draft.images.length} gambar.</span><div><button type="button" className="hub-question-tool-button" disabled={!allDraftMasks || draft.images.some((image) => !image.imageUrl)} onClick={() => setPreviewOpen(!previewOpen)}>{previewOpen ? "Tutup preview" : "Preview kartu"}</button><button type="button" className="hub-question-add-button" disabled={saving || !draft.images.length || draft.images.some((image) => !image.imageUrl || !image.masks.length)} onClick={save}><Save size={15} />{saving ? "Menyimpan…" : "Simpan kumpulan"}</button></div></footer>
+      {previewOpen && <div className="hub-occlusion-card-preview-grid" aria-label="Preview semua kartu">{draft.images.flatMap((image, imageIndex) => image.masks.map((mask, index) => <article key={mask.id}><div className="hub-occlusion-card-preview-label">GAMBAR {String(imageIndex + 1).padStart(2, "0")} · KARTU {String(index + 1).padStart(2, "0")} / {image.masks.length}</div><MaskPreview imageUrl={image.imageUrl} masks={image.masks} targetIndex={index} mode={draft.mode} answerMode={draft.answerMode} /><strong>{draft.answerMode === "answer" ? mask.answer || "Jawaban belum diisi" : "Mask saja · tanpa jawaban teks"}</strong><small>{draft.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"}</small></article>))}</div>}
     </section>}
 
     <div className="hub-occlusion-library-heading"><span>IMAGE SETS</span><span>{sets.length} KUMPULAN</span></div>
-    {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-data-state hub-question-empty-state"><span>BELUM ADA IMAGE OCCLUSION</span><p>Unggah gambar untuk mulai membuat kartu berbasis mask.</p><button type="button" className="hub-primary-action" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : <div className="hub-occlusion-set-list">{sets.map((set) => {
+    {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : <div className="hub-occlusion-set-list">{sets.map((set) => {
       const dueCount = set.cards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= Date.now()).length;
-      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"} · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.cards.length} KARTU</span><h4>{set.title}</h4><small>{set.cards.filter((card) => card.reviewState?.mastered).length} dikuasai · {dueCount} jatuh tempo</small></div><div className="hub-occlusion-set-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!set.cards.length} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" aria-label={`Review kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review {dueCount}</button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></article>;
+      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"} · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.images.length} GAMBAR · {set.cards.length} KARTU</span><h4>{set.title}</h4><small>{set.cards.filter((card) => card.reviewState?.mastered).length} dikuasai · {dueCount} jatuh tempo</small></div><div className="hub-occlusion-set-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!set.cards.length} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" aria-label={`Review kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review {dueCount}</button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></article>;
     })}</div>}
   </section>;
 }

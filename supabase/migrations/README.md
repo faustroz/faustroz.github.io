@@ -37,6 +37,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 037 | `037-essay-only-spaced-repetition.sql` | Restrict spaced-repetition ratings to essay attempts while preserving MCQ mistake history | 035 |
 | 038 | `038-image-occlusion-study.sql` | Add private Image Occlusion sets/cards and per-card spaced-repetition schedules; disable Question Bank scheduling | 032, 035, 037 |
 | 039 | `039-image-occlusion-mask-only.sql` | Allow answer-free Image Occlusion sets while preserving existing answer cards | 038 |
+| 040 | `040-image-occlusion-multiple-images.sql` | Add owner-private source images per Image Occlusion set and link cards to one image | 038, 039 |
 
 ## Safety notes
 
@@ -52,5 +53,6 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 - Migration 037 keeps MCQ mistakes in Review Mistakes but limits scheduled/due reviews and recall ratings to essay questions; existing attempt and mistake history is preserved.
 - Migration 038 disables new MCQ/Essay spaced-repetition updates while preserving all attempts and legacy schedule rows. Image Occlusion schedules are stored independently per card; apply it before using Image Occlusion.
 - Migration 039 adds an answer-vs-mask-only setting to Image Occlusion sets. Existing sets retain answer mode and existing card answers; apply it before creating or editing mask-only sets.
-- Image Occlusion reuses the private `academic-question-images` bucket. Image objects are stored once per set under the authenticated user's existing owner folder; the browser receives only short-lived signed URLs.
+- Migration 040 backfills each existing Image Occlusion set as one source image and links its cards without changing answers or review history. Apply before using multi-image sets.
+- Image Occlusion reuses the private `academic-question-images` bucket. Each source image is stored once per set under the authenticated user's existing owner folder and can back multiple cards; the browser receives only short-lived signed URLs.
 - Question Bank JSON backup excludes owner IDs, signed URLs, and image file bytes. It keeps private image storage paths only; restore adds questions without deleting or replacing existing records.

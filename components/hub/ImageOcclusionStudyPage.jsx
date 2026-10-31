@@ -17,15 +17,18 @@ export default function ImageOcclusionStudyPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const ratingLock = useRef(false);
+  const card = run?.cards?.[run.index];
+  const activeImagePath = card?.imagePath || run?.imagePath;
   useEffect(() => { setRun(readImageOcclusionRun(window.sessionStorage)); setReady(true); }, []);
   useEffect(() => { if (run) writeImageOcclusionRun(window.sessionStorage, run); }, [run]);
   useEffect(() => {
     let active = true;
-    if (run?.imagePath) requireSupabase().storage.from("academic-question-images").createSignedUrl(run.imagePath, 3600)
+    setImageUrl("");
+    if (activeImagePath) requireSupabase().storage.from("academic-question-images").createSignedUrl(activeImagePath, 3600)
       .then(({ data, error: signError }) => { if (active) setImageUrl(signError ? "" : data?.signedUrl || ""); })
       .catch(() => { if (active) setImageUrl(""); });
     return () => { active = false; };
-  }, [run?.imagePath]);
+  }, [activeImagePath]);
 
   const response = run?.responses?.[run.index];
   useEffect(() => {
@@ -40,7 +43,6 @@ export default function ImageOcclusionStudyPage() {
     return () => window.removeEventListener("keydown", revealWithSpace);
   }, [response?.revealed]);
 
-  const card = run?.cards?.[run.index];
   const progress = run ? Math.round(((run.index + 1) / run.cards.length) * 100) : 0;
   const next = (index) => setRun((current) => ({ ...current, index, responses: current.responses.map((item, i) => i === index ? { ...item, revealed: false } : item) }));
   const rate = async (rating) => {
@@ -55,7 +57,14 @@ export default function ImageOcclusionStudyPage() {
   };
 
   const maskOnly = (run?.answerMode || "answer") === "mask_only";
-  const masks = useMemo(() => run?.mode === "hide_all" ? run.cards.map((item, index) => ({ ...item, index, open: index === run.index && response?.revealed })) : run?.cards.map((item, index) => ({ ...item, index, open: index !== run.index || response?.revealed })), [run, response?.revealed]);
+  const masks = useMemo(() => {
+    const cardsOnImage = run?.cards?.filter((item) => (card?.imageId && item.imageId) ? item.imageId === card.imageId : (item.imagePath || run.imagePath) === activeImagePath) || [];
+    return cardsOnImage.map((item, index) => ({
+      ...item,
+      index,
+      open: run.mode === "hide_all" ? item.id === card?.id && response?.revealed : item.id !== card?.id || response?.revealed,
+    }));
+  }, [run, card?.id, card?.imageId, activeImagePath, response?.revealed]);
   if (!ready) return <main className="hub-occlusion-study"><p>Memuat sesi...</p></main>;
   if (!run || !card) return <main className="hub-occlusion-study"><button type="button" className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Kembali"><ArrowLeft size={18} /></button><p>Sesi Image Occlusion tidak ditemukan.</p><button type="button" className="hub-question-tool-button" onClick={() => router.push("/academic")}>Kembali ke Academic</button></main>;
 
