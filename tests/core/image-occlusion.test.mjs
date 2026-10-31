@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
+import { createImageOcclusionCardPayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
 
 const cards = [
   { id: "card-1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "Label one" },
@@ -26,6 +26,27 @@ test("mask-only cards may omit text answers while answer mode still requires the
   assert.equal(masks[0].answer, null);
   assert.throws(() => validateOcclusionMasks([{ ...cards[0], answer: "" }], "answer"), /Jawaban mask/);
   assert.throws(() => validateOcclusionMasks(cards, "unknown"), /mode jawaban/i);
+});
+
+test("new Image Occlusion cards always get an id and existing card ids are preserved on save", () => {
+  const images = [{
+    imagePath: "owner/occlusion/image.png",
+    masks: validateOcclusionMasks([
+      { ...cards[0], id: null },
+      { ...cards[1], id: "existing-card" },
+    ]),
+  }];
+  const payloads = createImageOcclusionCardPayloads(
+    images,
+    "set-id",
+    new Map([["owner/occlusion/image.png", { id: "image-id" }]]),
+    new Set(["existing-card"]),
+    () => "generated-card-id",
+  );
+  assert.equal(payloads[0].id, "generated-card-id");
+  assert.equal(payloads[1].id, "existing-card");
+  assert.ok(payloads.every((payload) => typeof payload.id === "string" && payload.id.length > 0));
+  assert.deepEqual(payloads.map(({ position }) => position), [0, 1]);
 });
 
 test("Hide One is default, Hide All persists, and study runs round-trip without losing per-card schedule", () => {
