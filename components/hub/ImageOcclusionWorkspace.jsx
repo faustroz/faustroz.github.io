@@ -231,7 +231,7 @@ export default function ImageOcclusionWorkspace() {
         id: draft.id, title: draft.title, mode: draft.mode, answerMode: draft.answerMode,
         images: draft.images.map((image) => ({ id: image.imageId, imagePath: image.imagePath, imageFile: image.imageFile, masks: image.masks })),
       });
-      setStatus(`Kumpulan “${result.title}” tersimpan dengan ${allDraftMasks} kartu dari ${draft.images.length} gambar.`);
+      setStatus(`“${result.title}” tersimpan · ${allDraftMasks} kartu · ${draft.images.length} gambar`);
       releaseDraftUrls(draft.images);
       setDraft(null); setSelectedMaskId(""); setPreviewOpen(false); await load();
     } catch (saveError) { setError(saveError?.message || "Kumpulan gagal disimpan."); }

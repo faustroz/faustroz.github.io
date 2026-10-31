@@ -355,6 +355,8 @@ body {
 .hub-occlusion-empty-state > div { min-width:0; }
 .hub-occlusion-empty-state h4 { margin:0 0 .25rem; font-size:.9rem; }
 .hub-occlusion-empty-state p { max-width:35rem; margin:0; color:var(--hub-muted); font-size:.78rem; line-height:1.45; }
+.hub-occlusion-status { display:flex; align-items:flex-start; gap:.55rem; width:fit-content; max-width:100%; box-sizing:border-box; margin:.75rem 0 0; padding:.65rem .8rem; border:1px solid rgba(40,199,111,.3); border-radius:5px; background:rgba(40,199,111,.07); color:var(--hub-success,#28c76f); font-size:.78rem; line-height:1.45; overflow-wrap:anywhere; }
+.hub-occlusion-status > svg { flex:0 0 auto; margin-top:.08rem; }
 .hub-occlusion-editor-actions { padding-top: .75rem; border-top: 1px solid var(--hub-line); flex-wrap: wrap; }
 .hub-occlusion-editor-actions > span { color: var(--hub-muted); font-size: .72rem; }
 .hub-occlusion-card-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr)); gap: .75rem; }
