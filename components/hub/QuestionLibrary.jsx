@@ -53,6 +53,7 @@ import {
   validateCsvRows,
 } from "@/lib/hub/question-bank.mjs";
 import { buildAcademicPerformance } from "@/lib/hub/academic-performance.mjs";
+import ImageOcclusionWorkspace from "@/components/hub/ImageOcclusionWorkspace";
 
 const DEFAULT_FORM = Object.freeze({
   exam_type: "",
@@ -142,8 +143,6 @@ export default function QuestionLibrary() {
   // MISTAKES REVIEW STATE
   // ---------------------------------------------------------------------------
   const [mistakes, setMistakes] = useState([]);
-  const [dueReviews, setDueReviews] = useState([]);
-  const [unmasteredReviewCount, setUnmasteredReviewCount] = useState(0);
   const [loadingMistakes, setLoadingMistakes] = useState(false);
   const [performanceData, setPerformanceData] = useState(null);
   const [loadingPerformance, setLoadingPerformance] = useState(false);
@@ -214,10 +213,8 @@ export default function QuestionLibrary() {
     if (!repository) return;
     setLoadingMistakes(true);
     try {
-      const [mistakeData, dueData, unmasteredData] = await Promise.all([repository.listMistakes(), repository.listDueReviews(), repository.listUnmasteredReviews()]);
+      const mistakeData = await repository.listMistakes();
       setMistakes(mistakeData);
-      setDueReviews(dueData);
-      setUnmasteredReviewCount(unmasteredData.length);
     } catch (err) {
       setError(err.message || "Failed to load mistake notebook.");
     } finally {
@@ -871,6 +868,7 @@ export default function QuestionLibrary() {
           >
             MISTAKES
           </button>
+          <button type="button" role="tab" aria-selected={activeTab === "image-occlusion"} className={`hub-question-mode-tab${activeTab === "image-occlusion" ? " is-active" : ""}`} onClick={() => setActiveTab("image-occlusion")}>IMAGE OCCLUSION</button>
           <button
             type="button"
             role="tab"
@@ -901,6 +899,8 @@ export default function QuestionLibrary() {
         </div>
       )}
       {error && <p className="hub-data-error" role="alert" style={{ margin: "0.5rem 1rem" }}>{error}</p>}
+
+      {activeTab === "image-occlusion" && <ImageOcclusionWorkspace />}
 
       {/* ===================================================================== */}
       {/* TAB 1: PRACTICE MODE                                                  */}
@@ -1501,15 +1501,6 @@ export default function QuestionLibrary() {
                 <Play size={13} fill="currentColor" /> REVIEW SOAL SALAH ({mistakes.length})
               </button>
             )}
-            {dueReviews.length > 0 && (
-              <button type="button" onClick={() => startPractice(dueReviews.map((item) => item.question), "due")} className="hub-question-tool-button" style={{ minHeight: "44px" }}>
-                <RotateCcw size={14} /> REVIEW TERJADWAL ({dueReviews.length})
-              </button>
-            )}
-          </div>
-          <div className="hub-review-summary" aria-live="polite">
-            <span><strong>{unmasteredReviewCount}</strong> soal belum dikuasai</span>
-            <span><strong>{dueReviews.length}</strong> soal jatuh tempo</span>
           </div>
 
           {loadingMistakes ? (
@@ -1517,8 +1508,8 @@ export default function QuestionLibrary() {
           ) : mistakes.length === 0 ? (
             <div className="hub-data-state hub-question-empty-state">
               <div className="hub-question-empty-copy">
-                <span>{dueReviews.length ? "TIDAK ADA KESALAHAN AKTIF" : "REVIEW MISTAKES KOSONG"}</span>
-                <p>{dueReviews.length ? "Kesalahan yang pernah dibuat sudah dikuasai. Soal yang jatuh tempo tetap dapat diulang melalui Review Terjadwal." : "Soal yang dijawab salah akan muncul di sini. Jadwal review tersimpan otomatis setelah attempt."}</p>
+                <span>REVIEW MISTAKES KOSONG</span>
+                <p>Soal dengan jawaban terakhir yang salah akan muncul di sini. Riwayat percobaan tetap tersimpan.</p>
               </div>
               <div className="hub-question-empty-actions">
                 <button type="button" onClick={() => setActiveTab("practice")} className="hub-primary-action">
@@ -1528,7 +1519,7 @@ export default function QuestionLibrary() {
             </div>
           ) : (
             <div style={{ display: "grid", gap: "0.75rem" }}>
-              {mistakes.map(({ question: q, mistakeCount, lastAttempt, dueAt, totalAttempts }) => (
+              {mistakes.map(({ question: q, mistakeCount, lastAttempt, totalAttempts }) => (
                 <article
                   key={q.id}
                   style={{
@@ -1573,7 +1564,7 @@ export default function QuestionLibrary() {
                         Jawaban terakhir Anda: <b>{lastAttempt.response_text || lastAttempt.selected_answer}</b> ({lastAttempt.is_correct === null ? (lastAttempt.self_assessed === false ? "Perlu ditinjau" : "Essay") : (lastAttempt.is_correct ? "Benar" : "Salah")})
                       </p>
                     )}
-                    {dueAt && <p style={{ margin: "0.35rem 0 0", color: "var(--hub-muted)", fontSize: "0.72rem" }}>Review berikutnya: {new Date(dueAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {totalAttempts} attempt</p>}
+                    {lastAttempt && <p style={{ margin: "0.35rem 0 0", color: "var(--hub-muted)", fontSize: "0.72rem" }}>Attempt terakhir: {new Date(lastAttempt.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {totalAttempts} attempt</p>}
                   </div>
 
                   {q.explanation && (

@@ -78,15 +78,21 @@ test("Phase 36 preserves old sessions and enables untimed owner-private practice
   assert.doesNotMatch(sql, /truncate\s+table|delete\s+from\s+public\.academic_exam_sessions/i);
 });
 
-test("Phase 37 restricts spaced-repetition ratings to essay without removing MCQ mistake history", async () => {
+test("Phase 37 essay-only spaced repetition is superseded by Image Occlusion schedules", async () => {
   const sql = await readFile(new URL("../../supabase/migrations/037-essay-only-spaced-repetition.sql", import.meta.url), "utf8");
   assert.match(sql, /new\.review_rating is null/i);
   assert.match(sql, /v_question_type is distinct from 'essay'/i);
   assert.match(sql, /before update of review_rating on public\.academic_question_attempts/i);
+  const replacement = await readFile(new URL("../../supabase/migrations/038-image-occlusion-study.sql", import.meta.url), "utf8");
+  assert.match(replacement, /drop trigger if exists track_academic_question_attempt/i);
+  assert.match(replacement, /academic_image_occlusion_review_state/);
+  assert.match(replacement, /rate_academic_image_occlusion_card/);
+  assert.doesNotMatch(replacement, /delete\s+from\s+public\.academic_question_review_state|truncate\s+table/i);
   const repository = await readFile(new URL("../../lib/hub/question-bank.mjs", import.meta.url), "utf8");
-  assert.match(repository, /kind !== "mistakes" && \(question\.question_type \|\| "mcq"\) !== "essay"/);
+  assert.match(repository, /async listMistakes\(\) \{ return fetchMistakes\(client\); \}/);
+  assert.doesNotMatch(repository, /async listDueReviews|async listUnmasteredReviews|async rateAttempt/);
   const practice = await readFile(new URL("../../components/hub/AcademicPracticePage.jsx", import.meta.url), "utf8");
-  assert.match(practice, /run\.submitted && essay && <div className="academic-practice__review-rating"/);
+  assert.doesNotMatch(practice, /Again|Hard|Good|Easy|saveReviewRating|review-rating/);
 });
 
 test("Phase 33 removes implicit categories without deleting existing question data", async () => {
@@ -637,25 +643,23 @@ test("createQuestionRepository delegates to Supabase with proper checks", async 
   assert.equal(toggled.is_bookmarked, true);
 });
 
-test("review repository deduplicates by question state and exposes due, mistake, and rating actions", async () => {
-  const stateRows = [
-    { question_id: "q-1", latest_attempt_id: "a-1", due_at: "2026-01-01T00:00:00Z", lapse_count: 2, attempts_count: 3, mastered: false },
-    { question_id: "q-2", latest_attempt_id: "a-2", due_at: "2026-01-01T00:00:00Z", lapse_count: 1, attempts_count: 2, mastered: false },
-  ];
+test("mistake repository uses the latest attempt, deduplicates questions, and preserves review history", async () => {
   const tableRows = {
-    academic_question_review_state: stateRows,
     academic_questions: [{ id: "q-1", question_type: "essay", question_text: "Question 1", deleted_at: null }, { id: "q-2", question_type: "mcq", question_text: "Question 2", deleted_at: null }],
-    academic_question_attempts: [{ id: "a-1", question_id: "q-1", selected_answer: null, is_correct: null }, { id: "a-2", question_id: "q-2", selected_answer: "A", is_correct: false }],
+    academic_question_attempts: [
+      { id: "a-3", question_id: "q-1", created_at: "2026-03-03", self_assessed: false, is_correct: null, response_text: "latest" },
+      { id: "a-2", question_id: "q-1", created_at: "2026-03-02", self_assessed: false, is_correct: null },
+      { id: "a-1", question_id: "q-1", created_at: "2026-03-01", self_assessed: true, is_correct: null },
+      { id: "b-2", question_id: "q-2", created_at: "2026-03-02", is_correct: true, selected_answer: "B" },
+      { id: "b-1", question_id: "q-2", created_at: "2026-03-01", is_correct: false, selected_answer: "A" },
+    ],
   };
-  const rpcCalls = [];
   const client = {
     from(table) {
       const filters = [];
       const builder = {
         select() { return builder; },
         eq(field, value) { filters.push((row) => row[field] === value); return builder; },
-        gt(field, value) { filters.push((row) => row[field] > value); return builder; },
-        lte(field, value) { filters.push((row) => row[field] <= value); return builder; },
         order() { return builder; },
         in(field, values) { filters.push((row) => values.includes(row[field])); return builder; },
         is(field, value) { filters.push((row) => row[field] === value); return builder; },
@@ -663,19 +667,14 @@ test("review repository deduplicates by question state and exposes due, mistake,
       };
       return builder;
     },
-    rpc(name, args) { rpcCalls.push({ name, args }); return Promise.resolve({ data: { id: args.p_attempt_id }, error: null }); },
   };
   const repository = createQuestionRepository(client);
   const mistakes = await repository.listMistakes();
-  const due = await repository.listDueReviews();
-  const unmastered = await repository.listUnmasteredReviews();
-  assert.equal(mistakes.length, 2);
+  assert.equal(mistakes.length, 1);
   assert.equal(mistakes[0].question.id, "q-1");
   assert.equal(mistakes[0].mistakeCount, 2);
-  assert.equal(due.length, 1);
-  assert.equal(due[0].question.question_type, "essay");
-  assert.equal(unmastered.length, 1);
-  await assert.rejects(() => repository.rateAttempt("a-2", "good", "mcq"), /only for essay/i);
-  await repository.rateAttempt("a-1", "good", "essay");
-  assert.deepEqual(rpcCalls, [{ name: "rate_academic_question_attempt", args: { p_attempt_id: "a-1", p_rating: "good" } }]);
+  assert.equal(mistakes[0].totalAttempts, 3);
+  assert.equal(mistakes[0].lastAttempt.id, "a-3");
+  assert.equal(typeof repository.listDueReviews, "undefined");
+  assert.equal(typeof repository.rateAttempt, "undefined");
 });

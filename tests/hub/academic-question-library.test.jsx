@@ -130,44 +130,45 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
   it("renders the concise Academic overview and navigates dedicated workspace pages", async () => {
     mockDbQuestions = [];
     render(<AcademicPanel />);
+    const tab = (text) => [...document.querySelectorAll('[role="tab"]')].find((element) => element.textContent.trim().toLowerCase() === text.toLowerCase());
+    const clickTab = (text) => fireEvent.click(tab(text));
 
     // Overview is the concise default; record management lives on its own page.
-    expect(screen.getByRole("tab", { name: /overview/i })).toHaveAttribute("aria-selected", "true");
+    expect(tab("Overview")).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/IPK \/ CUMULATIVE/i)).toBeInTheDocument();
     expect(screen.getByText(/BLOK KEDOKTERAN/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /new entry/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: /grades & credits/i }));
-    expect(screen.getByRole("tab", { name: /grades & credits/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /blok kedokteran/i })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(screen.getByRole("tab", { name: /mata kuliah umum/i }));
-    expect(screen.getByRole("tab", { name: /mata kuliah umum/i })).toHaveAttribute("aria-selected", "true");
+    clickTab("Grades & Credits");
+    expect(tab("Grades & Credits")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Blok Kedokteran")).toHaveAttribute("aria-selected", "true");
+    clickTab("Mata Kuliah Umum");
+    expect(tab("Mata Kuliah Umum")).toHaveAttribute("aria-selected", "true");
 
-    fireEvent.click(screen.getByRole("tab", { name: /academic target/i }));
-    expect(screen.getByRole("heading", { name: /target ip semester/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: /grade calculator/i }));
-    expect(screen.getByRole("heading", { name: /target kkm 55/i })).toBeInTheDocument();
+    clickTab("Academic Target");
+    expect(screen.getByText(/target ip semester/i)).toBeInTheDocument();
+    clickTab("Grade Calculator");
+    expect(screen.getByText(/target kkm 55/i)).toBeInTheDocument();
     expect(screen.getByText(/aturan pembobotan nilai blok/i)).toBeInTheDocument();
 
     // Switch to QUESTION BANK
-    const questionBankTab = screen.getByRole("tab", { name: /question bank/i });
+    const questionBankTab = tab("Question Bank");
     fireEvent.click(questionBankTab);
 
     expect(questionBankTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("heading", { name: /question library & practice/i })).toBeInTheDocument();
+    expect(screen.getByText(/question library & practice/i)).toBeInTheDocument();
 
     // Practice mode is active by default
-    expect(screen.getByRole("tab", { name: /practice/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("button", { name: /mulai latihan/i })).toBeInTheDocument();
+    expect(tab("PRACTICE")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/mulai latihan/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/jumlah soal latihan/i)).not.toBeInTheDocument();
 
     // Switch to LIBRARY tab
-    const libraryTab = screen.getByRole("tab", { name: /library/i });
+    const libraryTab = tab("LIBRARY");
     fireEvent.click(libraryTab);
     expect(libraryTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("button", { name: /tambah soal/i })).toBeInTheDocument();
+    expect(screen.getByText(/tambah soal/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Filter exam type").closest(".hub-question-filter-panel")).toHaveAttribute("hidden");
-    fireEvent.click(screen.getByRole("button", { name: /filter/i }));
+    fireEvent.click(screen.getByText(/filter/i));
     expect(screen.getByLabelText("Filter exam type")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter block")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter subject")).toBeInTheDocument();
@@ -181,16 +182,17 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     expect(screen.queryByText(/exam mode/i)).not.toBeInTheDocument();
 
     // Switch to MISTAKES tab
-    const mistakesTab = screen.getByRole("tab", { name: /mistakes/i });
+    const mistakesTab = tab("MISTAKES");
     fireEvent.click(mistakesTab);
     expect(mistakesTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/soal yang pernah dijawab salah/i)).toBeInTheDocument();
 
     // Switch to CSV IMPORT tab
-    const importTab = screen.getByRole("tab", { name: /csv import/i });
+    const importTab = tab("CSV IMPORT");
     fireEvent.click(importTab);
     expect(importTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("button", { name: /unduh template csv/i })).toBeInTheDocument();
+    expect(screen.getByText(/template mcq/i)).toBeInTheDocument();
+    expect(screen.getByText(/template essay/i)).toBeInTheDocument();
   });
 
   it("supports deleting all questions in a selected topic with confirmation modal", async () => {

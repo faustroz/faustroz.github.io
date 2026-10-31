@@ -15,17 +15,19 @@ export default function HubShell({ children }) {
   const financeRoute = pathname?.startsWith("/finance/portfolio");
   const specialistRoute = financeRoute;
   const practiceRoute = pathname === "/academic/practice";
+  const occlusionRoute = pathname === "/academic/occlusion";
+  const immersiveStudyRoute = practiceRoute || occlusionRoute;
   const privateRoute = isPrivateHubRoute(pathname);
   const shellClasses = ["hub-shell"];
 
   if (specialistRoute) shellClasses.push("hub-shell--specialist");
   if (financeRoute) shellClasses.push("hub-shell--finance");
-  if (practiceRoute) shellClasses.push("hub-shell--practice");
+  if (immersiveStudyRoute) shellClasses.push("hub-shell--practice");
 
   useEffect(() => {
     if (previousPathname.current === pathname) return undefined;
     previousPathname.current = pathname;
-    if (pathname === "/academic/practice" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
+    if (immersiveStudyRoute || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
 
     pageAnimation.current?.cancel();
     pageAnimation.current = contentRef.current?.animate(
@@ -37,7 +39,7 @@ export default function HubShell({ children }) {
     );
 
     return () => pageAnimation.current?.cancel();
-  }, [pathname]);
+  }, [pathname, immersiveStudyRoute]);
 
   if (portfolioLanding) return children;
 
@@ -53,11 +55,11 @@ export default function HubShell({ children }) {
 
   return (
     <div className={shellClasses.join(" ")}>
-      {!practiceRoute && <HubNavigation />}
+      {!immersiveStudyRoute && <HubNavigation />}
       <div className="hub-content" ref={contentRef}>
         {privateRoute ? <HubAuthGate>{children}</HubAuthGate> : children}
       </div>
-      {!specialistRoute && !practiceRoute && (
+      {!specialistRoute && !immersiveStudyRoute && (
         <footer className="hub-footer">
           <span>4allx / Personal Hub</span>
           <span>© {new Date().getFullYear()} Ferdy Diatmika</span>

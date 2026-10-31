@@ -40,10 +40,12 @@ test("practice run storage rejects malformed data and unavailable storage", () =
   assert.equal(createPracticeRun([]), null);
 });
 
-test("practice runs preserve the selected mistake or due-review queue", () => {
+test("practice runs preserve mistake review but retire legacy due-review routing", () => {
   const review = createPracticeRun([question("q-1")], { reviewKind: "due" });
-  assert.equal(review.reviewKind, "due");
-  assert.equal(readPracticeRun({ getItem: () => JSON.stringify(review) }).reviewKind, "due");
+  assert.equal(review.reviewKind, "");
+  assert.equal(readPracticeRun({ getItem: () => JSON.stringify(review) }).reviewKind, "");
+  const mistakes = createPracticeRun([question("q-mistake")], { reviewKind: "mistakes" });
+  assert.equal(readPracticeRun({ getItem: () => JSON.stringify(mistakes) }).reviewKind, "mistakes");
   const normal = createPracticeRun([question("q-2")]);
   assert.equal(normal.reviewKind, "");
 });
