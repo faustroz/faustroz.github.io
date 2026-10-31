@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Eye, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRepository, getImageOcclusionRatingFromKey, readImageOcclusionRun, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionRepository, getImageOcclusionRatingFromKey, readImageOcclusionRun, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
 
 const ratings = [["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]];
 
@@ -47,24 +47,27 @@ export default function ImageOcclusionStudyPage() {
   const next = (index) => setRun((current) => ({ ...current, index, responses: current.responses.map((item) => ({ ...item, revealed: false })) }));
   const cardId = card?.id;
   const currentIndex = run?.index;
-  const rate = useCallback(async (rating) => {
+  const rate = useCallback((rating) => {
     if (!cardId || ratingLock.current.has(cardId) || response?.rating) return;
     const targetCardId = cardId;
     const targetIndex = currentIndex;
     ratingLock.current.add(targetCardId);
     setPendingRatings((current) => new Set(current).add(targetCardId));
-    setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex ? { ...item, rating } : item) }));
+    setRun((current) => applyImageOcclusionRating(current, targetIndex, rating));
     setError("");
-    try {
-      const result = await createImageOcclusionRepository(requireSupabase()).rateCard(targetCardId, rating);
-      setRun((current) => ({ ...current, cards: current.cards.map((item) => item.id === targetCardId ? { ...item, reviewState: result.state } : item) }));
-    } catch (saveError) {
-      setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex && item.rating === rating ? { ...item, rating: null } : item) }));
-      setError(`Rating kartu ${String(targetIndex + 1).padStart(2, "0")} belum tersimpan. ${saveError?.message || "Silakan coba lagi."}`);
-    } finally {
-      ratingLock.current.delete(targetCardId);
-      setPendingRatings((current) => { const next = new Set(current); next.delete(targetCardId); return next; });
-    }
+    // Optimistically move to the next card; persistence runs in the background.
+    void (async () => {
+      try {
+        const result = await createImageOcclusionRepository(requireSupabase()).rateCard(targetCardId, rating);
+        setRun((current) => ({ ...current, cards: current.cards.map((item) => item.id === targetCardId ? { ...item, reviewState: result.state } : item) }));
+      } catch (saveError) {
+        setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex && item.rating === rating ? { ...item, rating: null } : item) }));
+        setError(`Rating kartu ${String(targetIndex + 1).padStart(2, "0")} belum tersimpan. Kembali ke kartu tersebut untuk mencoba lagi. ${saveError?.message || ""}`);
+      } finally {
+        ratingLock.current.delete(targetCardId);
+        setPendingRatings((current) => { const next = new Set(current); next.delete(targetCardId); return next; });
+      }
+    })();
   }, [cardId, currentIndex, response?.rating]);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { createImageOcclusionCardPayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
 
 const cards = [
   { id: "card-1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "Label one" },
@@ -11,6 +11,15 @@ const cards = [
 test("Image Occlusion keyboard rating shortcuts map 1 through 4 to Again through Easy", () => {
   assert.deepEqual(["1", "2", "3", "4"].map(getImageOcclusionRatingFromKey), ["again", "hard", "good", "easy"]);
   assert.equal(getImageOcclusionRatingFromKey("5"), null);
+});
+
+test("rating an Image Occlusion card records the rating and immediately advances without losing prior responses", () => {
+  const run = createImageOcclusionRun({ id: "set-1", image_path: "owner/image.png" }, cards);
+  const nextRun = applyImageOcclusionRating(run, 0, "good");
+  assert.equal(nextRun.index, 1);
+  assert.deepEqual(nextRun.responses, [{ revealed: false, rating: "good" }, { revealed: false, rating: null }]);
+  assert.equal(applyImageOcclusionRating(nextRun, 1, "easy").index, 1);
+  assert.equal(applyImageOcclusionRating(run, 0, "invalid"), run);
 });
 
 test("Image Occlusion masks require normalized bounds and an answer per card", () => {
@@ -127,7 +136,8 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /getImageOcclusionRatingFromKey\(event\.key\)/);
   assert.match(study, /isContentEditable \|\| \["INPUT", "TEXTAREA", "SELECT"\]/);
   assert.match(study, /1 Again · 2 Hard · 3 Good · 4 Easy/);
-  assert.match(study, /index === targetIndex \? \{ \.\.\.item, rating \}/);
+  assert.match(study, /applyImageOcclusionRating\(current, targetIndex, rating\)/);
+  assert.match(study, /Optimistically move to the next card; persistence runs in the background/);
   assert.doesNotMatch(study, /Menyimpan\.\.\./);
   assert.match(study, /maskOnly && mask\.open \? null :/);
   assert.match(study, /responses\.map\(\(item\) => \(\{ \.\.\.item, revealed: false \}\)\)/);
