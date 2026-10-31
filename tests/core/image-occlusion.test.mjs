@@ -92,7 +92,7 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /hub-occlusion-study-mask-number/);
   const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
   assert.match(styles, /hub-occlusion-mask\.is-current \{[^}]*overflow:visible/);
-  assert.match(styles, /hub-occlusion-study-mask-number[^}]*width:1\.6rem/);
+  assert.match(styles, /hub-occlusion-study-mask-number[^}]*font-size:\.9rem/);
   assert.match(study, /aria-keyshortcuts="Space"/);
   assert.match(study, /Area gambar terbuka/);
   assert.match(editor, /value="answer">Mask \+ jawaban/);
