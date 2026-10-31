@@ -1628,13 +1628,22 @@ export default function QuestionLibrary() {
               )}
             </div>
 
-            <label className="hub-csv-file-label" style={{ width: "fit-content", maxWidth: "100%" }}>
-              <span><FileJson size={14} /> Pulihkan backup JSON</span>
-              <input type="file" aria-label="Pulihkan backup JSON" accept=".json,application/json" onChange={handleJsonBackupChange} className="hub-csv-file-input" />
-            </label>
-            <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.75rem", lineHeight: 1.45 }}>
-              Backup JSON mencakup data soal dan metadata. Path gambar privat dipertahankan, tetapi file gambar tidak ikut diekspor.
-            </p>
+            <div className="hub-json-backup">
+              <div className="hub-json-backup-row">
+                <div className="hub-json-backup-copy">
+                  <span>BACKUP / RESTORE</span>
+                  <strong>Pulihkan data soal</strong>
+                </div>
+                <label className="hub-json-restore-label">
+                  <FileJson size={15} aria-hidden="true" />
+                  <span>Pulihkan backup JSON</span>
+                  <input type="file" aria-label="Pulihkan backup JSON" accept=".json,application/json" onChange={handleJsonBackupChange} className="hub-csv-file-input" />
+                </label>
+              </div>
+              <p className="hub-json-backup-help">
+                Backup mencakup soal dan metadata. Path gambar privat dipertahankan, tetapi file gambar tidak ikut diekspor.
+              </p>
+            </div>
 
             {importMessage && (
               <p className={importMessage.includes("Gagal") ? "hub-data-error" : "hub-data-state"} style={{ marginTop: "1rem" }}>
