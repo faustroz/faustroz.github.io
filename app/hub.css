@@ -394,6 +394,7 @@ body {
 .hub-occlusion-study-rating > div { display: flex; flex-wrap: wrap; gap: .4rem; }
 .hub-occlusion-study-rating button { min-height: 42px; padding: .55rem .8rem; border: 1px solid var(--hub-line); border-radius: 5px; background: transparent; color: var(--hub-text); cursor: pointer; }
 .hub-occlusion-study-rating button[aria-pressed="true"] { border-color: var(--hub-accent); background: var(--hub-surface); }
+.hub-occlusion-rating-shortcuts { flex:1 0 100%; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; text-align:right; }
 .hub-occlusion-study-nav { margin-top: 1.5rem; padding-top: .8rem; border-top: 1px solid var(--hub-line); }
 .hub-occlusion-study-single { display: flex; align-items: center; gap: .4rem; color: var(--hub-muted); font-size: .72rem; }
 @media (max-width: 700px) {
@@ -414,6 +415,7 @@ body {
   .hub-occlusion-study-rating { align-items: stretch; flex-direction: column; }
   .hub-occlusion-study-rating > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .hub-occlusion-study-rating button { padding-inline: .35rem; }
+  .hub-occlusion-rating-shortcuts { display:none; }
 }
 
 /* Vault Drive — private file manager, intentionally flat and compact. */

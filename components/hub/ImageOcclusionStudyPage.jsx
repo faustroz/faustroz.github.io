@@ -1,11 +1,11 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- private signed Storage URL. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Eye, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRepository, readImageOcclusionRun, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRepository, getImageOcclusionRatingFromKey, readImageOcclusionRun, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
 
 const ratings = [["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]];
 
@@ -45,10 +45,12 @@ export default function ImageOcclusionStudyPage() {
 
   const progress = run ? Math.round(((run.index + 1) / run.cards.length) * 100) : 0;
   const next = (index) => setRun((current) => ({ ...current, index, responses: current.responses.map((item) => ({ ...item, revealed: false })) }));
-  const rate = async (rating) => {
-    if (!card || ratingLock.current.has(card.id) || response?.rating) return;
-    const targetCardId = card.id;
-    const targetIndex = run.index;
+  const cardId = card?.id;
+  const currentIndex = run?.index;
+  const rate = useCallback(async (rating) => {
+    if (!cardId || ratingLock.current.has(cardId) || response?.rating) return;
+    const targetCardId = cardId;
+    const targetIndex = currentIndex;
     ratingLock.current.add(targetCardId);
     setPendingRatings((current) => new Set(current).add(targetCardId));
     setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex ? { ...item, rating } : item) }));
@@ -63,7 +65,22 @@ export default function ImageOcclusionStudyPage() {
       ratingLock.current.delete(targetCardId);
       setPendingRatings((current) => { const next = new Set(current); next.delete(targetCardId); return next; });
     }
-  };
+  }, [cardId, currentIndex, response?.rating]);
+
+  useEffect(() => {
+    if (!response?.revealed || response.rating) return undefined;
+    const rateWithNumber = (event) => {
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      const rating = getImageOcclusionRatingFromKey(event.key);
+      if (!rating) return;
+      event.preventDefault();
+      void rate(rating);
+    };
+    window.addEventListener("keydown", rateWithNumber);
+    return () => window.removeEventListener("keydown", rateWithNumber);
+  }, [response?.revealed, response?.rating, rate]);
 
   const maskOnly = (run?.answerMode || "answer") === "mask_only";
   const masks = useMemo(() => {
@@ -84,7 +101,7 @@ export default function ImageOcclusionStudyPage() {
       <p className="hub-occlusion-study-instruction">Coba ingat bagian yang tertutup, lalu tekan Space atau tombol Reveal.</p>
       {imageUrl ? <div className="hub-occlusion-study-image"><img src={imageUrl} alt="Gambar belajar dengan bagian tertutup" />{masks.map((mask) => maskOnly && mask.open ? null : <div key={mask.id} className={`hub-occlusion-mask${mask.id === card.id ? " is-current" : ""}${mask.open && !maskOnly ? " is-revealed" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%`, transform: `rotate(${mask.rotation || 0}deg)` }}>{mask.open ? mask.answer : mask.id === card.id ? <span className="hub-occlusion-study-mask-number">{mask.index + 1}</span> : mask.index + 1}</div>)}</div> : <p role="alert">Gambar privat tidak dapat dimuat. Periksa koneksi dan coba kembali.</p>}
       <div className="hub-occlusion-study-answer"><span>MASK {String(run.index + 1).padStart(2, "0")}</span>{response?.revealed ? (maskOnly ? <strong>Area gambar terbuka · tanpa jawaban teks</strong> : <strong>{card.answer}</strong>) : <button type="button" className="hub-question-tool-button" aria-keyshortcuts="Space" onClick={() => setRun((current) => ({ ...current, responses: current.responses.map((item, i) => i === current.index ? { ...item, revealed: true } : item) }))}><Eye size={15} /> {maskOnly ? "Buka area · Space" : "Reveal jawaban · Space"}</button>}</div>
-      {response?.revealed && <div className="hub-occlusion-study-rating"><span aria-live="polite">{response.rating ? `${pendingRatings.has(card.id) ? "Dipilih" : "Tersimpan"}: ${response.rating.toUpperCase()}` : "Seberapa baik Anda mengingatnya?"}</span><div>{ratings.map(([value, label]) => <button type="button" key={value} disabled={pendingRatings.has(card.id) || Boolean(response.rating)} aria-pressed={response.rating === value} onClick={() => rate(value)}>{label}</button>)}</div></div>}
+      {response?.revealed && <div className="hub-occlusion-study-rating"><span aria-live="polite">{response.rating ? `${pendingRatings.has(card.id) ? "Dipilih" : "Tersimpan"}: ${response.rating.toUpperCase()}` : "Seberapa baik Anda mengingatnya?"}</span><div>{ratings.map(([value, label]) => <button type="button" key={value} disabled={pendingRatings.has(card.id) || Boolean(response.rating)} aria-pressed={response.rating === value} onClick={() => rate(value)}>{label}</button>)}<small className="hub-occlusion-rating-shortcuts">1 Again · 2 Hard · 3 Good · 4 Easy</small></div></div>}
       {error && <p className="hub-data-error" role="alert">{error}</p>}
       <nav className="hub-occlusion-study-nav" aria-label="Navigasi kartu"><button type="button" className="hub-question-tool-button" disabled={run.index === 0} onClick={() => next(run.index - 1)}><ArrowLeft size={15} /> Sebelumnya</button><span>{run.cards.length} kartu</span><button type="button" className="hub-question-add-button" onClick={() => run.index === run.cards.length - 1 ? router.push("/academic") : next(run.index + 1)}>{run.index === run.cards.length - 1 ? "Selesai" : <>Berikutnya <ArrowRight size={15} /></>}</button></nav>
       {run.cards.length === 1 && <p className="hub-occlusion-study-single"><RotateCcw size={14} /> Satu kartu dalam sesi ini</p>}

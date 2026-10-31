@@ -1,12 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { createImageOcclusionRun, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
 
 const cards = [
   { id: "card-1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "Label one" },
   { id: "card-2", position: 1, x: .5, y: .5, width: .25, height: .25, answer: "Label two" },
 ];
+
+test("Image Occlusion keyboard rating shortcuts map 1 through 4 to Again through Easy", () => {
+  assert.deepEqual(["1", "2", "3", "4"].map(getImageOcclusionRatingFromKey), ["again", "hard", "good", "easy"]);
+  assert.equal(getImageOcclusionRatingFromKey("5"), null);
+});
 
 test("Image Occlusion masks require normalized bounds and an answer per card", () => {
   assert.equal(validateOcclusionMasks(cards).length, 2);
@@ -98,6 +103,9 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   const editor = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
   assert.match(study, /event\.code !== "Space"/);
   assert.match(study, /pendingRatings/);
+  assert.match(study, /getImageOcclusionRatingFromKey\(event\.key\)/);
+  assert.match(study, /isContentEditable \|\| \["INPUT", "TEXTAREA", "SELECT"\]/);
+  assert.match(study, /1 Again · 2 Hard · 3 Good · 4 Easy/);
   assert.match(study, /index === targetIndex \? \{ \.\.\.item, rating \}/);
   assert.doesNotMatch(study, /Menyimpan\.\.\./);
   assert.match(study, /maskOnly && mask\.open \? null :/);
