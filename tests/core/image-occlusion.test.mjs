@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, shuffleArray, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
+import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, IMAGE_OCCLUSION_SOUND_EVENTS, IMAGE_OCCLUSION_SOUND_SETTINGS_KEY, playImageOcclusionSound, readImageOcclusionSoundSettings, writeImageOcclusionSoundSettings } from "../../lib/hub/image-occlusion-sounds.mjs";
 
 const cards = [
   { id: "card-1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "Label one" },
@@ -17,9 +18,42 @@ test("rating an Image Occlusion card records the rating and immediately advances
   const run = createImageOcclusionRun({ id: "set-1", image_path: "owner/image.png" }, cards);
   const nextRun = applyImageOcclusionRating(run, 0, "good");
   assert.equal(nextRun.index, 1);
-  assert.deepEqual(nextRun.responses, [{ revealed: false, rating: "good" }, { revealed: false, rating: null }]);
+  assert.deepEqual(nextRun.responses, [{ revealed: false, rating: "good", saved: false }, { revealed: false, rating: null, saved: false }]);
   assert.equal(applyImageOcclusionRating(nextRun, 1, "easy").index, 1);
   assert.equal(applyImageOcclusionRating(run, 0, "invalid"), run);
+});
+
+test("Image Occlusion sound settings default on, persist locally, clamp volume, and sound off is silent", () => {
+  const values = new Map();
+  const storage = { getItem: (key) => values.get(key) || null, setItem: (key, value) => values.set(key, value) };
+  assert.deepEqual(readImageOcclusionSoundSettings(storage), DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS);
+  assert.equal(writeImageOcclusionSoundSettings(storage, { enabled: true, volume: 160 }), true);
+  assert.deepEqual(readImageOcclusionSoundSettings(storage), { enabled: true, volume: 100 });
+  assert.equal(writeImageOcclusionSoundSettings(storage, { enabled: false, volume: -10 }), true);
+  assert.deepEqual(readImageOcclusionSoundSettings(storage), { enabled: false, volume: 0 });
+
+  const createdOscillators = [];
+  const mockParameter = () => ({ setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {}, setTargetAtTime() {} });
+  class MockAudioContext {
+    constructor() { this.state = "running"; this.currentTime = 1; this.destination = {}; }
+    createOscillator() {
+      const oscillator = { frequency: mockParameter(), connect() {}, start() {}, stop() { this.stopped = true; } };
+      createdOscillators.push(oscillator);
+      return oscillator;
+    }
+    createGain() { return { gain: mockParameter(), connect() {} }; }
+    resume() { return Promise.resolve(); }
+  }
+  const windowLike = { AudioContext: MockAudioContext, localStorage: storage };
+  assert.equal(IMAGE_OCCLUSION_SOUND_EVENTS.length, 10);
+  assert.equal(playImageOcclusionSound("reveal", windowLike), false);
+  assert.equal(createdOscillators.length, 0);
+  writeImageOcclusionSoundSettings(storage, { enabled: true, volume: 35 });
+  assert.equal(playImageOcclusionSound("reveal", windowLike), true);
+  const beforeNext = createdOscillators.length;
+  assert.equal(playImageOcclusionSound("next", windowLike), true);
+  assert.ok(createdOscillators.slice(0, beforeNext).every((oscillator) => oscillator.stopped));
+  assert.equal(playImageOcclusionSound("unknown", windowLike), false);
 });
 
 test("Image Occlusion masks require normalized bounds and an answer per card", () => {
@@ -121,11 +155,34 @@ test("Image Occlusion runs retain a separate source image path per card", () => 
   const run = createImageOcclusionRun(set, [
     { ...cards[0], image_id: "image-a", image_path: "owner/occlusion/a.png" },
     { ...cards[1], image_id: "image-b", image_path: "owner/occlusion/b.png" },
-  ]);
+  ], "hide_one", { shuffle: false });
   assert.equal(run.cards[0].imagePath, "owner/occlusion/a.png");
   assert.equal(run.cards[1].imagePath, "owner/occlusion/b.png");
   const rotated = createImageOcclusionRun(set, [{ ...cards[0], rotation_degrees: 31 }]);
   assert.equal(rotated.cards[0].rotation, 31);
+});
+
+test("Image Occlusion study runs shuffle cards by default and preserve all cards and responses", () => {
+  const set = { id: "set-1", title: "Anatomi", image_path: "owner/occlusion/a.png" };
+  const testCards = [
+    { id: "c-1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "A" },
+    { id: "c-2", position: 1, x: .2, y: .2, width: .2, height: .2, answer: "B" },
+    { id: "c-3", position: 2, x: .3, y: .3, width: .2, height: .2, answer: "C" },
+    { id: "c-4", position: 3, x: .4, y: .4, width: .2, height: .2, answer: "D" },
+    { id: "c-5", position: 4, x: .5, y: .5, width: .2, height: .2, answer: "E" },
+  ];
+  const run = createImageOcclusionRun(set, testCards);
+  assert.equal(run.cards.length, 5);
+  assert.equal(run.responses.length, 5);
+  const ids = new Set(run.cards.map((c) => c.id));
+  assert.equal(ids.size, 5);
+  for (const c of testCards) {
+    assert.ok(ids.has(c.id));
+  }
+  const reversedRun = createImageOcclusionRun(set, testCards, "hide_one", { random: () => 0 });
+  assert.deepEqual(reversedRun.cards.map((c) => c.id), ["c-2", "c-3", "c-4", "c-5", "c-1"]);
+  const unShuffled = createImageOcclusionRun(set, testCards, "hide_one", { shuffle: false });
+  assert.deepEqual(unShuffled.cards.map((c) => c.id), ["c-1", "c-2", "c-3", "c-4", "c-5"]);
 });
 
 test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
@@ -139,7 +196,10 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /applyImageOcclusionRating\(current, targetIndex, rating\)/);
   assert.match(study, /Optimistically move to the next card; persistence runs in the background/);
   assert.doesNotMatch(study, /Menyimpan\.\.\./);
-  assert.match(study, /maskOnly && mask\.open \? null :/);
+  assert.match(study, /is-mask-only-open/);
+  assert.match(study, /playImageOcclusionSound\(rating, window\)/);
+  assert.match(study, /sessionComplete/);
+  assert.match(study, /hub-occlusion-completion-check/);
   assert.match(study, /responses\.map\(\(item\) => \(\{ \.\.\.item, revealed: false \}\)\)/);
   assert.match(study, /mask\.id === card\.id \? " is-current"/);
   assert.match(study, /hub-occlusion-study-mask-number/);
@@ -154,4 +214,8 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(editor, /hub-occlusion-image-strip/);
   assert.match(editor, /aria-label="Sudut rotasi mask"/);
   assert.match(editor, /rotate\(\$\{mask\.rotation \|\| 0\}deg\)/);
+  assert.match(editor, /playImageOcclusionSound\("save", window\)/);
+  const settings = await readFile(new URL("../../components/hub/SettingsPanel.jsx", import.meta.url), "utf8");
+  assert.match(settings, /Sound Effects/);
+  assert.match(settings, /Sound effect volume/);
 });

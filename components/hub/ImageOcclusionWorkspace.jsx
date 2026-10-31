@@ -6,6 +6,7 @@ import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Trash2, Undo
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createImageOcclusionRun, createImageOcclusionRepository, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
+import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", mode: "hide_one", answerMode: "answer", activeImageId: null, images: [] });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -135,6 +136,7 @@ export default function ImageOcclusionWorkspace() {
       return { id: imageId, imageId: null, imagePath: "", imageFile: file, imageUrl, masks: [] };
     });
     setError(invalidCount ? `${invalidCount} file dilewati. Setiap gambar harus PNG, JPG, atau JPEG dan maksimal 5 MB.` : "");
+    if (invalidCount) playImageOcclusionSound("error", window);
     setDraft((current) => {
       if (!current) { releaseDraftUrls(additions); return current; }
       const images = [...current.images, ...additions];
@@ -228,7 +230,11 @@ export default function ImageOcclusionWorkspace() {
   };
 
   const save = async () => {
-    if (!draft || saving || !draft.images.length || draft.images.some((image) => !image.masks.length)) return;
+    if (!draft || saving || !draft.images.length || draft.images.some((image) => !image.masks.length)) {
+      playImageOcclusionSound("error", window);
+      return;
+    }
+    unlockImageOcclusionAudio(window);
     setSaving(true); setError(""); setStatus("");
     try {
       const result = await repository.saveSet({
@@ -236,9 +242,10 @@ export default function ImageOcclusionWorkspace() {
         images: draft.images.map((image) => ({ id: image.imageId, imagePath: image.imagePath, imageFile: image.imageFile, masks: image.masks })),
       });
       setStatus(`“${result.title}” tersimpan · ${allDraftMasks} kartu · ${draft.images.length} gambar`);
+      playImageOcclusionSound("save", window);
       releaseDraftUrls(draft.images);
       setDraft(null); setSelectedMaskId(""); setPreviewOpen(false); await load();
-    } catch (saveError) { setError(saveError?.message || "Kumpulan gagal disimpan."); }
+    } catch (saveError) { playImageOcclusionSound("error", window); setError(saveError?.message || "Kumpulan gagal disimpan."); }
     finally { setSaving(false); }
   };
 
@@ -246,7 +253,7 @@ export default function ImageOcclusionWorkspace() {
     if (!window.confirm(`Hapus kumpulan “${set.title}”, semua kartu, dan riwayat review Image Occlusion secara permanen?`)) return;
     setError(""); setStatus("");
     try { await repository.deleteSet(set.id); setStatus("Kumpulan dan gambar privat berhasil dihapus."); await load(); }
-    catch (deleteError) { setError(deleteError?.message || "Kumpulan gagal dihapus."); }
+    catch (deleteError) { playImageOcclusionSound("error", window); setError(deleteError?.message || "Kumpulan gagal dihapus."); }
   };
 
   const startStudy = async (set, dueOnly = false) => {
@@ -255,11 +262,11 @@ export default function ImageOcclusionWorkspace() {
       const allCards = await repository.listCards(set.id);
       const now = Date.now();
       const cards = dueOnly ? allCards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= now) : allCards;
-      if (!cards.length) { setStatus("Belum ada kartu yang jatuh tempo untuk dikaji."); return; }
+      if (!cards.length) { playImageOcclusionSound("error", window); setStatus("Belum ada kartu yang jatuh tempo untuk dikaji."); return; }
       const run = createImageOcclusionRun(set, cards, set.mode);
       if (!writeImageOcclusionRun(window.sessionStorage, run)) throw new Error("Sesi belajar tidak dapat disimpan di browser ini.");
       router.push("/academic/occlusion");
-    } catch (studyError) { setError(studyError?.message || "Sesi Image Occlusion gagal dimulai."); }
+    } catch (studyError) { playImageOcclusionSound("error", window); setError(studyError?.message || "Sesi Image Occlusion gagal dimulai."); }
   };
 
   return <section className="hub-occlusion-workspace" aria-label="Image Occlusion workspace">

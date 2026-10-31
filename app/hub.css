@@ -387,16 +387,38 @@ body {
 .hub-occlusion-study-body { width: min(100%, 48rem); margin: 2rem auto 0; }
 .hub-occlusion-study-instruction { margin: 0 0 .8rem; color: var(--hub-muted); font-size: .85rem; }
 .hub-occlusion-study-image { border: 1px solid var(--hub-line); border-radius: 6px; }
+.hub-occlusion-study-image { animation:hub-occlusion-card-enter 180ms ease-out both; }
+.hub-occlusion-study-image .hub-occlusion-mask { transition:opacity 180ms ease,filter 180ms ease; }
+.hub-occlusion-study-image .hub-occlusion-mask.is-revealed { animation:hub-occlusion-mask-reveal 180ms ease-out both; }
+.hub-occlusion-study-image .hub-occlusion-mask.is-mask-only-open { opacity:0; filter:blur(1px); pointer-events:none; }
+.hub-occlusion-study .academic-practice__progress > span { transition:width 220ms ease; }
 .hub-occlusion-study-answer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .8rem; padding: .85rem 0; border-bottom: 1px solid var(--hub-line); }
 .hub-occlusion-study-answer strong { min-width: 0; margin-right: auto; font-size: 1rem; line-height: 1.55; overflow-wrap: anywhere; }
 .hub-occlusion-study-rating { display: flex; justify-content: space-between; align-items: center; gap: .8rem; margin-top: 1rem; flex-wrap: wrap; }
 .hub-occlusion-study-rating > span, .hub-occlusion-study-nav > span { color: var(--hub-muted); font-size: .78rem; }
 .hub-occlusion-study-rating > div { display: flex; flex-wrap: wrap; gap: .4rem; }
 .hub-occlusion-study-rating button { min-height: 42px; padding: .55rem .8rem; border: 1px solid var(--hub-line); border-radius: 5px; background: transparent; color: var(--hub-text); cursor: pointer; }
+.hub-occlusion-study-rating button { transition:background-color 160ms ease,border-color 160ms ease,transform 120ms ease; }
+.hub-occlusion-study-rating button:active:not(:disabled) { transform:scale(.97); }
+.hub-occlusion-study-rating button:disabled { cursor:default; }
 .hub-occlusion-study-rating button[aria-pressed="true"] { border-color: var(--hub-accent); background: var(--hub-surface); }
 .hub-occlusion-rating-shortcuts { flex:1 0 100%; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; text-align:right; }
 .hub-occlusion-study-nav { margin-top: 1.5rem; padding-top: .8rem; border-top: 1px solid var(--hub-line); }
 .hub-occlusion-study-single { display: flex; align-items: center; gap: .4rem; color: var(--hub-muted); font-size: .72rem; }
+.hub-occlusion-completion { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; text-align:center; }
+.hub-occlusion-completion-check { display:grid; place-items:center; width:3.5rem; height:3.5rem; margin-bottom:.5rem; border:1px solid rgba(40,199,111,.42); border-radius:50%; background:rgba(40,199,111,.08); color:var(--hub-success,#28c76f); animation:hub-occlusion-check-in 240ms cubic-bezier(.2,.8,.2,1) both; }
+.hub-occlusion-completion > span { color:var(--hub-muted); font:.68rem var(--font-geist-mono),monospace; letter-spacing:.08em; }
+.hub-occlusion-completion h1 { margin:0; font-size:clamp(1.8rem,5vw,2.7rem); }
+.hub-occlusion-completion p { margin:0; color:var(--hub-muted); }
+.hub-occlusion-completion dl { display:grid; grid-template-columns:repeat(4,minmax(4.5rem,1fr)); gap:.5rem; width:min(100%,32rem); margin:1rem 0; }
+.hub-occlusion-completion dl div { display:grid; gap:.35rem; padding:.75rem .5rem; border:1px solid var(--hub-line); border-radius:5px; }
+.hub-occlusion-completion dt { color:var(--hub-muted); font-size:.75rem; }
+.hub-occlusion-completion dd { margin:0; font:1.1rem var(--font-geist-mono),monospace; }
+.hub-occlusion-status { animation:hub-occlusion-status-in 180ms ease-out both; }
+@keyframes hub-occlusion-card-enter { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+@keyframes hub-occlusion-mask-reveal { from { opacity:.55; filter:blur(1px); } to { opacity:1; filter:blur(0); } }
+@keyframes hub-occlusion-check-in { from { opacity:0; transform:scale(.75); } to { opacity:1; transform:scale(1); } }
+@keyframes hub-occlusion-status-in { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
 @media (max-width: 700px) {
   .hub-occlusion-workspace { padding: .75rem; }
   .hub-occlusion-heading, .hub-occlusion-editor-actions { align-items: stretch; flex-direction: column; }
@@ -416,6 +438,11 @@ body {
   .hub-occlusion-study-rating > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .hub-occlusion-study-rating button { padding-inline: .35rem; }
   .hub-occlusion-rating-shortcuts { display:none; }
+  .hub-occlusion-completion dl { gap:.3rem; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .hub-occlusion-study-image,.hub-occlusion-study-image .hub-occlusion-mask,.hub-occlusion-study .academic-practice__progress > span,
+  .hub-occlusion-study-rating button,.hub-occlusion-completion-check,.hub-occlusion-status { animation:none !important; transition:none !important; }
 }
 
 /* Vault Drive — private file manager, intentionally flat and compact. */
@@ -2108,6 +2135,11 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-privacy-toggle span { display: grid; gap: 0.25rem; }
 .hub-privacy-toggle small { color: var(--hub-muted); line-height: 1.5; }
 .hub-settings-status { color: var(--hub-accent); font: 0.62rem var(--font-geist-mono), monospace; }
+.hub-occlusion-sound-volume { display:grid; gap:.55rem; margin:0 0 1rem; }
+.hub-occlusion-sound-volume > span { display:flex; justify-content:space-between; gap:.75rem; color:var(--hub-text); font-size:.82rem; }
+.hub-occlusion-sound-volume output { color:var(--hub-muted); font: .68rem var(--font-geist-mono),monospace; }
+.hub-occlusion-sound-volume input { width:100%; accent-color:var(--hub-accent); }
+.hub-occlusion-sound-volume input:disabled { opacity:.45; }
 .hub-integration-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
 .hub-integration-list div { display: grid; gap: 0.8rem; padding: 1rem; border: 1px solid var(--hub-line); }
 .hub-integration-list span { color: var(--hub-danger); font: 0.55rem var(--font-geist-mono), monospace; letter-spacing: 0.08em; }
