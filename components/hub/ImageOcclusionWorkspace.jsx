@@ -27,7 +27,7 @@ function MaskPreview({ imageUrl, masks, targetIndex, mode = "hide_one", answerMo
     <div className="hub-occlusion-preview-mask-layer">{masks.map((mask, index) => {
       const reveal = mode === "hide_one" && index !== targetIndex;
       const maskOnlyOpen = reveal && answerMode === "mask_only";
-      return <div key={mask.id || index} className={`hub-occlusion-mask${reveal && !maskOnlyOpen ? " is-revealed" : ""}${maskOnlyOpen ? " is-open" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }}>{reveal ? (answerMode === "answer" ? mask.answer : "") : index + 1}</div>;
+      return <div key={mask.id || index} className={`hub-occlusion-mask${reveal && !maskOnlyOpen ? " is-revealed" : ""}${maskOnlyOpen ? " is-open" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%`, transform: `rotate(${mask.rotation || 0}deg)` }}>{reveal ? (answerMode === "answer" ? mask.answer : "") : index + 1}</div>;
     })}</div>
   </div>;
 }
@@ -115,7 +115,7 @@ export default function ImageOcclusionWorkspace() {
       imagePath: image.image_path,
       imageFile: null,
       imageUrl: image.imageUrl,
-      masks: (image.cards || set.cards.filter((card) => !card.image_id || card.image_id === image.id)).map(({ id, position, x, y, width, height, answer }) => ({ id, position, x: Number(x), y: Number(y), width: Number(width), height: Number(height), answer: answer || "" })),
+      masks: (image.cards || set.cards.filter((card) => !card.image_id || card.image_id === image.id)).map(({ id, position, x, y, width, height, rotation_degrees, answer }) => ({ id, position, x: Number(x), y: Number(y), width: Number(width), height: Number(height), rotation: Number(rotation_degrees) || 0, answer: answer || "" })),
     }));
     if (draft) releaseDraftUrls(draft.images);
     const activeImageId = images[0]?.id || null;
@@ -169,7 +169,7 @@ export default function ImageOcclusionWorkspace() {
     let maskId = mask?.id || "";
     if (kind === "draw") {
       maskId = crypto.randomUUID();
-      const next = [...before, { id: maskId, position: before.length, x: point.x, y: point.y, width: 0.001, height: 0.001, answer: "" }];
+      const next = [...before, { id: maskId, position: before.length, x: point.x, y: point.y, width: 0.001, height: 0.001, rotation: 0, answer: "" }];
       changeMasks(next); setSelectedMaskId(maskId);
     } else setSelectedMaskId(maskId);
     const state = { kind, edge, pointerId: event.pointerId, start: point, before, initial, maskId };
@@ -216,6 +216,10 @@ export default function ImageOcclusionWorkspace() {
     const before = masksRef.current.map((item) => ({ ...item }));
     const next = before.map((mask) => mask.id === selectedMask.id ? { ...mask, answer } : mask);
     changeMasks(next); remember(before);
+  };
+  const updateSelectedRotation = (rotation) => {
+    if (!selectedMask) return;
+    changeMasks(activeMasks.map((mask) => mask.id === selectedMask.id ? { ...mask, rotation } : mask));
   };
   const removeSelectedMask = () => {
     if (!selectedMask) return;
@@ -279,7 +283,7 @@ export default function ImageOcclusionWorkspace() {
           <div className="hub-occlusion-tools"><span>GAMBAR {String(draft.images.findIndex((image) => image.id === activeImage.id) + 1).padStart(2, "0")} · {activeMasks.length} MASK / KARTU</span><div><button type="button" aria-label="Undo" title="Undo" disabled={!past.length} onClick={undo}><Undo2 size={15} /></button><button type="button" aria-label="Redo" title="Redo" disabled={!future.length} onClick={redo}><Redo2 size={15} /></button><button type="button" disabled={!selectedMask} onClick={removeSelectedMask}><Trash2 size={14} /> Hapus mask</button></div></div>
           <div ref={stageRef} className={`hub-occlusion-stage${interaction ? " is-interacting" : ""}`} onPointerDown={onStagePointerDown} onPointerMove={onPointerMove} onPointerUp={finishInteraction} onPointerCancel={finishInteraction}>
             <img src={activeImage.imageUrl} alt={`Gambar ${draft.images.findIndex((image) => image.id === activeImage.id) + 1} untuk Image Occlusion`} draggable="false" />
-            <div className="hub-occlusion-stage-overlay">{activeMasks.map((mask, index) => <div key={mask.id} className={`hub-occlusion-mask${selectedMaskId === mask.id ? " is-selected" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%` }} onPointerDown={(event) => beginInteraction(event, "drag", mask)} role="button" tabIndex={0} aria-label={`Mask ${index + 1}${mask.answer ? `: ${mask.answer}` : ""}`} onFocus={() => setSelectedMaskId(mask.id)} onClick={() => setSelectedMaskId(mask.id)}>
+            <div className="hub-occlusion-stage-overlay">{activeMasks.map((mask, index) => <div key={mask.id} className={`hub-occlusion-mask${selectedMaskId === mask.id ? " is-selected" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%`, transform: `rotate(${mask.rotation || 0}deg)` }} onPointerDown={(event) => beginInteraction(event, "drag", mask)} role="button" tabIndex={0} aria-label={`Mask ${index + 1}${mask.answer ? `: ${mask.answer}` : ""}`} onFocus={() => setSelectedMaskId(mask.id)} onClick={() => setSelectedMaskId(mask.id)}>
               <span>{index + 1}</span>{["tl", "tr", "bl", "br"].map((edge) => <i key={edge} className={`hub-occlusion-handle is-${edge}`} onPointerDown={(event) => beginInteraction(event, "resize", mask, edge)} />)}
             </div>)}</div>
           </div>
@@ -287,7 +291,7 @@ export default function ImageOcclusionWorkspace() {
         </div>
         <aside className="hub-occlusion-mask-details">
           <span>MASK DETAILS</span>
-          {!selectedMask ? <p>Pilih mask atau buat area baru di gambar.</p> : <>{draft.answerMode === "answer" ? <label><span>Jawaban / label mask {activeMasks.findIndex((mask) => mask.id === selectedMask.id) + 1}</span><textarea rows={4} value={selectedMask.answer} onChange={(event) => updateSelectedAnswer(event.target.value)} placeholder="Isi jawaban yang akan di-reveal" /></label> : <p>Mode mask saja aktif. Reveal akan membuka area gambar tanpa menampilkan jawaban teks.</p>}<small>Posisi tersimpan relatif terhadap ukuran gambar.</small></>}
+          {!selectedMask ? <p>Pilih mask atau buat area baru di gambar.</p> : <><label className="hub-occlusion-rotation-control"><span>Sudut mask <output>{Math.round(selectedMask.rotation || 0)}°</output></span><input type="range" min="-90" max="90" step="1" value={selectedMask.rotation || 0} onChange={(event) => updateSelectedRotation(Number(event.target.value))} aria-label="Sudut rotasi mask" /><small>Geser ke kiri atau kanan untuk mengikuti arah teks.</small></label>{draft.answerMode === "answer" ? <label><span>Jawaban / label mask {activeMasks.findIndex((mask) => mask.id === selectedMask.id) + 1}</span><textarea rows={4} value={selectedMask.answer} onChange={(event) => updateSelectedAnswer(event.target.value)} placeholder="Isi jawaban yang akan di-reveal" /></label> : <p>Mode mask saja aktif. Reveal akan membuka area gambar tanpa menampilkan jawaban teks.</p>}<small>Posisi tersimpan relatif terhadap ukuran gambar.</small></>}
         </aside>
       </div> : <div className="hub-occlusion-empty-upload"><ImagePlus size={18} /><span>{draft.images.length ? "Pilih gambar di atas untuk mulai membuat mask" : "Tambahkan satu atau beberapa gambar untuk mulai"}</span><button type="button" className="hub-question-tool-button" onClick={() => fileInputRef.current?.click()}><Plus size={15} /> Pilih gambar</button></div>}
 

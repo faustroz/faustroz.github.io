@@ -350,6 +350,10 @@ body {
 .hub-occlusion-stage-help, .hub-occlusion-mask-details small { color: var(--hub-muted); font-size: .72rem; line-height: 1.5; }
 .hub-occlusion-mask-details { display: grid; align-content: start; gap: .75rem; min-width: 0; padding: .85rem; border-left: 1px solid var(--hub-line); }
 .hub-occlusion-mask-details p { color: var(--hub-muted); font-size: .8rem; }
+.hub-occlusion-rotation-control > span { display:flex; align-items:center; justify-content:space-between; gap:.5rem; color:var(--hub-text); }
+.hub-occlusion-rotation-control output { min-width:3.25rem; padding:.2rem .4rem; border:1px solid var(--hub-line); border-radius:4px; background:var(--hub-surface); color:var(--hub-text); font: .7rem var(--font-geist-mono), monospace; text-align:center; }
+.hub-occlusion-rotation-control input[type="range"] { width:100%; min-height:1.5rem; margin:.1rem 0; accent-color:var(--hub-accent); }
+.hub-occlusion-rotation-control small { color:var(--hub-muted); font-size:.68rem; line-height:1.4; }
 .hub-occlusion-empty-upload { display: grid; place-items: center; gap: .5rem; min-height: 8rem; padding:1rem; border: 1px dashed var(--hub-line); background: transparent; color: var(--hub-muted); text-align:center; }
 .hub-occlusion-empty-upload > span { color:var(--hub-muted); font-size:.8rem; line-height:1.5; }
 .hub-occlusion-empty-state { display:flex; align-items:center; justify-content:center; gap:1rem; min-height:7rem; padding:1rem; border:1px solid var(--hub-line); border-radius:6px; background:var(--hub-panel); }

@@ -10,7 +10,9 @@ const cards = [
 
 test("Image Occlusion masks require normalized bounds and an answer per card", () => {
   assert.equal(validateOcclusionMasks(cards).length, 2);
+  assert.equal(validateOcclusionMasks([{ ...cards[0], rotation: -24 }])[0].rotation, -24);
   assert.throws(() => validateOcclusionMasks([{ ...cards[0], x: .9 }]), /Posisi mask/);
+  assert.throws(() => validateOcclusionMasks([{ ...cards[0], rotation: 181 }]), /Sudut mask/);
   assert.throws(() => validateOcclusionMasks([{ ...cards[0], answer: " " }]), /Jawaban mask/);
 });
 
@@ -72,6 +74,13 @@ test("multi-image migration backfills legacy collections and scopes image owners
   assert.doesNotMatch(sql, /delete\s+from|truncate\s+table|drop\s+table/i);
 });
 
+test("mask rotation migration preserves existing masks with a neutral angle", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/041-image-occlusion-mask-rotation.sql", import.meta.url), "utf8");
+  assert.match(sql, /add column if not exists rotation_degrees smallint not null default 0/i);
+  assert.match(sql, /check \(rotation_degrees between -180 and 180\)/i);
+  assert.doesNotMatch(sql, /delete\s+from|truncate\s+table|drop\s+table/i);
+});
+
 test("Image Occlusion runs retain a separate source image path per card", () => {
   const set = { id: "set-1", title: "Anatomi", image_path: "owner/occlusion/a.png", images: [{ image_path: "owner/occlusion/a.png" }] };
   const run = createImageOcclusionRun(set, [
@@ -80,6 +89,8 @@ test("Image Occlusion runs retain a separate source image path per card", () => 
   ]);
   assert.equal(run.cards[0].imagePath, "owner/occlusion/a.png");
   assert.equal(run.cards[1].imagePath, "owner/occlusion/b.png");
+  const rotated = createImageOcclusionRun(set, [{ ...cards[0], rotation_degrees: 31 }]);
+  assert.equal(rotated.cards[0].rotation, 31);
 });
 
 test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
@@ -102,4 +113,6 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(editor, /value="mask_only">Mask saja/);
   assert.match(editor, /multiple accept="image\/png,image\/jpeg/);
   assert.match(editor, /hub-occlusion-image-strip/);
+  assert.match(editor, /aria-label="Sudut rotasi mask"/);
+  assert.match(editor, /rotate\(\$\{mask\.rotation \|\| 0\}deg\)/);
 });
