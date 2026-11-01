@@ -409,15 +409,25 @@ body {
 .hub-occlusion-rating-shortcuts { flex:1 0 100%; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; text-align:right; }
 .hub-occlusion-study-nav { margin-top: 1.5rem; padding-top: .8rem; border-top: 1px solid var(--hub-line); }
 .hub-occlusion-study-single { display: flex; align-items: center; gap: .4rem; color: var(--hub-muted); font-size: .72rem; }
-.hub-occlusion-completion { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; text-align:center; }
-.hub-occlusion-completion-check { display:grid; place-items:center; width:3.5rem; height:3.5rem; margin-bottom:.5rem; border:1px solid rgba(40,199,111,.42); border-radius:50%; background:rgba(40,199,111,.08); color:var(--hub-success,#28c76f); animation:hub-occlusion-check-in 240ms cubic-bezier(.2,.8,.2,1) both; }
-.hub-occlusion-completion > span { color:var(--hub-muted); font:.68rem var(--font-geist-mono),monospace; letter-spacing:.08em; }
-.hub-occlusion-completion h1 { margin:0; font-size:clamp(1.8rem,5vw,2.7rem); }
-.hub-occlusion-completion p { margin:0; color:var(--hub-muted); }
-.hub-occlusion-completion dl { display:grid; grid-template-columns:repeat(4,minmax(4.5rem,1fr)); gap:.5rem; width:min(100%,32rem); margin:1rem 0; }
-.hub-occlusion-completion dl div { display:grid; gap:.35rem; padding:.75rem .5rem; border:1px solid var(--hub-line); border-radius:5px; }
-.hub-occlusion-completion dt { color:var(--hub-muted); font-size:.75rem; }
-.hub-occlusion-completion dd { margin:0; font:1.1rem var(--font-geist-mono),monospace; }
+.hub-occlusion-completion { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:calc(100dvh - 3rem); margin:0 auto; padding:1.5rem 1rem; text-align:center; }
+.hub-occlusion-completion-card { display:flex; flex-direction:column; align-items:center; justify-content:center; width:min(100%,42rem); padding:3rem 2.5rem; border:1px solid var(--hub-line); border-radius:14px; background:var(--hub-panel); box-shadow:0 16px 48px rgba(0,0,0,.5); text-align:center; animation:hub-occlusion-card-enter 220ms cubic-bezier(.2,.8,.2,1) both; }
+.hub-occlusion-completion-check { display:grid; place-items:center; width:4.5rem; height:4.5rem; margin-bottom:1.1rem; border:2px solid rgba(40,199,111,.45); border-radius:50%; background:rgba(40,199,111,.1); color:var(--hub-success,#28c76f); animation:hub-occlusion-check-in 260ms cubic-bezier(.2,.8,.2,1) both; }
+.hub-occlusion-completion-label { color:var(--hub-muted); font:.75rem var(--font-geist-mono),monospace; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.45rem; }
+.hub-occlusion-completion h1 { margin:0; font-size:clamp(2.2rem,5.5vw,3.2rem); font-weight:700; line-height:1.15; color:var(--hub-text); letter-spacing:-0.02em; }
+.hub-occlusion-completion-subtitle { margin:.5rem 0 0; color:var(--hub-muted); font-size:1.05rem; line-height:1.5; }
+.hub-occlusion-completion-stats, .hub-occlusion-completion dl { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; width:100%; margin:1.75rem 0; }
+.hub-occlusion-completion-stats.is-retry-stats { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:22rem; margin-inline:auto; }
+.hub-occlusion-stat-box, .hub-occlusion-completion dl div { display:grid; gap:.45rem; padding:1.1rem .75rem; border:1px solid var(--hub-line); border-radius:8px; background:var(--hub-surface); transition:border-color 160ms ease; }
+.hub-occlusion-stat-box dt, .hub-occlusion-completion dt { color:var(--hub-muted); font:.8rem var(--font-geist-mono),monospace; text-transform:uppercase; letter-spacing:.06em; }
+.hub-occlusion-stat-box dd, .hub-occlusion-completion dd { margin:0; font:700 2.1rem var(--font-geist-mono),monospace; line-height:1.1; color:var(--hub-text); }
+.hub-occlusion-stat-box.is-again dd { color:#f87171; }
+.hub-occlusion-stat-box.is-hard dd { color:#fbbf24; }
+.hub-occlusion-stat-box.is-good dd { color:#60a5fa; }
+.hub-occlusion-stat-box.is-easy dd { color:#4ade80; }
+.hub-occlusion-completion-actions { display:flex; align-items:center; justify-content:center; gap:.85rem; flex-wrap:wrap; width:100%; }
+.hub-occlusion-completion-actions button { min-height:46px; padding:.7rem 1.4rem; font-size:.88rem; font-weight:500; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:.45rem; }
+.hub-occlusion-retry-button { background:var(--hub-accent); color:#080808; font-weight:600; border:1px solid var(--hub-accent); }
+.hub-occlusion-retry-button:hover { filter:brightness(1.08); }
 .hub-occlusion-status { animation:hub-occlusion-status-in 180ms ease-out both; }
 @keyframes hub-occlusion-card-enter { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
 @keyframes hub-occlusion-mask-reveal { from { opacity:.55; filter:blur(1px); } to { opacity:1; filter:blur(0); } }
@@ -442,11 +452,16 @@ body {
   .hub-occlusion-study-rating > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .hub-occlusion-study-rating button { padding-inline: .35rem; }
   .hub-occlusion-rating-shortcuts { display:none; }
-  .hub-occlusion-completion dl { gap:.3rem; }
+  .hub-occlusion-completion-card { padding: 2rem 1.25rem; width: 100%; border-radius: 10px; }
+  .hub-occlusion-completion-stats, .hub-occlusion-completion dl { gap: .4rem; }
+  .hub-occlusion-stat-box, .hub-occlusion-completion dl div { padding: .85rem .35rem; }
+  .hub-occlusion-stat-box dd, .hub-occlusion-completion dd { font-size: 1.6rem; }
+  .hub-occlusion-completion-actions { flex-direction: column; align-items: stretch; }
+  .hub-occlusion-completion-actions button { width: 100%; }
 }
 @media (prefers-reduced-motion:reduce) {
   .hub-occlusion-study-image,.hub-occlusion-study-image .hub-occlusion-mask,.hub-occlusion-study .academic-practice__progress > span,
-  .hub-occlusion-study-rating button,.hub-occlusion-completion-check,.hub-occlusion-status { animation:none !important; transition:none !important; }
+  .hub-occlusion-study-rating button,.hub-occlusion-completion-check,.hub-occlusion-status,.hub-occlusion-completion-card { animation:none !important; transition:none !important; }
 }
 
 /* Vault Drive — private file manager, intentionally flat and compact. */

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, groupCardsByImage, isValidImageOcclusionRun, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRetryRun, createImageOcclusionRun, getImageOcclusionRatingFromKey, groupCardsByImage, isValidImageOcclusionRun, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
 import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, IMAGE_OCCLUSION_SOUND_EVENTS, IMAGE_OCCLUSION_SOUND_SETTINGS_KEY, playImageOcclusionSound, readImageOcclusionSoundSettings, writeImageOcclusionSoundSettings } from "../../lib/hub/image-occlusion-sounds.mjs";
 
 const cards = [
@@ -264,14 +264,45 @@ test("Image Occlusion grouped shuffle randomizes images and masks within each im
   assert.equal(readImageOcclusionShuffleSetting(mockStorage), true); // turned ON
 });
 
+test("Image Occlusion retry run extracts only Again cards and restricts rating shortcuts to Again and Good", () => {
+  const setCards = [
+    { id: "c1", image_id: "img1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "Ans 1" },
+    { id: "c2", image_id: "img1", position: 1, x: .2, y: .2, width: .2, height: .2, answer: "Ans 2" },
+    { id: "c3", image_id: "img2", position: 2, x: .3, y: .3, width: .2, height: .2, answer: "Ans 3" },
+  ];
+  const initialRun = createImageOcclusionRun({ id: "set-1", image_path: "owner/img.png" }, setCards, "hide_one", { shuffle: false });
+  initialRun.responses[0] = { revealed: true, rating: "again", saved: true };
+  initialRun.responses[1] = { revealed: true, rating: "good", saved: true };
+  initialRun.responses[2] = { revealed: true, rating: "again", saved: true };
+
+  const retryRun = createImageOcclusionRetryRun(initialRun, "again");
+  assert.ok(retryRun);
+  assert.equal(retryRun.cards.length, 2);
+  assert.deepEqual(retryRun.cards.map((c) => c.id).sort(), ["c1", "c3"]);
+  assert.equal(retryRun.isRetry, true);
+  assert.equal(retryRun.retryRatingMode, "again_good");
+  assert.equal(retryRun.index, 0);
+  assert.deepEqual(retryRun.responses, [
+    { revealed: false, rating: null, saved: false },
+    { revealed: false, rating: null, saved: false },
+  ]);
+
+  // In retry mode, 1 -> again, 2 -> good, 3 & 4 -> null
+  assert.equal(getImageOcclusionRatingFromKey("1", true), "again");
+  assert.equal(getImageOcclusionRatingFromKey("2", true), "good");
+  assert.equal(getImageOcclusionRatingFromKey("3", true), null);
+  assert.equal(getImageOcclusionRatingFromKey("4", true), null);
+});
+
 test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
   const study = await readFile(new URL("../../components/hub/ImageOcclusionStudyPage.jsx", import.meta.url), "utf8");
   const editor = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
   assert.match(study, /event\.code !== "Space"/);
   assert.match(study, /pendingRatings/);
-  assert.match(study, /getImageOcclusionRatingFromKey\(event\.key\)/);
+  assert.match(study, /getImageOcclusionRatingFromKey\(event\.key/);
   assert.match(study, /isContentEditable \|\| \["INPUT", "TEXTAREA", "SELECT"\]/);
   assert.match(study, /1 Again · 2 Hard · 3 Good · 4 Easy/);
+  assert.match(study, /1 Again · 2 Good/);
   assert.match(study, /applyImageOcclusionRating\(current, targetIndex, rating\)/);
   assert.match(study, /Optimistically move to the next card; persistence runs in the background/);
   assert.doesNotMatch(study, /Menyimpan\.\.\./);
@@ -279,12 +310,17 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /playImageOcclusionSound\(rating, window\)/);
   assert.match(study, /sessionComplete/);
   assert.match(study, /hub-occlusion-completion-check/);
+  assert.match(study, /hub-occlusion-completion-card/);
+  assert.match(study, /Ulangi Kartu Again/);
+  assert.match(study, /createImageOcclusionRetryRun/);
   assert.match(study, /responses\.map\(\(item\) => \(\{ \.\.\.item, revealed: false \}\)\)/);
   assert.match(study, /mask\.id === card\.id \? " is-current"/);
   assert.match(study, /hub-occlusion-study-mask-number/);
   const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
   assert.match(styles, /hub-occlusion-mask\.is-current \{[^}]*overflow:visible/);
   assert.match(styles, /hub-occlusion-study-mask-number[^}]*font-size:\.9rem/);
+  assert.match(styles, /hub-occlusion-completion-card/);
+  assert.match(styles, /hub-occlusion-stat-box/);
   assert.match(study, /aria-keyshortcuts="Space"/);
   assert.match(study, /Area gambar terbuka/);
   assert.match(editor, /value="answer">Mask \+ jawaban/);
