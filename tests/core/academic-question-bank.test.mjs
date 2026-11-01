@@ -90,9 +90,28 @@ test("Phase 37 essay-only spaced repetition is superseded by Image Occlusion sch
   assert.doesNotMatch(replacement, /delete\s+from\s+public\.academic_question_review_state|truncate\s+table/i);
   const repository = await readFile(new URL("../../lib/hub/question-bank.mjs", import.meta.url), "utf8");
   assert.match(repository, /async listMistakes\(\) \{ return fetchMistakes\(client\); \}/);
-  assert.doesNotMatch(repository, /async listDueReviews|async listUnmasteredReviews|async rateAttempt/);
+  assert.doesNotMatch(repository, /async listDueReviews|async listUnmasteredReviews/);
+});
+
+test("Phase 42 restores owner-scoped spaced repetition for Essay only", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/042-essay-spaced-repetition.sql", import.meta.url), "utf8");
+  assert.match(sql, /v_question_type is distinct from 'essay'/i);
+  assert.match(sql, /rate_academic_essay_attempt_review/);
+  assert.match(sql, /q\.question_type = 'essay'/i);
+  assert.match(sql, /app\.allow_essay_review_rating/);
+  assert.match(sql, /grant execute on function public\.rate_academic_essay_attempt_review\(uuid, text\) to authenticated/i);
+  assert.match(sql, /on conflict \(user_id, question_id\) do nothing/i);
+  assert.doesNotMatch(sql, /delete\s+from\s+public\.academic_question_attempts|truncate\s+table/i);
   const practice = await readFile(new URL("../../components/hub/AcademicPracticePage.jsx", import.meta.url), "utf8");
-  assert.doesNotMatch(practice, /Again|Hard|Good|Easy|saveReviewRating|review-rating/);
+  assert.match(practice, /essayReviewRatings/);
+  assert.match(practice, /rateEssayAttemptReview/);
+  assert.match(practice, /ESSAY SPACED REVIEW/);
+  const repository = await readFile(new URL("../../lib/hub/question-bank.mjs", import.meta.url), "utf8");
+  assert.match(repository, /async listDueEssayQuestions/);
+  assert.match(repository, /async rateEssayAttemptReview/);
+  const library = await readFile(new URL("../../components/hub/QuestionLibrary.jsx", import.meta.url), "utf8");
+  assert.match(library, /Review Essay/);
+  assert.match(library, /listDueEssayQuestions/);
 });
 
 test("Phase 33 removes implicit categories without deleting existing question data", async () => {

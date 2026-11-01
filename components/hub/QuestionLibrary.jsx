@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock3,
   Download,
   FileJson,
   Eye,
@@ -147,6 +148,9 @@ export default function QuestionLibrary() {
   const [performanceData, setPerformanceData] = useState(null);
   const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [performanceError, setPerformanceError] = useState("");
+  const [essayDueQuestions, setEssayDueQuestions] = useState([]);
+  const [loadingEssayDue, setLoadingEssayDue] = useState(false);
+  const [essayDueError, setEssayDueError] = useState("");
   const [expandedSessionId, setExpandedSessionId] = useState("");
   const [restoringBackup, setRestoringBackup] = useState(false);
 
@@ -241,6 +245,17 @@ export default function QuestionLibrary() {
 
   useEffect(() => { if (activeTab === "practice") loadPerformance(); }, [activeTab, loadPerformance]);
 
+  const loadEssayDueQuestions = useCallback(async () => {
+    if (!repository) return;
+    setLoadingEssayDue(true);
+    setEssayDueError("");
+    try { setEssayDueQuestions(await repository.listDueEssayQuestions()); }
+    catch (loadError) { setEssayDueError(loadError.message || "Jadwal review Essay gagal dimuat."); }
+    finally { setLoadingEssayDue(false); }
+  }, [repository]);
+
+  useEffect(() => { if (activeTab === "practice") loadEssayDueQuestions(); }, [activeTab, loadEssayDueQuestions]);
+
   const filterOptions = useMemo(() => extractFilterOptions(questions), [questions]);
   const practiceAvailableTopics = useMemo(() => extractPracticeTopics(questions, {
     examType: practiceExamType,
@@ -311,7 +326,7 @@ export default function QuestionLibrary() {
     const pool = filteredPool;
     if (!pool.length) return;
     const startedAt = new Date().toISOString();
-    const selection = { examType: practiceExamType, subject: practiceSubject, block: practiceBlock, topic: practiceTopic, questionType: practiceFormat, reviewKind, startedAt };
+    const selection = { examType: practiceExamType, subject: practiceSubject, block: practiceBlock, topic: practiceTopic, questionType: reviewKind === "due" ? "essay" : practiceFormat, reviewKind, startedAt };
     const session = createPracticeRun(pool, selection);
     if (!session) return;
     try {
@@ -945,6 +960,10 @@ export default function QuestionLibrary() {
                 })}</div> : <p style={{ margin: "0.6rem 0 0", color: "var(--hub-muted)", fontSize: "0.78rem" }}>Riwayat akan muncul setelah sesi latihan diselesaikan.</p>}
               </details>
             </>}
+          </section>
+          <section className="hub-essay-due-review" aria-label="Essay Spaced Repetition">
+            <div><strong>Spaced Repetition · Essay</strong><p>{essayDueError || (loadingEssayDue ? "Memuat jadwal review…" : essayDueQuestions.length ? `${essayDueQuestions.length} essay siap diulang` : "Tidak ada essay yang jatuh tempo")}</p></div>
+            <button type="button" className="hub-question-tool-button" disabled={loadingEssayDue || !essayDueQuestions.length} onClick={() => startPractice(essayDueQuestions, "due")}><Clock3 size={15} /> Review Essay{essayDueQuestions.length ? ` · ${essayDueQuestions.length}` : ""}</button>
           </section>
           {!practiceActive ? (
             /* Practice Setup Screen */

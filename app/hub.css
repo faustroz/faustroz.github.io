@@ -3564,6 +3564,17 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .academic-practice__essay > label,.academic-practice__self-assess { color:var(--practice-muted); font:500 .68rem/1.4 var(--font-geist-mono),monospace; }
 .academic-practice__essay textarea,.academic-practice__self-assess select { width:100%; min-height:3rem; padding:.8rem; border:1px solid var(--practice-line); border-radius:.5rem; color:inherit; background:rgba(255,255,255,.035); font:inherit; font-size:16px; line-height:1.55; }
 .academic-practice__self-assess { display:grid; gap:.45rem; }
+.academic-practice__essay-review { display:grid; gap:.55rem; margin-top:1rem; padding-top:.85rem; border-top:1px solid var(--practice-line); }
+.academic-practice__essay-review > span { color:var(--practice-muted); font-size:.78rem; }
+.academic-practice__essay-review > div { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; }
+.academic-practice__essay-review button { min-height:44px; padding:.55rem .65rem; border:1px solid var(--practice-line); border-radius:.45rem; color:var(--practice-text); background:rgba(255,255,255,.025); cursor:pointer; transition:background-color 150ms ease,border-color 150ms ease; }
+.academic-practice__essay-review button:hover:not(:disabled),.academic-practice__essay-review button.is-selected { border-color:var(--practice-text); background:rgba(255,255,255,.1); }
+.academic-practice__essay-review button:disabled:not(.is-selected) { opacity:.55; cursor:not-allowed; }
+.academic-practice__essay-review small { color:var(--practice-muted); font-size:.72rem; }
+.hub-essay-due-review { display:flex; align-items:center; justify-content:space-between; gap:1rem; max-width:62rem; margin:0 auto 1rem; padding:.9rem 1rem; border:1px solid var(--hub-line); border-radius:7px; background:var(--hub-panel); }
+.hub-essay-due-review strong { color:var(--hub-text); font-size:.85rem; }
+.hub-essay-due-review p { margin:.2rem 0 0; color:var(--hub-muted); font-size:.75rem; }
+.hub-essay-due-review button { flex:0 0 auto; }
 .academic-practice__feedback > p + p { margin-top:.65rem; }
 .academic-practice__option { width:100%; min-height:3.6rem; display:grid; grid-template-columns:2rem minmax(0,1fr) auto; align-items:center; gap:.85rem; padding:.7rem .9rem; border:1px solid var(--practice-line); border-radius:.55rem; color:inherit; background:rgba(255,255,255,.025); text-align:left; cursor:pointer; transition:background .16s ease,border-color .16s ease; }
 .academic-practice__option:hover:not(:disabled) { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.25); }
@@ -3613,6 +3624,10 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .academic-practice__review article p { margin:0 0 .45rem; white-space:pre-wrap; }
 .academic-practice__review article p:last-child { margin-bottom:0; }
 .academic-practice__result-bar { margin:1.5rem 0 0; }
+.academic-practice__essay-review > div { gap:.3rem; }
+.academic-practice__essay-review button { padding-inline:.25rem; }
+.hub-essay-due-review { align-items:stretch; flex-direction:column; }
+.hub-essay-due-review button { justify-content:center; }
 .academic-practice__result-actions { display:grid; justify-items:start; gap:.65rem; margin-top:1.5rem; }
 .academic-practice__result-actions .academic-practice__button--primary span { opacity:.65; }
 .academic-practice__text-button { display:inline-flex; align-items:center; gap:.5rem; padding:.6rem 0; border:0; color:var(--practice-muted); background:none; font-size:.8rem; white-space:nowrap; cursor:pointer; }

@@ -11,6 +11,7 @@ import { buildSessionSnapshot } from "@/lib/hub/academic-performance.mjs";
 
 const percent = (part, total) => total ? Math.round((part / total) * 100) : 0;
 const isEssay = (question) => question?.question_type === "essay";
+const essayReviewRatings = [["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]];
 
 export default function AcademicPracticePage() {
   const router = useRouter();
@@ -20,9 +21,9 @@ export default function AcademicPracticePage() {
   const [attemptMessage, setAttemptMessage] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [zoomImage, setZoomImage] = useState(false);
-  const [essayAssessment, setEssayAssessment] = useState("");
-  const [essayAttemptId, setEssayAttemptId] = useState("");
+  const [savingEssayRating, setSavingEssayRating] = useState(false);
   const submitLock = useRef(false);
+  const essayRatingLock = useRef(false);
   const questionStartedAt = useRef(Date.now());
   const finishLock = useRef(false);
 
@@ -32,11 +33,6 @@ export default function AcademicPracticePage() {
   const essay = isEssay(question);
   const isCorrect = Boolean(run?.submitted && question && !essay && run.selectedAnswer === question.shuffledCorrectAnswer);
   const response = run?.responses?.[run.index];
-
-  useEffect(() => {
-    setEssayAttemptId(response?.attemptId || "");
-    setEssayAssessment(response?.selfAssessed === true ? "yes" : response?.selfAssessed === false ? "no" : "");
-  }, [run?.index, response?.attemptId, response?.selfAssessed]);
 
   useEffect(() => {
     let active = true;
@@ -58,7 +54,7 @@ export default function AcademicPracticePage() {
     const correct = !essay && run.selectedAnswer === question.shuffledCorrectAnswer;
     const timeSpentSeconds = Math.max(0, Math.round((Date.now() - questionStartedAt.current) / 1000));
     const nextResponses = [...run.responses];
-    nextResponses[run.index] = { ...nextResponses[run.index], selectedAnswer: run.selectedAnswer, essayAnswer: run.essayAnswer, submitted: true, isCorrect: essay ? null : correct, selfAssessed: essay ? (essayAssessment === "" ? null : essayAssessment === "yes") : null, timeSpentSeconds };
+    nextResponses[run.index] = { ...nextResponses[run.index], selectedAnswer: run.selectedAnswer, essayAnswer: run.essayAnswer, submitted: true, isCorrect: essay ? null : correct, selfAssessed: null, timeSpentSeconds };
     const nextRun = {
       ...run, submitted: true, lastAnswerCorrect: essay ? null : correct, responses: nextResponses,
       stats: { ...run.stats, correct: run.stats.correct + (correct ? 1 : 0), wrong: run.stats.wrong + (!essay && !correct ? 1 : 0), essaysToReview: run.stats.essaysToReview + (essay ? 1 : 0), incorrectQuestions: correct || essay ? run.stats.incorrectQuestions : [...run.stats.incorrectQuestions, question] },
@@ -68,7 +64,6 @@ export default function AcademicPracticePage() {
       const repository = createQuestionRepository(requireSupabase());
       if (essay) {
         const attempt = await repository.recordEssayAttempt({ question_id: question.id, exam_session_id: run.sessionId || null, response_text: run.essayAnswer, reference_answer: question.reference_answer, time_spent_seconds: timeSpentSeconds });
-        setEssayAttemptId(attempt.id);
         nextResponses[run.index] = { ...nextResponses[run.index], attemptId: attempt.id };
         setRun({ ...nextRun, responses: nextResponses });
       }
@@ -82,7 +77,28 @@ export default function AcademicPracticePage() {
       console.error("Failed to record academic practice attempt:", error);
       setAttemptMessage("Jawaban tampil, tetapi attempt belum tersimpan.");
     } finally { setSavingAttempt(false); }
-  }, [essay, essayAssessment, question, run]);
+  }, [essay, question, run]);
+
+  const rateEssay = useCallback(async (rating) => {
+    const attemptId = response?.attemptId;
+    if (!attemptId || response?.reviewRating || savingEssayRating || essayRatingLock.current) return;
+    essayRatingLock.current = true;
+    setSavingEssayRating(true);
+    setAttemptMessage("");
+    try {
+      await createQuestionRepository(requireSupabase()).rateEssayAttemptReview(attemptId, rating);
+      setRun((current) => current ? ({
+        ...current,
+        responses: current.responses.map((item) => item.attemptId === attemptId ? { ...item, reviewRating: rating, selfAssessed: rating === "again" ? false : true } : item),
+      }) : current);
+      setAttemptMessage(`Rating ${rating.toUpperCase()} tersimpan`);
+    } catch (saveError) {
+      setAttemptMessage(saveError?.message || "Rating spaced repetition gagal disimpan.");
+    } finally {
+      essayRatingLock.current = false;
+      setSavingEssayRating(false);
+    }
+  }, [response?.attemptId, response?.reviewRating, savingEssayRating]);
 
   const persistCompletion = useCallback(async (finishedRun) => {
     if (!finishedRun?.sessionId || finishLock.current) return finishedRun;
@@ -109,8 +125,7 @@ export default function AcademicPracticePage() {
 
   const nextQuestion = () => {
     if (!run?.submitted) return;
-    submitLock.current = false; setAttemptMessage(""); setEssayAssessment("");
-    setEssayAttemptId("");
+    submitLock.current = false; setAttemptMessage("");
     if (run.index + 1 >= run.questions.length) { void finishRun(run); return; }
     const nextIndex = run.index + 1;
     const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
@@ -121,7 +136,6 @@ export default function AcademicPracticePage() {
     if (!run || run.submitted) return;
     submitLock.current = false;
     setAttemptMessage("");
-    setEssayAssessment("");
     if (run.index + 1 >= run.questions.length) { void finishRun(run); return; }
     const nextIndex = run.index + 1;
     const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
@@ -197,7 +211,7 @@ export default function AcademicPracticePage() {
   const metadata = [question.exam_type, question.block || run.block, question.subject, question.topic || run.topic, question.subtopic].filter(Boolean);
 
   return <main className="academic-practice">
-    <header className="academic-practice__topbar"><button className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><div><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><div className="academic-practice__score"><span className="is-correct">{run.stats.correct} benar</span><span className="is-wrong">{run.stats.wrong} salah</span></div></header>
+    <header className="academic-practice__topbar"><button className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><div><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : run.reviewKind === "due" ? "ESSAY SPACED REVIEW" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><div className="academic-practice__score"><span className="is-correct">{run.stats.correct} benar</span><span className="is-wrong">{run.stats.wrong} salah</span></div></header>
     <div className="academic-practice__progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100"><span style={{ width: progress + "%" }} /></div>
     <section className="academic-practice__content" key={question.id}>
       <div className="academic-practice__metadata">{metadata.map((item) => <span key={item}>{item}</span>)}<span>{essay ? "ESSAY" : "MCQ"}</span></div>
@@ -207,18 +221,9 @@ export default function AcademicPracticePage() {
       {essay ? <div className="academic-practice__essay">
         <label htmlFor="practice-essay-answer">Jawaban Anda</label>
         <textarea id="practice-essay-answer" rows={8} value={run.essayAnswer} disabled={run.submitted} onChange={(event) => updateAnswer("essayAnswer", event.target.value)} placeholder="Tuliskan jawaban singkat atau uraian..." />
-        {run.submitted && <div className="academic-practice__feedback"><p className="academic-practice__feedback-title">Essay dikirim · tinjau mandiri</p><p><strong>Jawaban Anda</strong><br />{response?.essayAnswer}</p><p><strong>Reference answer</strong><br />{question.reference_answer}</p>{question.explanation && <p className="academic-practice__explanation">{question.explanation}</p>}
-          <label className="academic-practice__self-assess">Self-assessment<select aria-label="Self-assessment essay" value={essayAssessment} disabled={!essayAttemptId || savingAttempt} onChange={async (event) => {
-            const value = event.target.value;
-            setEssayAssessment(value);
-            if (!essayAttemptId || value === "") return;
-            try {
-              await createQuestionRepository(requireSupabase()).updateEssaySelfAssessment(essayAttemptId, value === "yes");
-              const responses = [...run.responses]; responses[run.index] = { ...responses[run.index], selfAssessed: value === "yes" };
-              setRun({ ...run, responses }); setAttemptMessage("Self-assessment tersimpan");
-            } catch { setAttemptMessage("Self-assessment gagal disimpan."); }
-          }}><option value="">Pilih setelah review</option><option value="yes">Sudah memahami</option><option value="no">Perlu ditinjau lagi</option></select></label>
-          {attemptMessage && <span className="academic-practice__save-state" aria-live="polite">{savingAttempt ? "Menyimpan jawaban…" : attemptMessage}</span>}</div>}
+        {run.submitted && <div className="academic-practice__feedback"><p className="academic-practice__feedback-title">Essay dikirim · tinjau jawaban dan referensi</p><p><strong>Jawaban Anda</strong><br />{response?.essayAnswer}</p><p><strong>Reference answer</strong><br />{question.reference_answer}</p>{question.explanation && <p className="academic-practice__explanation">{question.explanation}</p>}
+          <div className="academic-practice__essay-review"><span>Seberapa baik Anda mengingat jawaban?</span><div role="group" aria-label="Rating spaced repetition essay">{essayReviewRatings.map(([value, label]) => <button type="button" key={value} aria-pressed={response?.reviewRating === value} className={response?.reviewRating === value ? "is-selected" : ""} disabled={!response?.attemptId || savingAttempt || savingEssayRating || Boolean(response?.reviewRating)} onClick={() => rateEssay(value)}>{label}</button>)}</div>{savingEssayRating && <small role="status">Menyimpan rating…</small>}{response?.reviewRating && <small>Rating tersimpan: {response.reviewRating.toUpperCase()}</small>}{attemptMessage && <small className="academic-practice__save-state" aria-live="polite">{savingAttempt ? "Menyimpan jawaban…" : attemptMessage}</small>}</div>
+        </div>}
       </div> : <div className="academic-practice__options" role="radiogroup" aria-label="Pilihan jawaban">
         {VALID_OPTIONS.map((option) => {
           const selected = run.selectedAnswer === option;
@@ -232,7 +237,7 @@ export default function AcademicPracticePage() {
         })}
         {run.submitted && <div className={"academic-practice__feedback " + (isCorrect ? "is-correct" : "is-wrong")}><p className="academic-practice__feedback-title">{isCorrect ? "Jawaban benar" : "Belum tepat"}</p>{!isCorrect && <p><span>Jawaban yang benar:</span> <strong>{question.shuffledCorrectAnswer}. {question.shuffledOptions[question.shuffledCorrectAnswer]}</strong></p>}{question.explanation && <p className="academic-practice__explanation">{question.explanation}</p>}</div>}
       </div>}
-      <div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Periksa jawaban"} <ArrowRight size={16} /></button></> : <button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button>}</div>
+      <div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Periksa jawaban"} <ArrowRight size={16} /></button></> : <button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button>}</div>
     </section>
     {zoomImage && imageUrl && <div className="academic-practice__image-overlay" role="dialog" aria-modal="true" aria-label="Gambar soal" onClick={() => setZoomImage(false)}>
       <button type="button" onClick={() => setZoomImage(false)} aria-label="Tutup gambar">×</button>

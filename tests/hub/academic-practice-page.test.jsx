@@ -6,6 +6,7 @@ import { createPracticeRun, writePracticeRun } from "@/lib/hub/academic-practice
 const { mockBack } = vi.hoisted(() => ({ mockBack: vi.fn() }));
 const attemptInsert = vi.fn();
 const attemptUpdate = vi.fn();
+const reviewRpc = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
@@ -20,6 +21,7 @@ vi.mock("@/lib/supabase/client", () => ({
       },
       update: (payload) => { attemptUpdate(payload); return { eq: () => ({ select: () => ({ single: async () => ({ data: payload, error: null }) }) }) }; },
     }),
+    rpc: async (name, params) => { reviewRpc(name, params); return { data: { id: params.p_attempt_id, review_rating: params.p_rating }, error: null }; },
     storage: { from: () => ({ createSignedUrl: async (path) => ({ data: { signedUrl: "signed:" + path }, error: null }) }) },
   }),
 }));
@@ -35,6 +37,7 @@ describe("standalone Academic Practice page", () => {
     mockBack.mockClear();
     attemptInsert.mockClear();
     attemptUpdate.mockClear();
+    reviewRpc.mockClear();
     writePracticeRun(window.sessionStorage, createPracticeRun(questions, { block: "Block 1", topic: "Topic A" }));
   });
 
@@ -50,9 +53,10 @@ describe("standalone Academic Practice page", () => {
     await waitFor(() => expect(attemptInsert).toHaveBeenCalledTimes(1));
     expect(attemptInsert.mock.calls[0][0]).toMatchObject({ question_id: "essay-1", response_text: "Jawaban saya", is_correct: null, selected_answer: null });
     expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(0);
-    fireEvent.change(screen.getByLabelText(/self-assessment essay/i), { target: { value: "no" } });
-    await waitFor(() => expect(attemptUpdate).toHaveBeenCalledWith({ self_assessed: false }));
-    expect(screen.queryByRole("button", { name: /again|hard|good|easy/i })).not.toBeInTheDocument();
+    for (const rating of ["Again", "Hard", "Good", "Easy"]) expect(screen.getByRole("button", { name: rating })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Again" }));
+    await waitFor(() => expect(reviewRpc).toHaveBeenCalledWith("rate_academic_essay_attempt_review", { p_attempt_id: "attempt-test", p_rating: "again" }));
+    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).responses[0].reviewRating).toBe("again");
   });
 
   it("resolves question images through a private signed URL at display time", async () => {
