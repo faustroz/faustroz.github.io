@@ -2,10 +2,10 @@
 /* eslint-disable @next/next/no-img-element -- private signed images and local editor previews. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Trash2, Undo2, X } from "lucide-react";
+import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Shuffle, Trash2, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRun, createImageOcclusionRepository, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRun, createImageOcclusionRepository, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", mode: "hide_one", answerMode: "answer", activeImageId: null, images: [] });
@@ -41,6 +41,16 @@ export default function ImageOcclusionWorkspace() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [draft, setDraft] = useState(null);
+  const [shuffleEnabled, setShuffleEnabled] = useState(true);
+
+  useEffect(() => {
+    setShuffleEnabled(readImageOcclusionShuffleSetting(window.localStorage));
+  }, []);
+
+  const toggleShuffle = (next) => {
+    setShuffleEnabled(next);
+    writeImageOcclusionShuffleSetting(window.localStorage, next);
+  };
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedMaskId, setSelectedMaskId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -263,7 +273,7 @@ export default function ImageOcclusionWorkspace() {
       const now = Date.now();
       const cards = dueOnly ? allCards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= now) : allCards;
       if (!cards.length) { playImageOcclusionSound("error", window); setStatus("Belum ada kartu yang jatuh tempo untuk dikaji."); return; }
-      const run = createImageOcclusionRun(set, cards, set.mode);
+      const run = createImageOcclusionRun(set, cards, set.mode, { shuffle: shuffleEnabled });
       if (!writeImageOcclusionRun(window.sessionStorage, run)) throw new Error("Sesi belajar tidak dapat disimpan di browser ini.");
       router.push("/academic/occlusion");
     } catch (studyError) { playImageOcclusionSound("error", window); setError(studyError?.message || "Sesi Image Occlusion gagal dimulai."); }
@@ -306,7 +316,22 @@ export default function ImageOcclusionWorkspace() {
       {previewOpen && <div className="hub-occlusion-card-preview-grid" aria-label="Preview semua kartu">{draft.images.flatMap((image, imageIndex) => image.masks.map((mask, index) => <article key={mask.id}><div className="hub-occlusion-card-preview-label">GAMBAR {String(imageIndex + 1).padStart(2, "0")} · KARTU {String(index + 1).padStart(2, "0")} / {image.masks.length}</div><MaskPreview imageUrl={image.imageUrl} masks={image.masks} targetIndex={index} mode={draft.mode} answerMode={draft.answerMode} /><strong>{draft.answerMode === "answer" ? mask.answer || "Jawaban belum diisi" : "Mask saja · tanpa jawaban teks"}</strong><small>{draft.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"}</small></article>))}</div>}
     </section>}
 
-    <div className="hub-occlusion-library-heading"><span>IMAGE SETS</span><span>{sets.length} KUMPULAN</span></div>
+    <div className="hub-occlusion-library-heading">
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        <span>IMAGE SETS</span>
+        <span>{sets.length} KUMPULAN</span>
+      </div>
+      <button
+        type="button"
+        className={`hub-occlusion-shuffle-button${shuffleEnabled ? " is-active" : ""}`}
+        onClick={() => toggleShuffle(!shuffleEnabled)}
+        title={shuffleEnabled ? "Pengacakan aktif: Gambar diacak, lalu semua mask di gambar tersebut dihabiskan sebelum ke gambar berikutnya. Klik untuk matikan." : "Pengacakan nonaktif: Kartu berurutan sesuai pembuatan. Klik untuk aktifkan."}
+        aria-pressed={shuffleEnabled}
+      >
+        <Shuffle size={13} />
+        <span>Acak: <b>{shuffleEnabled ? "ON" : "OFF"}</b></span>
+      </button>
+    </div>
     {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : <div className="hub-occlusion-set-list">{sets.map((set) => {
       const dueCount = set.cards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= Date.now()).length;
       return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.mode === "hide_one" ? "HIDE ONE" : "HIDE ALL"} · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.images.length} GAMBAR · {set.cards.length} KARTU</span><h4>{set.title}</h4><small>{set.cards.filter((card) => card.reviewState?.mastered).length} dikuasai · {dueCount} jatuh tempo</small></div><div className="hub-occlusion-set-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!set.cards.length} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" aria-label={`Review kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review {dueCount}</button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></article>;

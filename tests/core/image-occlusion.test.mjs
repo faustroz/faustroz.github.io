@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, isValidImageOcclusionRun, shuffleArray, validateOcclusionMasks, writeImageOcclusionRun, readImageOcclusionRun } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRun, getImageOcclusionRatingFromKey, groupCardsByImage, isValidImageOcclusionRun, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
 import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, IMAGE_OCCLUSION_SOUND_EVENTS, IMAGE_OCCLUSION_SOUND_SETTINGS_KEY, playImageOcclusionSound, readImageOcclusionSoundSettings, writeImageOcclusionSoundSettings } from "../../lib/hub/image-occlusion-sounds.mjs";
 
 const cards = [
@@ -88,6 +88,23 @@ test("new Image Occlusion cards always get an id and existing card ids are prese
   );
   assert.equal(payloads[0].id, "generated-card-id");
   assert.equal(payloads[1].id, "existing-card");
+  assert.ok(payloads.every((payload) => typeof payload.id === "string" && payload.id.length > 0));
+  assert.deepEqual(payloads.map(({ position }) => position), [0, 1]);
+});
+
+test("new Image Occlusion images always get an explicit id and existing image ids are preserved on upsert", () => {
+  const images = [
+    { id: null, imagePath: "owner/occlusion/new-img.png" },
+    { id: "existing-img", imagePath: "owner/occlusion/existing-img.png" },
+  ];
+  const payloads = createImageOcclusionImagePayloads(
+    images,
+    "set-id",
+    new Set(["existing-img"]),
+    () => "generated-img-id",
+  );
+  assert.equal(payloads[0].id, "generated-img-id");
+  assert.equal(payloads[1].id, "existing-img");
   assert.ok(payloads.every((payload) => typeof payload.id === "string" && payload.id.length > 0));
   assert.deepEqual(payloads.map(({ position }) => position), [0, 1]);
 });
@@ -185,6 +202,68 @@ test("Image Occlusion study runs shuffle cards by default and preserve all cards
   assert.deepEqual(unShuffled.cards.map((c) => c.id), ["c-1", "c-2", "c-3", "c-4", "c-5"]);
 });
 
+test("Image Occlusion grouped shuffle randomizes images and masks within each image, completing one image before the next", () => {
+  const set = {
+    id: "set-multi",
+    title: "Multi-image anatomy",
+    image_path: "owner/occlusion/img-a.png",
+    images: [
+      { id: "img-a", image_path: "owner/occlusion/img-a.png" },
+      { id: "img-b", image_path: "owner/occlusion/img-b.png" },
+      { id: "img-c", image_path: "owner/occlusion/img-c.png" },
+    ],
+  };
+
+  const cardsMulti = [
+    { id: "card-a1", image_id: "img-a", image_path: "owner/occlusion/img-a.png", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "A1" },
+    { id: "card-a2", image_id: "img-a", image_path: "owner/occlusion/img-a.png", position: 1, x: .2, y: .2, width: .2, height: .2, answer: "A2" },
+    { id: "card-a3", image_id: "img-a", image_path: "owner/occlusion/img-a.png", position: 2, x: .3, y: .3, width: .2, height: .2, answer: "A3" },
+    { id: "card-b1", image_id: "img-b", image_path: "owner/occlusion/img-b.png", position: 3, x: .1, y: .1, width: .2, height: .2, answer: "B1" },
+    { id: "card-b2", image_id: "img-b", image_path: "owner/occlusion/img-b.png", position: 4, x: .2, y: .2, width: .2, height: .2, answer: "B2" },
+    { id: "card-c1", image_id: "img-c", image_path: "owner/occlusion/img-c.png", position: 5, x: .1, y: .1, width: .2, height: .2, answer: "C1" },
+    { id: "card-c2", image_id: "img-c", image_path: "owner/occlusion/img-c.png", position: 6, x: .2, y: .2, width: .2, height: .2, answer: "C2" },
+    { id: "card-c3", image_id: "img-c", image_path: "owner/occlusion/img-c.png", position: 7, x: .3, y: .3, width: .2, height: .2, answer: "C3" },
+    { id: "card-c4", image_id: "img-c", image_path: "owner/occlusion/img-c.png", position: 8, x: .4, y: .4, width: .2, height: .2, answer: "C4" },
+  ];
+
+  const groups = groupCardsByImage(cardsMulti);
+  assert.equal(groups.length, 3);
+  assert.equal(groups[0].length, 3);
+  assert.equal(groups[1].length, 2);
+  assert.equal(groups[2].length, 4);
+
+  // 1. Grouped shuffle test: cards for each image must stay clustered
+  const run = createImageOcclusionRun(set, cardsMulti, "hide_one", { shuffle: true });
+  assert.equal(run.cards.length, 9);
+  assert.equal(run.shuffle, true);
+
+  // Helper checking no interleaving between images
+  const seenImages = new Set();
+  let currentImage = null;
+  for (const card of run.cards) {
+    if (card.imageId !== currentImage) {
+      assert.ok(!seenImages.has(card.imageId), `Image ${card.imageId} appeared again after switching! Masks of one image must be completed before moving to another.`);
+      seenImages.add(card.imageId);
+      currentImage = card.imageId;
+    }
+  }
+  assert.equal(seenImages.size, 3);
+
+  // 2. Turn off shuffle: exact sequence is preserved
+  const runUnshuffled = createImageOcclusionRun(set, cardsMulti, "hide_one", { shuffle: false });
+  assert.equal(runUnshuffled.shuffle, false);
+  assert.deepEqual(runUnshuffled.cards.map((c) => c.id), cardsMulti.map((c) => c.id));
+
+  // 3. Shuffle setting read/write storage round-trip
+  const store = new Map();
+  const mockStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  assert.equal(readImageOcclusionShuffleSetting(mockStorage), true); // default ON
+  assert.equal(writeImageOcclusionShuffleSetting(mockStorage, false), true);
+  assert.equal(readImageOcclusionShuffleSetting(mockStorage), false); // turned OFF
+  assert.equal(writeImageOcclusionShuffleSetting(mockStorage, true), true);
+  assert.equal(readImageOcclusionShuffleSetting(mockStorage), true); // turned ON
+});
+
 test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
   const study = await readFile(new URL("../../components/hub/ImageOcclusionStudyPage.jsx", import.meta.url), "utf8");
   const editor = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
@@ -215,6 +294,9 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(editor, /aria-label="Sudut rotasi mask"/);
   assert.match(editor, /rotate\(\$\{mask\.rotation \|\| 0\}deg\)/);
   assert.match(editor, /playImageOcclusionSound\("save", window\)/);
+  assert.match(editor, /hub-occlusion-shuffle-button/);
+  assert.match(editor, /readImageOcclusionShuffleSetting/);
+  assert.match(styles, /hub-occlusion-shuffle-button/);
   const settings = await readFile(new URL("../../components/hub/SettingsPanel.jsx", import.meta.url), "utf8");
   assert.match(settings, /Sound Effects/);
   assert.match(settings, /Sound effect volume/);
