@@ -377,13 +377,26 @@ body {
 .hub-occlusion-shuffle-button.is-active { border-color: var(--hub-accent); background: rgba(14, 165, 233, 0.12); color: var(--hub-text); }
 .hub-occlusion-shuffle-button.is-active b { color: var(--hub-accent); }
 .hub-occlusion-set-list { display: grid; }
-.hub-occlusion-set-row { display: grid; grid-template-columns: 4rem minmax(0, 1fr) auto; align-items: center; gap: .85rem; padding: .8rem 0; border-bottom: 1px solid var(--hub-line); min-width: 0; }
+.hub-occlusion-set-row { display: grid; grid-template-columns: 4.25rem minmax(16rem, 1fr) auto; align-items: center; gap: 1rem 1.1rem; padding: 1rem 0; border-bottom: 1px solid var(--hub-line); min-width: 0; }
 .hub-occlusion-set-cover { width: 4rem; height: 3.25rem; overflow: hidden; background: var(--hub-surface); }
 .hub-occlusion-set-cover img { width: 100%; height: 100%; object-fit: cover; }
-.hub-occlusion-set-info h4 { margin: .2rem 0; overflow-wrap: anywhere; }
-.hub-occlusion-set-info small { color: var(--hub-muted); }
-.hub-occlusion-set-actions button, .hub-occlusion-tools button { display: inline-flex; align-items: center; gap: .3rem; min-height: 36px; padding: .4rem .55rem; border: 1px solid var(--hub-line); border-radius: 5px; background: transparent; color: var(--hub-text); cursor: pointer; }
+.hub-occlusion-set-info { min-width: 0; }
+.hub-occlusion-set-info > span { display:block; color:var(--hub-muted); font:.58rem var(--font-geist-mono),monospace; letter-spacing:.07em; }
+.hub-occlusion-set-info h4 { margin: .22rem 0 .5rem; overflow-wrap: anywhere; font-size:.98rem; font-weight:550; }
+.hub-occlusion-set-progress-label { display:flex; justify-content:space-between; gap:.5rem; color:var(--hub-muted); font-size:.68rem; font-variant-numeric:tabular-nums; }
+.hub-occlusion-set-progress-label b { color:var(--hub-text); font-weight:600; }
+.hub-occlusion-set-progress { height:4px; margin:.3rem 0 .35rem; overflow:hidden; border-radius:99px; background:var(--hub-line-bright); }
+.hub-occlusion-set-progress > span { display:block; height:100%; border-radius:inherit; background:var(--hub-accent); transition:width 220ms ease; }
+.hub-occlusion-set-info .hub-occlusion-set-due { color:var(--hub-muted); font-size:.66rem; }
+.hub-occlusion-set-actions { display:flex; align-items:center; gap:.6rem; }
+.hub-occlusion-set-primary-actions, .hub-occlusion-set-secondary-actions { display:flex; align-items:center; gap:.4rem; }
+.hub-occlusion-set-actions button, .hub-occlusion-tools button { display: inline-flex; align-items: center; justify-content:center; gap: .35rem; min-height: 38px; padding: .45rem .65rem; border: 1px solid var(--hub-line); border-radius: 5px; background: transparent; color: var(--hub-text); cursor: pointer; white-space:nowrap; }
+.hub-occlusion-set-primary-actions button { width:7.2rem; }
+.hub-occlusion-set-primary-actions button.has-due { border-color:var(--hub-line-bright); background:var(--hub-accent-soft); }
+.hub-occlusion-set-primary-actions button b { font-size:.72rem; font-variant-numeric:tabular-nums; }
+.hub-occlusion-set-secondary-actions button { width:2.35rem; color:var(--hub-muted); }
 .hub-occlusion-set-actions button:disabled, .hub-occlusion-tools button:disabled { opacity: .45; cursor: not-allowed; }
+.hub-occlusion-set-actions button:not(:disabled):hover { border-color:var(--hub-line-bright); background:var(--hub-surface); color:var(--hub-text); }
 .hub-occlusion-study { width: min(calc(100% - 2rem), 88rem); min-height: 100dvh; margin: 0 auto; padding: max(1rem, env(safe-area-inset-top)) 0 max(1.5rem, env(safe-area-inset-bottom)); box-sizing: border-box; }
 .hub-occlusion-study-top > div { display: grid; gap: .25rem; min-width: 0; flex: 1; }
 .hub-occlusion-study-top strong { font-size: .88rem; overflow-wrap: anywhere; }
@@ -441,9 +454,13 @@ body {
   .hub-occlusion-mask-details { border-left: 0; border-top: 1px solid var(--hub-line); padding: .75rem 0 0; }
   .hub-occlusion-editor-actions > div { width: 100%; }
   .hub-occlusion-editor-actions button { flex: 1; justify-content: center; }
-  .hub-occlusion-set-row { grid-template-columns: 3.25rem minmax(0, 1fr); }
+  .hub-occlusion-set-row { grid-template-columns: 3.25rem minmax(0, 1fr); gap:.65rem .75rem; padding:.9rem 0; }
   .hub-occlusion-set-cover { width: 3.25rem; height: 3rem; }
-  .hub-occlusion-set-actions { grid-column: 1 / -1; }
+  .hub-occlusion-set-actions { grid-column:1 / -1; width:100%; justify-content:space-between; gap:.6rem; }
+  .hub-occlusion-set-primary-actions { flex:1; }
+  .hub-occlusion-set-primary-actions button { width:auto; flex:1; min-width:0; min-height:44px; }
+  .hub-occlusion-set-secondary-actions button { width:2.6rem; min-height:44px; }
+  .hub-occlusion-set-info h4 { font-size:.92rem; }
   .hub-occlusion-empty-state { align-items:flex-start; flex-wrap:wrap; gap:.7rem; }
   .hub-occlusion-empty-state > div { flex:1 1 calc(100% - 3.5rem); }
   .hub-occlusion-empty-state > button { width:100%; justify-content:center; }
@@ -463,7 +480,7 @@ body {
 }
 @media (prefers-reduced-motion:reduce) {
   .hub-occlusion-study-image,.hub-occlusion-study-image .hub-occlusion-mask,.hub-occlusion-study .academic-practice__progress > span,
-  .hub-occlusion-study-rating button,.hub-occlusion-completion-check,.hub-occlusion-status,.hub-occlusion-completion-card { animation:none !important; transition:none !important; }
+  .hub-occlusion-study-rating button,.hub-occlusion-completion-check,.hub-occlusion-status,.hub-occlusion-completion-card,.hub-occlusion-set-progress > span { animation:none !important; transition:none !important; }
 }
 
 /* Vault Drive — private file manager, intentionally flat and compact. */

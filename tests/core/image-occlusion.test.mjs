@@ -342,3 +342,14 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(settings, /Sound Effects/);
   assert.match(settings, /Sound effect volume/);
 });
+
+test("Image Occlusion collection list shows accessible mastery progress and grouped actions", async () => {
+  const workspace = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
+  assert.match(workspace, /role="progressbar" aria-label=\{`Progres penguasaan/);
+  assert.match(workspace, /aria-valuetext=\{`\$\{masteredCount\} dari \$\{totalCount\} kartu dikuasai`\}/);
+  assert.match(workspace, /hub-occlusion-set-primary-actions/);
+  assert.match(workspace, /hub-occlusion-set-secondary-actions/);
+  assert.match(styles, /hub-occlusion-set-progress > span/);
+  assert.match(styles, /@media \(prefers-reduced-motion:reduce\)[\s\S]*hub-occlusion-set-progress > span/);
+});
