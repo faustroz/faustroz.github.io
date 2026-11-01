@@ -204,6 +204,24 @@ test("Image Occlusion study runs shuffle cards by default and preserve all cards
   assert.deepEqual(unShuffled.cards.map((c) => c.id), ["c-1", "c-2", "c-3", "c-4", "c-5"]);
 });
 
+test("due review sessions retain every image mask as blank-number context", () => {
+  const fullSet = [
+    { ...cards[0], id: "due-card", image_id: "img-a", image_path: "owner/a.png" },
+    { ...cards[1], id: "not-due-card", image_id: "img-a", image_path: "owner/a.png" },
+  ];
+  const run = createImageOcclusionRun(
+    { id: "set-review", image_path: "owner/a.png" },
+    [fullSet[0]],
+    "hide_all",
+    { shuffle: false, isReview: true, contextCards: fullSet },
+  );
+  assert.equal(run.isReview, true);
+  assert.deepEqual(run.maskContextCards.map(({ id }) => id), ["due-card", "not-due-card"]);
+  run.responses[0] = { revealed: true, rating: "again", saved: true };
+  const retry = createImageOcclusionRetryRun(run, "again");
+  assert.deepEqual(retry.retryContextCards.map(({ id }) => id), ["due-card", "not-due-card"]);
+});
+
 test("Image Occlusion grouped shuffle randomizes images and masks within each image, completing one image before the next", () => {
   const set = {
     id: "set-multi",
@@ -319,7 +337,8 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /responses\.map\(\(item\) => \(\{ \.\.\.item, revealed: false \}\)\)/);
   assert.match(study, /mask\.id === card\.id \? " is-current"/);
   assert.match(study, /retryContextCards \|\| run\?\.cards/);
-  assert.match(study, /showNumber: !retryMode \|\| item\.id === card\?\.id/);
+  assert.match(study, /maskContextCards \|\| run\?\.cards/);
+  assert.match(study, /\(!retryMode && !reviewMode\) \|\| item\.id === card\?\.id/);
   assert.match(study, /hub-occlusion-study-mask-number/);
   const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
   assert.match(styles, /hub-occlusion-mask\.is-current \{[^}]*overflow:visible/);

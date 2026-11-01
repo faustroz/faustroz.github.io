@@ -111,14 +111,15 @@ export default function ImageOcclusionStudyPage() {
   const maskOnly = (run?.answerMode || "answer") === "mask_only";
   const masks = useMemo(() => {
     const retryMode = run?.retryRatingMode === "again_good";
-    const sourceCards = retryMode ? run?.retryContextCards || run?.cards : run?.cards;
+    const reviewMode = Boolean(run?.isReview);
+    const sourceCards = retryMode ? run?.retryContextCards || run?.cards : run?.maskContextCards || run?.cards;
     const cardsOnImage = (sourceCards?.filter((item) => (card?.imageId && item.imageId) ? item.imageId === card.imageId : (item.imagePath || run.imagePath) === activeImagePath) || [])
       .slice()
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     return cardsOnImage.map((item, index) => ({
       ...item,
       index,
-      showNumber: !retryMode || item.id === card?.id,
+      showNumber: (!retryMode && !reviewMode) || item.id === card?.id,
       open: item.id === card?.id && response?.revealed,
     }));
   }, [run, card?.id, card?.imageId, activeImagePath, response?.revealed]);

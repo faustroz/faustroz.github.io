@@ -271,7 +271,7 @@ export default function ImageOcclusionWorkspace() {
       const now = Date.now();
       const cards = dueOnly ? allCards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= now) : allCards;
       if (!cards.length) { playImageOcclusionSound("error", window); setStatus("Belum ada kartu yang jatuh tempo untuk dikaji."); return; }
-      const run = createImageOcclusionRun(set, cards, "hide_all", { shuffle: shuffleEnabled });
+      const run = createImageOcclusionRun(set, cards, "hide_all", { shuffle: shuffleEnabled, isReview: dueOnly, contextCards: dueOnly ? allCards : null });
       if (!writeImageOcclusionRun(window.sessionStorage, run)) throw new Error("Sesi belajar tidak dapat disimpan di browser ini.");
       router.push("/academic/occlusion");
     } catch (studyError) { playImageOcclusionSound("error", window); setError(studyError?.message || "Sesi Image Occlusion gagal dimulai."); }
