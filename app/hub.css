@@ -336,7 +336,7 @@ body {
 .hub-occlusion-stage-column { min-width: 0; }
 .hub-occlusion-tools > div, .hub-occlusion-set-actions, .hub-occlusion-editor-actions > div { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 .hub-occlusion-stage { position: relative; width: 100%; overflow: hidden; background: #080a09; touch-action: none; user-select: none; }
-.hub-occlusion-stage > img { display: block; width: 100%; max-height: 68vh; object-fit: contain; pointer-events: none; }
+.hub-occlusion-stage > img { display: block; width: 100%; height: auto; pointer-events: none; }
 .hub-occlusion-stage-overlay, .hub-occlusion-preview-mask-layer { position: absolute; inset: 0; pointer-events: none; }
 .hub-occlusion-mask { position: absolute; display: grid; place-items: center; overflow: hidden; padding: .2rem; box-sizing: border-box; border: 1px solid rgba(255,255,255,.82); border-radius: 3px; background: #687574; color: #fff; font-size: clamp(.65rem, 1.2vw, .9rem); text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
 .hub-occlusion-stage-overlay .hub-occlusion-mask { pointer-events: auto; cursor: move; touch-action: none; }
@@ -384,15 +384,16 @@ body {
 .hub-occlusion-set-info small { color: var(--hub-muted); }
 .hub-occlusion-set-actions button, .hub-occlusion-tools button { display: inline-flex; align-items: center; gap: .3rem; min-height: 36px; padding: .4rem .55rem; border: 1px solid var(--hub-line); border-radius: 5px; background: transparent; color: var(--hub-text); cursor: pointer; }
 .hub-occlusion-set-actions button:disabled, .hub-occlusion-tools button:disabled { opacity: .45; cursor: not-allowed; }
-.hub-occlusion-study { width: min(100% - 2rem, 62rem); min-height: 100dvh; margin: 0 auto; padding: max(1rem, env(safe-area-inset-top)) 0 max(1.5rem, env(safe-area-inset-bottom)); box-sizing: border-box; }
+.hub-occlusion-study { width: min(calc(100% - 2rem), 88rem); min-height: 100dvh; margin: 0 auto; padding: max(1rem, env(safe-area-inset-top)) 0 max(1.5rem, env(safe-area-inset-bottom)); box-sizing: border-box; }
 .hub-occlusion-study-top > div { display: grid; gap: .25rem; min-width: 0; flex: 1; }
 .hub-occlusion-study-top strong { font-size: .88rem; overflow-wrap: anywhere; }
 .hub-occlusion-study-top > b { font: .78rem var(--font-geist-mono), monospace; white-space: nowrap; }
-.hub-occlusion-study-body { width: min(100%, 48rem); margin: 2rem auto 0; }
+.hub-occlusion-study-body { width: 100%; margin: 1.5rem auto 0; }
 .hub-occlusion-study-instruction { margin: 0 0 .8rem; color: var(--hub-muted); font-size: .85rem; }
 .hub-occlusion-study-image { border: 1px solid var(--hub-line); border-radius: 6px; }
 .hub-occlusion-study-image { animation:hub-occlusion-card-enter 180ms ease-out both; }
 .hub-occlusion-study-image .hub-occlusion-mask { transition:opacity 180ms ease,filter 180ms ease; }
+.hub-occlusion-study-image .hub-occlusion-mask.is-retry-context { background:#454d4c; border-color:rgba(255,255,255,.5); }
 .hub-occlusion-study-image .hub-occlusion-mask.is-revealed { animation:hub-occlusion-mask-reveal 180ms ease-out both; }
 .hub-occlusion-study-image .hub-occlusion-mask.is-mask-only-open { opacity:0; filter:blur(1px); pointer-events:none; }
 .hub-occlusion-study .academic-practice__progress > span { transition:width 220ms ease; }
@@ -446,8 +447,9 @@ body {
   .hub-occlusion-empty-state { align-items:flex-start; flex-wrap:wrap; gap:.7rem; }
   .hub-occlusion-empty-state > div { flex:1 1 calc(100% - 3.5rem); }
   .hub-occlusion-empty-state > button { width:100%; justify-content:center; }
-  .hub-occlusion-study { width: min(100% - 1.25rem, 48rem); }
-  .hub-occlusion-study-body { margin-top: 1.25rem; }
+  .hub-occlusion-study { width: calc(100% - 1rem); }
+  .hub-occlusion-study-body { width: 100%; margin-top: .85rem; }
+  .hub-occlusion-study-image { border-radius: 4px; }
   .hub-occlusion-study-rating { align-items: stretch; flex-direction: column; }
   .hub-occlusion-study-rating > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .hub-occlusion-study-rating button { padding-inline: .35rem; }

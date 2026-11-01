@@ -110,13 +110,16 @@ export default function ImageOcclusionStudyPage() {
 
   const maskOnly = (run?.answerMode || "answer") === "mask_only";
   const masks = useMemo(() => {
-    const cardsOnImage = (run?.cards?.filter((item) => (card?.imageId && item.imageId) ? item.imageId === card.imageId : (item.imagePath || run.imagePath) === activeImagePath) || [])
+    const retryMode = run?.retryRatingMode === "again_good";
+    const sourceCards = retryMode ? run?.retryContextCards || run?.cards : run?.cards;
+    const cardsOnImage = (sourceCards?.filter((item) => (card?.imageId && item.imageId) ? item.imageId === card.imageId : (item.imagePath || run.imagePath) === activeImagePath) || [])
       .slice()
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     return cardsOnImage.map((item, index) => ({
       ...item,
       index,
-      open: run.mode === "hide_all" ? item.id === card?.id && response?.revealed : item.id !== card?.id || response?.revealed,
+      showNumber: !retryMode || item.id === card?.id,
+      open: retryMode || run.mode === "hide_all" ? item.id === card?.id && response?.revealed : item.id !== card?.id || response?.revealed,
     }));
   }, [run, card?.id, card?.imageId, activeImagePath, response?.revealed]);
   const activeMaskNumber = useMemo(() => {
@@ -196,7 +199,7 @@ export default function ImageOcclusionStudyPage() {
     <div className="academic-practice__progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100"><span style={{ width: `${progress}%` }} /></div>
     <section className="hub-occlusion-study-body">
       <p className="hub-occlusion-study-instruction">Coba ingat bagian yang tertutup, lalu tekan Space atau tombol Reveal.</p>
-      {imageUrl ? <div key={card.id} className="hub-occlusion-study-image"><img src={imageUrl} alt="Gambar belajar dengan bagian tertutup" />{masks.map((mask) => <div key={mask.id} aria-hidden={mask.open && maskOnly ? "true" : undefined} className={`hub-occlusion-mask${mask.id === card.id ? " is-current" : ""}${mask.open && !maskOnly ? " is-revealed" : ""}${mask.open && maskOnly ? " is-mask-only-open" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%`, transform: `rotate(${mask.rotation || 0}deg)` }}>{mask.open && !maskOnly ? mask.answer : mask.id === card.id ? <span className="hub-occlusion-study-mask-number">{mask.index + 1}</span> : mask.index + 1}</div>)}</div> : <p role="alert">Gambar privat tidak dapat dimuat. Periksa koneksi dan coba kembali.</p>}
+      {imageUrl ? <div key={card.id} className="hub-occlusion-study-image"><img src={imageUrl} alt="Gambar belajar dengan bagian tertutup" />{masks.map((mask) => <div key={mask.id} aria-hidden={mask.open && maskOnly ? "true" : undefined} className={`hub-occlusion-mask${mask.id === card.id ? " is-current" : ""}${mask.open && !maskOnly ? " is-revealed" : ""}${mask.open && maskOnly ? " is-mask-only-open" : ""}${isRetry && mask.id !== card.id ? " is-retry-context" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%`, transform: `rotate(${mask.rotation || 0}deg)` }}>{mask.open && !maskOnly ? mask.answer : mask.showNumber ? <span className="hub-occlusion-study-mask-number">{mask.index + 1}</span> : null}</div>)}</div> : <p role="alert">Gambar privat tidak dapat dimuat. Periksa koneksi dan coba kembali.</p>}
       <div className="hub-occlusion-study-answer"><span>MASK {String(activeMaskNumber).padStart(2, "0")}</span>{response?.revealed ? (maskOnly ? <strong>Area gambar terbuka · tanpa jawaban teks</strong> : <strong>{card.answer}</strong>) : <button type="button" className="hub-question-tool-button" aria-keyshortcuts="Space" onClick={() => { playImageOcclusionSound("reveal", window); setRun((current) => ({ ...current, responses: current.responses.map((item, i) => i === current.index ? { ...item, revealed: true } : item) })); }}><Eye size={15} /> {maskOnly ? "Buka area · Space" : "Reveal jawaban · Space"}</button>}</div>
       {response?.revealed && <div className="hub-occlusion-study-rating"><span aria-live="polite">{response.rating ? `${pendingRatings.has(card.id) ? "Dipilih" : "Tersimpan"}: ${response.rating.toUpperCase()}` : "Seberapa baik Anda mengingatnya?"}</span><div>{activeRatings.map(([value, label]) => <button type="button" key={value} disabled={pendingRatings.has(card.id) || Boolean(response.rating)} aria-pressed={response.rating === value} onClick={() => rate(value)}>{label}</button>)}<small className="hub-occlusion-rating-shortcuts">{isRetry ? "1 Again · 2 Good" : "1 Again · 2 Hard · 3 Good · 4 Easy"}</small></div></div>}
       {error && <p className="hub-data-error" role="alert">{error}</p>}

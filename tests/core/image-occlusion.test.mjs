@@ -278,6 +278,7 @@ test("Image Occlusion retry run extracts only Again cards and restricts rating s
   const retryRun = createImageOcclusionRetryRun(initialRun, "again");
   assert.ok(retryRun);
   assert.equal(retryRun.cards.length, 2);
+  assert.equal(retryRun.retryContextCards.length, 3);
   assert.deepEqual(retryRun.cards.map((c) => c.id).sort(), ["c1", "c3"]);
   assert.equal(retryRun.isRetry, true);
   assert.equal(retryRun.retryRatingMode, "again_good");
@@ -315,9 +316,13 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /createImageOcclusionRetryRun/);
   assert.match(study, /responses\.map\(\(item\) => \(\{ \.\.\.item, revealed: false \}\)\)/);
   assert.match(study, /mask\.id === card\.id \? " is-current"/);
+  assert.match(study, /retryContextCards \|\| run\?\.cards/);
+  assert.match(study, /showNumber: !retryMode \|\| item\.id === card\?\.id/);
   assert.match(study, /hub-occlusion-study-mask-number/);
   const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
   assert.match(styles, /hub-occlusion-mask\.is-current \{[^}]*overflow:visible/);
+  assert.match(styles, /hub-occlusion-stage > img \{[^}]*width: 100%; height: auto/);
+  assert.match(styles, /hub-occlusion-study-body \{ width: 100%/);
   assert.match(styles, /hub-occlusion-study-mask-number[^}]*font-size:\.9rem/);
   assert.match(styles, /hub-occlusion-completion-card/);
   assert.match(styles, /hub-occlusion-stat-box/);
