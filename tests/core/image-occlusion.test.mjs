@@ -109,17 +109,19 @@ test("new Image Occlusion images always get an explicit id and existing image id
   assert.deepEqual(payloads.map(({ position }) => position), [0, 1]);
 });
 
-test("Hide One is default, Hide All persists, and study runs round-trip without losing per-card schedule", () => {
-  const set = { id: "set-1", title: "Anatomi", image_path: "owner/occlusion/a.png" };
+test("Image Occlusion always creates and persists Hide All runs, including legacy sets", () => {
+  const set = { id: "set-1", title: "Anatomi", image_path: "owner/occlusion/a.png", mode: "hide_one" };
   const run = createImageOcclusionRun(set, cards);
-  assert.equal(run.mode, "hide_one");
+  assert.equal(run.mode, "hide_all");
   assert.equal(run.answerMode, "answer");
   assert.equal(run.cards.length, 2);
   assert.equal(run.cards[0].reviewState, null);
-  const hideAll = createImageOcclusionRun(set, cards, "hide_all");
+  const hideAll = createImageOcclusionRun(set, cards, "hide_one");
   const storage = new Map();
   assert.equal(writeImageOcclusionRun({ setItem: (key, value) => storage.set(key, value) }, hideAll), true);
   assert.equal(readImageOcclusionRun({ getItem: (key) => storage.get(key) }).mode, "hide_all");
+  const legacyStorage = new Map([["4allx:academic-image-occlusion-run:v1", JSON.stringify({ ...run, mode: "hide_one" })]]);
+  assert.equal(readImageOcclusionRun({ getItem: (key) => legacyStorage.get(key) }).mode, "hide_all");
   const maskOnlyRun = createImageOcclusionRun({ ...set, answer_mode: "mask_only" }, [{ ...cards[0], answer: null }]);
   assert.equal(maskOnlyRun.answerMode, "mask_only");
   assert.equal(maskOnlyRun.cards[0].answer, null);
@@ -352,4 +354,11 @@ test("Image Occlusion collection list shows accessible mastery progress and grou
   assert.match(workspace, /hub-occlusion-set-secondary-actions/);
   assert.match(styles, /hub-occlusion-set-progress > span/);
   assert.match(styles, /@media \(prefers-reduced-motion:reduce\)[\s\S]*hub-occlusion-set-progress > span/);
+});
+
+test("Image Occlusion editor no longer exposes a card mode selector", async () => {
+  const workspace = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
+  assert.doesNotMatch(workspace, /Mode kartu|hide_one|Hide One/);
+  assert.match(workspace, /createImageOcclusionRun\(set, cards, "hide_all"/);
+  assert.match(workspace, /HIDE ALL/);
 });
