@@ -264,7 +264,7 @@ test("Image Occlusion grouped shuffle randomizes images and masks within each im
   assert.equal(readImageOcclusionShuffleSetting(mockStorage), true); // turned ON
 });
 
-test("Image Occlusion retry run extracts only Again cards and restricts rating shortcuts to Again and Good", () => {
+test("Image Occlusion retry run extracts only Again cards and preserves all spaced-repetition ratings", () => {
   const setCards = [
     { id: "c1", image_id: "img1", position: 0, x: .1, y: .1, width: .2, height: .2, answer: "Ans 1" },
     { id: "c2", image_id: "img1", position: 1, x: .2, y: .2, width: .2, height: .2, answer: "Ans 2" },
@@ -288,11 +288,11 @@ test("Image Occlusion retry run extracts only Again cards and restricts rating s
     { revealed: false, rating: null, saved: false },
   ]);
 
-  // In retry mode, 1 -> again, 2 -> good, 3 & 4 -> null
+  // Retry mode keeps the same 1-4 rating choices as a normal study session.
   assert.equal(getImageOcclusionRatingFromKey("1", true), "again");
-  assert.equal(getImageOcclusionRatingFromKey("2", true), "good");
-  assert.equal(getImageOcclusionRatingFromKey("3", true), null);
-  assert.equal(getImageOcclusionRatingFromKey("4", true), null);
+  assert.equal(getImageOcclusionRatingFromKey("2", true), "hard");
+  assert.equal(getImageOcclusionRatingFromKey("3", true), "good");
+  assert.equal(getImageOcclusionRatingFromKey("4", true), "easy");
 });
 
 test("Image Occlusion study supports Space reveal and editor offers both card content modes", async () => {
@@ -303,7 +303,7 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /getImageOcclusionRatingFromKey\(event\.key/);
   assert.match(study, /isContentEditable \|\| \["INPUT", "TEXTAREA", "SELECT"\]/);
   assert.match(study, /1 Again · 2 Hard · 3 Good · 4 Easy/);
-  assert.match(study, /1 Again · 2 Good/);
+  assert.match(study, /1 Again · 2 Hard · 3 Good · 4 Easy/);
   assert.match(study, /applyImageOcclusionRating\(current, targetIndex, rating\)/);
   assert.match(study, /Optimistically move to the next card; persistence runs in the background/);
   assert.doesNotMatch(study, /Menyimpan\.\.\./);
