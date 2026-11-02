@@ -27,10 +27,18 @@ test("Finance refinement keeps account labels available and only compacts Goals 
   const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
   assert.match(overview, /accountsExpanded \? snapshot\.accounts : snapshot\.accounts\.slice\(0, 2\)/);
   assert.match(overview, /aria-expanded=\{accountsExpanded\}/);
+  assert.match(overview, /aria-label=\{accountsExpanded \? "Tampilkan dua rekening" : "Tampilkan semua saldo rekening"\}/);
+  assert.doesNotMatch(overview, /Lihat semua rekening ·/);
+  assert.match(overview, /displayAmount\(account\.balance\)/);
+  assert.match(overview, /<FinanceLastUpdated hideAmounts=\{hidden\} \/>/);
+  assert.match(overview, /href="\/finance\/portfolio"/);
+  assert.match(overview, /className="hub-finance-overview-link" onClick=\{onOpenGoals\}/);
   assert.match(crud, /data-table=\{table\}/);
   assert.match(config, /title: "Goals".*description: "Targets, current savings, progress, and deadline\."/);
   assert.match(styles, /hub-finance-workspace \.hub-crud-panel\[data-table="financial_goals"\]/);
   assert.match(styles, /hub-finance-workspace \.hub-channel-tabs button\[aria-current="page"\]/);
+  assert.match(styles, /hub-finance-last-transaction \{ display:grid; grid-template-columns:minmax\(0,1fr\) auto/);
+  assert.match(styles, /\.hub-finance-overview-links > a,[\s\S]*\.hub-finance-overview-links > button \{ width:100%; cursor:pointer; \}/);
 });
 
 test("Finance workspace groups every existing channel under the four reference tabs", async () => {

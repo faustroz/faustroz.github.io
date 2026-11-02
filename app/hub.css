@@ -3907,6 +3907,33 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-finance-workspace > .hub-crud-panel { min-width:0; }
 .hub-finance-workspace > .hub-crud-sections { min-width:0; }
 
+/* Finance overview finishing: quieter dividers, aligned ledger text, one clear account action. */
+.hub-finance-overview { gap:.72rem; }
+.hub-finance-overview-metrics { gap:.8rem; }
+.hub-finance-overview-metrics > div { align-content:start; gap:.3rem; }
+.hub-finance-overview-metrics > div + div { padding-left:.8rem; }
+.hub-finance-accounts-block { gap:.4rem; padding:.62rem .72rem; border-radius:8px; }
+.hub-finance-accounts-actions { display:inline-flex; align-items:center; gap:.25rem; }
+.hub-finance-accounts-block > header > .hub-finance-accounts-actions > button { min-height:2.5rem; }
+.hub-finance-accounts-disclosure { width:2.35rem; justify-content:center; padding:.35rem; border:1px solid var(--hub-line); border-radius:6px; }
+.hub-finance-accounts-disclosure svg { transition:transform 150ms ease; }
+.hub-finance-accounts-disclosure[aria-expanded="true"] svg { transform:rotate(180deg); }
+.hub-finance-account-balances { padding-top:.4rem; border-top:0; }
+.hub-finance-account-balances li { align-items:center; gap:.7rem; }
+.hub-finance-account-balances li span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hub-finance-account-balances li strong { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.hub-finance-overview .hub-finance-last-updated { padding-top:.4rem; border-top:0; }
+.hub-finance-overview .hub-finance-last-updated > div { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:.18rem; }
+.hub-finance-overview .hub-finance-last-updated span { grid-column:auto; }
+.hub-finance-last-transaction { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline; gap:.65rem; min-width:0; }
+.hub-finance-last-transaction strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hub-finance-last-transaction b { color:var(--hub-text); font-size:.72rem; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.hub-finance-overview .hub-finance-last-updated small { text-align:left; }
+.hub-finance-overview-link { min-height:3.35rem; gap:.5rem; padding:.48rem .62rem; border-radius:8px; }
+.hub-finance-overview-link > span { gap:.08rem; }
+.hub-finance-overview-links > a,
+.hub-finance-overview-links > button { width:100%; cursor:pointer; }
+
 /* Quick Add is a compact action sheet first, then a focused form. */
 .hub-crud-modal.hub-quick-add { width:min(100%,28rem); display:block; padding:.9rem; border-radius:14px; }
 .hub-quick-add .hub-crud-form-head { align-items:center; margin-bottom:.8rem; }
@@ -3938,12 +3965,25 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-finance-overview-links { grid-template-columns:1fr; }
   .hub-finance-overview-link { min-height:3.3rem; }
   .hub-finance-accounts-block { padding:.62rem .65rem; }
+  .hub-finance-overview-metrics { gap:.45rem; }
+  .hub-finance-overview-metrics > div + div { padding-left:.45rem; }
+  .hub-finance-account-balances { gap:.42rem; }
+  .hub-finance-account-balances li { gap:.45rem; font-size:.65rem; }
+  .hub-finance-account-balances li strong { font-size:.66rem; }
+  .hub-finance-accounts-disclosure { width:2.75rem; min-height:2.75rem !important; }
+  .hub-finance-overview .hub-finance-last-updated > div { grid-template-columns:minmax(0,1fr); gap:.18rem; }
+  .hub-finance-last-transaction { gap:.45rem; }
+  .hub-finance-last-transaction strong { font-size:.67rem; }
+  .hub-finance-last-transaction b { font-size:.65rem; }
+  .hub-finance-overview .hub-finance-last-updated small { font-size:.58rem; text-align:left; }
+  .hub-finance-overview-link { min-height:3.15rem; padding:.42rem .55rem; }
   .hub-crud-modal-backdrop:has(.hub-quick-add) { align-items:end; padding:0; }
   .hub-crud-modal.hub-quick-add { width:100%; max-height:min(84dvh,44rem); padding:1rem max(1rem,env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left)); border-right:0; border-bottom:0; border-left:0; border-radius:16px 16px 0 0; }
   .hub-quick-add-primary > button { min-height:4.7rem; }
 }
 
 @media (prefers-reduced-motion:reduce) {
+  .hub-finance-accounts-disclosure svg { transition:none; }
   .hub-shell:not(.hub-shell--practice) :where(button,a,[role="button"],.hub-module-card,.hub-insight-card,.hub-focus-panel,.hub-settings-card,.hub-specialist-link,.hub-vault-folder,.hub-vault-file),
   .hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a,button) svg { transition:none !important; }
   .hub-shell:not(.hub-shell--practice) :where(button,[role="button"]):active:not(:disabled),

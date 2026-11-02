@@ -53,7 +53,7 @@ export default function FinanceLastUpdated({ hideAmounts = false }) {
     {transaction?.kind === "income" ? <ArrowDownLeft aria-hidden="true" /> : <ArrowUpRight aria-hidden="true" />}
     <div>
       <span>TRANSAKSI TERAKHIR{transaction?.kind ? ` · ${transaction.kind === "income" ? "INCOME" : "EXPENSE"}` : ""}</span>
-      {state.loading ? <strong>Memuat transaksi…</strong> : state.error ? <strong>Transaksi belum dapat dimuat.</strong> : transaction ? <strong>{hideAmounts ? "••••••" : transactionAmount} · {title}</strong> : <strong>Belum ada transaksi.</strong>}
+      {state.loading ? <strong>Memuat transaksi…</strong> : state.error ? <strong>Transaksi belum dapat dimuat.</strong> : transaction ? <div className="hub-finance-last-transaction"><strong title={title}>{title}</strong><b>{hideAmounts ? "••••••" : transactionAmount}</b></div> : <strong>Belum ada transaksi.</strong>}
       {timestamp && <small>{timestamp}{transaction?.date ? ` · ${transaction.date}` : ""}</small>}
     </div>
   </aside>;

@@ -10,6 +10,9 @@ test("Finance recent transaction reads the latest visible income or expense", as
   assert.match(component, /is\("deleted_at", null\)/);
   assert.match(component, /order\("created_at", \{ ascending: false \}\)/);
   assert.match(component, /TRANSAKSI TERAKHIR/);
+  assert.match(component, /className="hub-finance-last-transaction"/);
+  assert.match(component, /hideAmounts \? "••••••" : transactionAmount/);
+  assert.match(component, /title=\{title\}/);
   assert.match(component, /Belum ada transaksi\./);
   assert.match(component, /Transaksi belum dapat dimuat\./);
   assert.match(component, /postgres_changes/);
