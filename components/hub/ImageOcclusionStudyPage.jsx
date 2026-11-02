@@ -62,7 +62,7 @@ export default function ImageOcclusionStudyPage() {
   const cardId = card?.id;
   const currentIndex = run?.index;
   const rate = useCallback((rating) => {
-    if (!cardId || ratingLock.current.has(cardId) || response?.rating) return;
+    if (!cardId || ratingLock.current.has(cardId) || (response?.rating && (response.saved || response.rating !== rating))) return;
     const targetCardId = cardId;
     const targetIndex = currentIndex;
     ratingLock.current.add(targetCardId);
@@ -88,7 +88,7 @@ export default function ImageOcclusionStudyPage() {
         setPendingRatings((current) => { const next = new Set(current); next.delete(targetCardId); return next; });
       }
     })();
-  }, [cardId, currentIndex, response?.rating]);
+  }, [cardId, currentIndex, response?.rating, response?.saved]);
 
   const isRetry = Boolean(run?.retryRatingMode === "again_good");
   const activeRatings = ratings;
@@ -202,7 +202,7 @@ export default function ImageOcclusionStudyPage() {
       <p className="hub-occlusion-study-instruction">Coba ingat bagian yang tertutup, lalu tekan Space atau tombol Reveal.</p>
       {imageUrl ? <div key={card.id} className="hub-occlusion-study-image"><img src={imageUrl} alt="Gambar belajar dengan bagian tertutup" />{masks.map((mask) => <div key={mask.id} aria-hidden={mask.open && maskOnly ? "true" : undefined} className={`hub-occlusion-mask${mask.id === card.id ? " is-current" : ""}${mask.open && !maskOnly ? " is-revealed" : ""}${mask.open && maskOnly ? " is-mask-only-open" : ""}${isRetry && mask.id !== card.id ? " is-retry-context" : ""}`} style={{ left: `${mask.x * 100}%`, top: `${mask.y * 100}%`, width: `${mask.width * 100}%`, height: `${mask.height * 100}%`, transform: `rotate(${mask.rotation || 0}deg)` }}>{mask.open && !maskOnly ? mask.answer : mask.showNumber ? <span className="hub-occlusion-study-mask-number">{mask.index + 1}</span> : null}</div>)}</div> : <p role="alert">Gambar privat tidak dapat dimuat. Periksa koneksi dan coba kembali.</p>}
       <div className="hub-occlusion-study-answer"><span>MASK {String(activeMaskNumber).padStart(2, "0")}</span>{response?.revealed ? (maskOnly ? <strong>Area gambar terbuka · tanpa jawaban teks</strong> : <strong>{card.answer}</strong>) : <button type="button" className="hub-question-tool-button" aria-keyshortcuts="Space" onClick={() => { playImageOcclusionSound("reveal", window); setRun((current) => ({ ...current, responses: current.responses.map((item, i) => i === current.index ? { ...item, revealed: true } : item) })); }}><Eye size={15} /> {maskOnly ? "Buka area · Space" : "Reveal jawaban · Space"}</button>}</div>
-      {response?.revealed && <div className="hub-occlusion-study-rating"><span aria-live="polite">{response.rating ? `${pendingRatings.has(card.id) ? "Dipilih" : "Tersimpan"}: ${response.rating.toUpperCase()}` : "Seberapa baik Anda mengingatnya?"}</span><div>{activeRatings.map(([value, label]) => <button type="button" key={value} disabled={pendingRatings.has(card.id) || Boolean(response.rating)} aria-pressed={response.rating === value} onClick={() => rate(value)}>{label}</button>)}<small className="hub-occlusion-rating-shortcuts">1 Again · 2 Hard · 3 Good · 4 Easy</small></div></div>}
+      {response?.revealed && <div className="hub-occlusion-study-rating"><span aria-live="polite">{response.rating ? pendingRatings.has(card.id) ? `Dipilih: ${response.rating.toUpperCase()}` : response.saved ? `Tersimpan: ${response.rating.toUpperCase()}` : `Belum tersimpan: pilih ${response.rating.toUpperCase()} lagi untuk mencoba` : "Seberapa baik Anda mengingatnya?"}</span><div>{activeRatings.map(([value, label]) => <button type="button" key={value} disabled={pendingRatings.has(card.id) || Boolean(response.rating && (response.saved || response.rating !== value))} aria-pressed={response.rating === value} onClick={() => rate(value)}>{label}</button>)}<small className="hub-occlusion-rating-shortcuts">1 Again · 2 Hard · 3 Good · 4 Easy</small></div></div>}
       {error && <p className="hub-data-error" role="alert">{error}</p>}
       <nav className="hub-occlusion-study-nav" aria-label="Navigasi kartu"><button type="button" className="hub-question-tool-button" disabled={run.index === 0} onClick={() => next(run.index - 1)}><ArrowLeft size={15} /> Sebelumnya</button><span>{run.cards.length} kartu</span><button type="button" className="hub-question-add-button" onClick={() => run.index === run.cards.length - 1 ? router.push("/academic") : next(run.index + 1)}>{run.index === run.cards.length - 1 ? "Selesai" : <>Berikutnya <ArrowRight size={15} /></>}</button></nav>
       {run.cards.length === 1 && <p className="hub-occlusion-study-single"><RotateCcw size={14} /> Satu kartu dalam sesi ini</p>}

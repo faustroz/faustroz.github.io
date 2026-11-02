@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Shuffle, Trash2, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, normalizeImageOcclusionGroup, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getResumableImageOcclusionRun, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", groupName: IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: "answer", activeImageId: null, images: [] });
@@ -333,6 +333,13 @@ export default function ImageOcclusionWorkspace() {
     setError("");
     try {
       const allCards = await repository.listCards(set.id);
+      const savedRun = readImageOcclusionRun(window.sessionStorage);
+      const resumableRun = getResumableImageOcclusionRun(savedRun, set.id, dueOnly);
+      if (resumableRun) {
+        if (!writeImageOcclusionRun(window.sessionStorage, resumableRun)) throw new Error("Progres sesi tidak dapat dipulihkan dari browser ini.");
+        router.push("/academic/occlusion");
+        return;
+      }
       const now = Date.now();
       const cards = dueOnly ? allCards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= now) : allCards;
       if (!cards.length) { playImageOcclusionSound("error", window); setStatus("Belum ada kartu yang jatuh tempo untuk dikaji."); return; }
@@ -410,7 +417,7 @@ export default function ImageOcclusionWorkspace() {
         return <li key={name}>{isEditing ? <><input aria-label={`Nama grup ${name}`} value={editingGroup.name} maxLength={80} onChange={(event) => setEditingGroup({ ...editingGroup, name: event.target.value })} /><button type="button" aria-label={`Simpan nama grup ${name}`} disabled={groupBusy} onClick={() => renameGroup(group)}><Check size={15} /></button><button type="button" aria-label="Batal mengganti nama grup" disabled={groupBusy} onClick={() => setEditingGroup(null)}><X size={15} /></button></> : <><span className="hub-occlusion-group-name">{name}</span><span className="hub-occlusion-group-count">{count} kumpulan</span>{group?.id && <><button type="button" aria-label={`Ubah nama grup ${name}`} disabled={groupBusy} onClick={() => setEditingGroup({ id: group.id, name })}><Pencil size={14} /></button><button type="button" aria-label={`Hapus grup ${name}`} disabled={groupBusy} onClick={() => deleteGroup(group)}><Trash2 size={14} /></button></>}</>}</li>;
       })}</ul>
     </section>}
-    {!manageGroupsOpen && (loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : visibleSets.length === 0 ? <div className="hub-occlusion-filter-empty" role="status"><span>Tidak ada kumpulan dalam grup ini.</span><button type="button" onClick={() => setGroupFilter("")}>Tampilkan semua grup</button></div> : <div className="hub-occlusion-set-list">{visibleSets.map((set) => {
+    {!manageGroupsOpen && !draft && (loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : visibleSets.length === 0 ? <div className="hub-occlusion-filter-empty" role="status"><span>Tidak ada kumpulan dalam grup ini.</span><button type="button" onClick={() => setGroupFilter("")}>Tampilkan semua grup</button></div> : <div className="hub-occlusion-set-list">{visibleSets.map((set) => {
       const dueCount = set.cards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= Date.now()).length;
       const masteredCount = set.cards.filter((card) => card.reviewState?.mastered).length;
       const totalCount = set.cards.length;

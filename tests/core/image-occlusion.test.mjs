@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRepository, createImageOcclusionRetryRun, createImageOcclusionRun, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getImageOcclusionRatingFromKey, groupCardsByImage, IMAGE_OCCLUSION_DEFAULT_GROUP, isValidImageOcclusionRun, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRepository, createImageOcclusionRetryRun, createImageOcclusionRun, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getImageOcclusionRatingFromKey, getResumableImageOcclusionRun, groupCardsByImage, IMAGE_OCCLUSION_DEFAULT_GROUP, isValidImageOcclusionRun, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
 import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, IMAGE_OCCLUSION_SOUND_EVENTS, IMAGE_OCCLUSION_SOUND_SETTINGS_KEY, playImageOcclusionSound, readImageOcclusionSoundSettings, writeImageOcclusionSoundSettings } from "../../lib/hub/image-occlusion-sounds.mjs";
 
 const cards = [
@@ -62,6 +62,20 @@ test("rating an Image Occlusion card records the rating and immediately advances
   assert.deepEqual(nextRun.responses, [{ revealed: false, rating: "good", saved: false }, { revealed: false, rating: null, saved: false }]);
   assert.equal(applyImageOcclusionRating(nextRun, 1, "easy").index, 1);
   assert.equal(applyImageOcclusionRating(run, 0, "invalid"), run);
+});
+
+test("Image Occlusion resumes an unfinished run for the same collection and restores an unconfirmed rating", () => {
+  const run = createImageOcclusionRun({ id: "set-1", image_path: "owner/image.png" }, cards, "hide_all", { shuffle: false });
+  run.responses[0] = { revealed: true, rating: "good", saved: false };
+  run.responses[1] = { revealed: false, rating: null, saved: false };
+  run.index = 1;
+  const resumed = getResumableImageOcclusionRun(run, "set-1", false);
+  assert.equal(resumed.index, 0);
+  assert.equal(resumed.responses[0].rating, "good");
+  assert.equal(getResumableImageOcclusionRun(run, "other-set", false), null);
+  assert.equal(getResumableImageOcclusionRun(run, "set-1", true), null);
+  const completed = { ...run, responses: run.responses.map(() => ({ revealed: true, rating: "good", saved: true })) };
+  assert.equal(getResumableImageOcclusionRun(completed, "set-1", false), null);
 });
 
 test("Image Occlusion sound settings default on, persist locally, clamp volume, and sound off is silent", () => {
@@ -371,6 +385,8 @@ test("Image Occlusion study supports Space reveal and editor offers both card co
   assert.match(study, /is-mask-only-open/);
   assert.match(study, /playImageOcclusionSound\(rating, window\)/);
   assert.match(study, /sessionComplete/);
+  assert.match(study, /Belum tersimpan: pilih/);
+  assert.match(study, /response\.rating !== value/);
   assert.match(study, /hub-occlusion-completion-check/);
   assert.match(study, /hub-occlusion-completion-card/);
   assert.match(study, /Ulangi Kartu Again/);
@@ -430,7 +446,8 @@ test("Image Occlusion collections persist editable groups and expose a responsiv
   assert.match(workspace, /repository\.renameGroup\(group\.id, group\.name, name\)/);
   assert.match(workspace, /repository\.deleteGroup\(group\.id, group\.name\)/);
   assert.match(workspace, /groupOptions\.filter\(\(name\) => name !== IMAGE_OCCLUSION_DEFAULT_GROUP\)/);
-  assert.match(workspace, /!manageGroupsOpen && \(loading \?/);
+  assert.match(workspace, /!manageGroupsOpen && !draft && \(loading \?/);
+  assert.match(workspace, /getResumableImageOcclusionRun\(savedRun, set\.id, dueOnly\)/);
   assert.match(workspace, /set\.group_name \|\| IMAGE_OCCLUSION_DEFAULT_GROUP/);
   assert.match(repository, /group_name: cleanGroupName/);
   assert.match(repository, /academic_image_occlusion_groups/);
