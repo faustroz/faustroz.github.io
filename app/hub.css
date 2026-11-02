@@ -3932,6 +3932,8 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-finance-subtabs button { min-width:5.2rem; min-height:2.55rem; flex:0 0 auto; padding:.45rem .85rem; border:1px solid transparent; border-radius:999px; color:var(--hub-muted); background:transparent; font-size:.72rem; white-space:nowrap; cursor:pointer; }
 .hub-finance-primary-tabs button[aria-current="page"],
 .hub-finance-subtabs button[aria-current="page"] { border-color:var(--hub-line-bright); color:#111; background:#f4f4f5; font-weight:600; }
+.hub-finance-primary-tabs button:focus:not(:focus-visible),
+.hub-finance-primary-tabs button:active { border-color:var(--hub-line-bright); color:var(--hub-text); -webkit-text-fill-color:var(--hub-text); background-color:var(--hub-panel-raised); -webkit-tap-highlight-color:transparent; }
 .hub-finance-subtabs { margin-top:-.25rem; }
 .hub-finance-subtabs button { min-width:6.2rem; min-height:2.4rem; }
 .hub-finance-accounts-block { display:grid; gap:.55rem; padding:.72rem .8rem; border:1px solid var(--hub-line); border-radius:9px; background:var(--hub-panel-raised); }

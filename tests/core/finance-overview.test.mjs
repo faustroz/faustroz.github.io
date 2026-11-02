@@ -38,6 +38,7 @@ test("Finance refinement keeps account labels available and only compacts Goals 
   assert.match(config, /title: "Goals".*description: "Targets, current savings, progress, and deadline\."/);
   assert.match(styles, /hub-finance-workspace \.hub-crud-panel\[data-table="financial_goals"\]/);
   assert.match(styles, /hub-finance-workspace \.hub-channel-tabs button\[aria-current="page"\]/);
+  assert.match(styles, /hub-finance-primary-tabs button:focus:not\(:focus-visible\)[\s\S]*-webkit-text-fill-color:var\(--hub-text\)/);
   assert.match(styles, /hub-finance-last-transaction \{ display:grid; grid-template-columns:minmax\(0,1fr\) auto/);
   assert.match(styles, /\.hub-finance-overview-links > a,[\s\S]*\.hub-finance-overview-links > button \{ width:100%; cursor:pointer; \}/);
   assert.match(styles, /hub-finance-accounts-actions > button \{ display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; min-height:2\.5rem; line-height:1; white-space:nowrap; \}/);
