@@ -29,6 +29,7 @@ test("Finance refinement keeps account labels available and only compacts Goals 
   assert.match(overview, /aria-expanded=\{accountsExpanded\}/);
   assert.match(overview, /aria-label=\{accountsExpanded \? "Tampilkan dua rekening" : "Tampilkan semua saldo rekening"\}/);
   assert.doesNotMatch(overview, /Lihat semua rekening ·/);
+  assert.doesNotMatch(overview, /Buka semua rekening">Lihat semua <ArrowRight/);
   assert.match(overview, /displayAmount\(account\.balance\)/);
   assert.match(overview, /<FinanceLastUpdated hideAmounts=\{hidden\} \/>/);
   assert.match(overview, /href="\/finance\/portfolio"/);

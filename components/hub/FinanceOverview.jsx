@@ -72,7 +72,7 @@ export default function FinanceOverview({ onOpenAccounts, onOpenGoals }) {
     {snapshot.accounts.length > 0 && <div className="hub-finance-accounts-block">
       <header><strong>Accounts ({snapshot.accounts.length})</strong><span className="hub-finance-accounts-actions">
         {snapshot.accounts.length > 2 && <button type="button" className="hub-finance-accounts-disclosure" aria-expanded={accountsExpanded} aria-label={accountsExpanded ? "Tampilkan dua rekening" : "Tampilkan semua saldo rekening"} onClick={() => setAccountsExpanded((expanded) => !expanded)}><ChevronDown size={15} aria-hidden="true" /></button>}
-        <button type="button" onClick={onOpenAccounts} aria-label="Buka semua rekening">Lihat semua <ArrowRight size={14} aria-hidden="true" /></button>
+        <button type="button" onClick={onOpenAccounts} aria-label="Buka semua rekening">Lihat semua</button>
       </span></header>
       <ul className="hub-finance-account-balances" aria-label="Saldo per rekening">
         {(accountsExpanded ? snapshot.accounts : snapshot.accounts.slice(0, 2)).map((account) => <li key={account.id}><span>{[account.bank_name, account.name].filter(Boolean).join(" · ") || "Rekening"}</span><strong>{displayAmount(account.balance)}</strong></li>)}
