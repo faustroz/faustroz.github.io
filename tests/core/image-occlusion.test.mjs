@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRetryRun, createImageOcclusionRun, getImageOcclusionRatingFromKey, groupCardsByImage, isValidImageOcclusionRun, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRetryRun, createImageOcclusionRun, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getImageOcclusionRatingFromKey, groupCardsByImage, IMAGE_OCCLUSION_DEFAULT_GROUP, isValidImageOcclusionRun, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
 import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, IMAGE_OCCLUSION_SOUND_EVENTS, IMAGE_OCCLUSION_SOUND_SETTINGS_KEY, playImageOcclusionSound, readImageOcclusionSoundSettings, writeImageOcclusionSoundSettings } from "../../lib/hub/image-occlusion-sounds.mjs";
 
 const cards = [
@@ -12,6 +12,19 @@ const cards = [
 test("Image Occlusion keyboard rating shortcuts map 1 through 4 to Again through Easy", () => {
   assert.deepEqual(["1", "2", "3", "4"].map(getImageOcclusionRatingFromKey), ["again", "hard", "good", "easy"]);
   assert.equal(getImageOcclusionRatingFromKey("5"), null);
+});
+
+test("Image Occlusion groups normalize legacy values and filter sets without changing their contents", () => {
+  const sets = [
+    { id: "a", title: "Anatomi", group_name: "Anatomi" },
+    { id: "b", title: "Histologi", group_name: "Histologi" },
+    { id: "c", title: "Tanpa grup lama", group_name: null },
+  ];
+  assert.equal(IMAGE_OCCLUSION_DEFAULT_GROUP, "Tanpa grup");
+  assert.equal(normalizeImageOcclusionGroup("  Anatomi  "), "Anatomi");
+  assert.deepEqual(getImageOcclusionGroups(sets), ["Anatomi", "Histologi", "Tanpa grup"]);
+  assert.deepEqual(filterImageOcclusionSetsByGroup(sets, "HISTOLOGI").map(({ id }) => id), ["b"]);
+  assert.equal(filterImageOcclusionSetsByGroup(sets).length, 3);
 });
 
 test("rating an Image Occlusion card records the rating and immediately advances without losing prior responses", () => {
@@ -373,6 +386,22 @@ test("Image Occlusion collection list shows accessible mastery progress and grou
   assert.match(workspace, /hub-occlusion-set-secondary-actions/);
   assert.match(styles, /hub-occlusion-set-progress > span/);
   assert.match(styles, /@media \(prefers-reduced-motion:reduce\)[\s\S]*hub-occlusion-set-progress > span/);
+});
+
+test("Image Occlusion collections persist editable groups and expose a responsive group filter", async () => {
+  const workspace = await readFile(new URL("../../components/hub/ImageOcclusionWorkspace.jsx", import.meta.url), "utf8");
+  const repository = await readFile(new URL("../../lib/hub/image-occlusion.mjs", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../../supabase/migrations/043-image-occlusion-groups.sql", import.meta.url), "utf8");
+  assert.match(workspace, /Filter kumpulan berdasarkan grup/);
+  assert.match(workspace, /filterImageOcclusionSetsByGroup\(sets, groupFilter\)/);
+  assert.match(workspace, /groupName: draft\.groupName/);
+  assert.match(workspace, /set\.group_name \|\| IMAGE_OCCLUSION_DEFAULT_GROUP/);
+  assert.match(repository, /group_name: cleanGroupName/);
+  assert.match(repository, /select\("id,title,group_name,image_path,mode,answer_mode,created_at,updated_at"\)/);
+  assert.match(migration, /add column if not exists group_name text not null default 'Tanpa grup'/);
+  assert.match(styles, /hub-occlusion-group-filter select/);
+  assert.match(styles, /hub-occlusion-filter-empty/);
 });
 
 test("Image Occlusion editor no longer exposes a card mode selector", async () => {

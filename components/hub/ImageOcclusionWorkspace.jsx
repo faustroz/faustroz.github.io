@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Shuffle, Trash2, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRun, createImageOcclusionRepository, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 
-const emptyDraft = () => ({ id: null, title: "", answerMode: "answer", activeImageId: null, images: [] });
+const emptyDraft = () => ({ id: null, title: "", groupName: IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: "answer", activeImageId: null, images: [] });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function normalizedPoint(event, element) {
@@ -39,7 +39,10 @@ export default function ImageOcclusionWorkspace() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [draft, setDraft] = useState(null);
+  const [groupFilter, setGroupFilter] = useState("");
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
+  const groupOptions = useMemo(() => getImageOcclusionGroups(sets), [sets]);
+  const visibleSets = useMemo(() => filterImageOcclusionSetsByGroup(sets, groupFilter), [sets, groupFilter]);
 
   useEffect(() => {
     setShuffleEnabled(readImageOcclusionShuffleSetting(window.localStorage));
@@ -128,7 +131,7 @@ export default function ImageOcclusionWorkspace() {
     }));
     if (draft) releaseDraftUrls(draft.images);
     const activeImageId = images[0]?.id || null;
-    setDraft({ id: set.id, title: set.title, answerMode: set.answer_mode || "answer", activeImageId, images });
+    setDraft({ id: set.id, title: set.title, groupName: set.group_name || IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: set.answer_mode || "answer", activeImageId, images });
     masksRef.current = images[0]?.masks || []; setPast([]); setFuture([]); setSelectedMaskId(images[0]?.masks[0]?.id || ""); setPreviewOpen(false); setStatus(""); setError("");
   };
 
@@ -246,7 +249,7 @@ export default function ImageOcclusionWorkspace() {
     setSaving(true); setError(""); setStatus("");
     try {
       const result = await repository.saveSet({
-        id: draft.id, title: draft.title, answerMode: draft.answerMode,
+        id: draft.id, title: draft.title, groupName: draft.groupName, answerMode: draft.answerMode,
         images: draft.images.map((image) => ({ id: image.imageId, imagePath: image.imagePath, imageFile: image.imageFile, masks: image.masks })),
       });
       setStatus(`“${result.title}” tersimpan · ${allDraftMasks} kartu · ${draft.images.length} gambar`);
@@ -286,6 +289,7 @@ export default function ImageOcclusionWorkspace() {
       <div className="hub-occlusion-editor-heading"><div><span>{draft.id ? "EDIT IMAGE SET" : "NEW IMAGE SET"}</span><h4>{draft.id ? "Edit kartu dan mask" : "Siapkan gambar"}</h4></div><button type="button" className="hub-occlusion-icon-button" aria-label="Tutup editor" onClick={() => { releaseDraftUrls(draft.images); setDraft(null); setPreviewOpen(false); }}><X size={16} /></button></div>
       <div className="hub-occlusion-form-grid">
         <label><span>Nama kumpulan</span><input value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Contoh: Anatomi hepatobilier" /></label>
+        <label><span>Grup</span><input list="hub-occlusion-group-options" value={draft.groupName} maxLength={80} onChange={(event) => setDraft({ ...draft, groupName: event.target.value })} placeholder="Contoh: Histologi" /><datalist id="hub-occlusion-group-options">{groupOptions.map((group) => <option key={group} value={group} />)}</datalist></label>
         <label><span>Konten kartu</span><select value={draft.answerMode} onChange={(event) => setDraft({ ...draft, answerMode: event.target.value })}><option value="answer">Mask + jawaban</option><option value="mask_only">Mask saja · tanpa jawaban teks</option></select></label>
       </div>
       <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih satu atau beberapa PNG / JPG sekaligus · maksimal 5 MB per gambar.</span></div>
@@ -314,11 +318,13 @@ export default function ImageOcclusionWorkspace() {
     </section>}
 
     <div className="hub-occlusion-library-heading">
-      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+      <div className="hub-occlusion-library-meta">
         <span>IMAGE SETS</span>
-        <span>{sets.length} KUMPULAN</span>
+        <span>{groupFilter ? `${visibleSets.length} / ${sets.length}` : sets.length} KUMPULAN</span>
       </div>
-      <button
+      <div className="hub-occlusion-library-controls">
+        {sets.length > 0 && <label className="hub-occlusion-group-filter"><span>GRUP</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Filter kumpulan berdasarkan grup"><option value="">Semua grup</option>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label>}
+        <button
         type="button"
         className={`hub-occlusion-shuffle-button${shuffleEnabled ? " is-active" : ""}`}
         onClick={() => toggleShuffle(!shuffleEnabled)}
@@ -328,13 +334,14 @@ export default function ImageOcclusionWorkspace() {
         <Shuffle size={13} />
         <span>Acak: <b>{shuffleEnabled ? "ON" : "OFF"}</b></span>
       </button>
+      </div>
     </div>
-    {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : <div className="hub-occlusion-set-list">{sets.map((set) => {
+    {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : visibleSets.length === 0 ? <div className="hub-occlusion-filter-empty" role="status"><span>Tidak ada kumpulan dalam grup ini.</span><button type="button" onClick={() => setGroupFilter("")}>Tampilkan semua grup</button></div> : <div className="hub-occlusion-set-list">{visibleSets.map((set) => {
       const dueCount = set.cards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= Date.now()).length;
       const masteredCount = set.cards.filter((card) => card.reviewState?.mastered).length;
       const totalCount = set.cards.length;
       const masteredPercent = totalCount ? Math.round((masteredCount / totalCount) * 100) : 0;
-      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>HIDE ALL · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.images.length} GAMBAR</span><h4>{set.title}</h4><div className="hub-occlusion-set-progress-label"><span>Dikuasai <b>{masteredCount}</b> / {totalCount}</span><b>{masteredPercent}%</b></div><div className="hub-occlusion-set-progress" role="progressbar" aria-label={`Progres penguasaan ${set.title}`} aria-valuemin={0} aria-valuemax={Math.max(totalCount, 1)} aria-valuenow={masteredCount} aria-valuetext={`${masteredCount} dari ${totalCount} kartu dikuasai`}><span style={{ width: `${masteredPercent}%` }} /></div><small className="hub-occlusion-set-due">{dueCount ? `${dueCount} kartu perlu diulang` : "Tidak ada kartu jatuh tempo"}</small></div><div className="hub-occlusion-set-actions"><div className="hub-occlusion-set-primary-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!totalCount} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" className={dueCount ? "has-due" : ""} aria-label={`Review ${dueCount} kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review <b>{dueCount}</b></button></div><div className="hub-occlusion-set-secondary-actions"><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></div></article>;
+      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.group_name || IMAGE_OCCLUSION_DEFAULT_GROUP} · HIDE ALL · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.images.length} GAMBAR</span><h4>{set.title}</h4><div className="hub-occlusion-set-progress-label"><span>Dikuasai <b>{masteredCount}</b> / {totalCount}</span><b>{masteredPercent}%</b></div><div className="hub-occlusion-set-progress" role="progressbar" aria-label={`Progres penguasaan ${set.title}`} aria-valuemin={0} aria-valuemax={Math.max(totalCount, 1)} aria-valuenow={masteredCount} aria-valuetext={`${masteredCount} dari ${totalCount} kartu dikuasai`}><span style={{ width: `${masteredPercent}%` }} /></div><small className="hub-occlusion-set-due">{dueCount ? `${dueCount} kartu perlu diulang` : "Tidak ada kartu jatuh tempo"}</small></div><div className="hub-occlusion-set-actions"><div className="hub-occlusion-set-primary-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!totalCount} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" className={dueCount ? "has-due" : ""} aria-label={`Review ${dueCount} kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review <b>{dueCount}</b></button></div><div className="hub-occlusion-set-secondary-actions"><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></div></article>;
     })}</div>}
   </section>;
 }
