@@ -3526,7 +3526,7 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-shell--practice .hub-content { width:100%; min-width:0; min-height:100svh; min-height:100dvh; padding:0; }
 @media (min-width:768px) {
   /* The desktop shell reserves sidebar space even when practice hides navigation. */
-  .hub-shell--practice { padding-left:0; }
+  .hub-shell.hub-shell--practice { padding-left:0; }
 }
 .academic-practice {
   --practice-line:rgba(255,255,255,.1);
