@@ -438,7 +438,9 @@ test("Image Occlusion collections persist editable groups and expose a responsiv
   const styles = await readFile(new URL("../../app/hub.css", import.meta.url), "utf8");
   const migration = await readFile(new URL("../../supabase/migrations/043-image-occlusion-groups.sql", import.meta.url), "utf8");
   assert.match(workspace, /Filter kumpulan berdasarkan grup/);
-  assert.match(workspace, /filterImageOcclusionSetsByGroup\(sets, groupFilter\)/);
+  assert.match(workspace, /filterImageOcclusionSetsByGroup\(sets, activeGroupFilter\)/);
+  assert.match(workspace, /groupOptions\.filter\(\(group\) => group !== IMAGE_OCCLUSION_DEFAULT_GROUP\)/);
+  assert.match(workspace, /groupFilterOptions\.map\(\(group\)/);
   assert.match(workspace, /groupName: draft\.groupName/);
   assert.match(workspace, /<select value=\{draft\.groupName\}/);
   assert.match(workspace, /Kelola grup/);

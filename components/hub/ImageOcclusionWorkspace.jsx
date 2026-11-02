@@ -49,7 +49,9 @@ export default function ImageOcclusionWorkspace() {
   const [groupManagementAvailable, setGroupManagementAvailable] = useState(true);
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
   const groupOptions = useMemo(() => getImageOcclusionGroups(sets, managedGroups), [sets, managedGroups]);
-  const visibleSets = useMemo(() => filterImageOcclusionSetsByGroup(sets, groupFilter), [sets, groupFilter]);
+  const groupFilterOptions = useMemo(() => groupOptions.filter((group) => group !== IMAGE_OCCLUSION_DEFAULT_GROUP), [groupOptions]);
+  const activeGroupFilter = groupFilterOptions.includes(groupFilter) ? groupFilter : "";
+  const visibleSets = useMemo(() => filterImageOcclusionSetsByGroup(sets, activeGroupFilter), [sets, activeGroupFilter]);
 
   useEffect(() => {
     setShuffleEnabled(readImageOcclusionShuffleSetting(window.localStorage));
@@ -389,10 +391,10 @@ export default function ImageOcclusionWorkspace() {
     <div className="hub-occlusion-library-heading">
       <div className="hub-occlusion-library-meta">
         <span>IMAGE SETS</span>
-        <span>{groupFilter ? `${visibleSets.length} / ${sets.length}` : sets.length} KUMPULAN</span>
+        <span>{activeGroupFilter ? `${visibleSets.length} / ${sets.length}` : sets.length} KUMPULAN</span>
       </div>
       <div className="hub-occlusion-library-controls">
-        {groupOptions.length > 1 && <label className="hub-occlusion-group-filter"><span>GRUP</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Filter kumpulan berdasarkan grup"><option value="">Semua grup</option>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label>}
+        {groupFilterOptions.length > 0 && <label className="hub-occlusion-group-filter"><span>GRUP</span><select value={activeGroupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Filter kumpulan berdasarkan grup"><option value="">Semua grup</option>{groupFilterOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label>}
         <button type="button" className="hub-occlusion-group-manage-trigger" aria-expanded={manageGroupsOpen} aria-controls="hub-occlusion-group-manager" onClick={() => setManageGroupsOpen((open) => !open)}>{manageGroupsOpen ? "Tutup kelola grup" : "Kelola grup"}</button>
         <button
           type="button"
