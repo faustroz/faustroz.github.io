@@ -32,3 +32,18 @@ test("Finance refinement keeps account labels available and only compacts Goals 
   assert.match(styles, /hub-finance-workspace \.hub-crud-panel\[data-table="financial_goals"\]/);
   assert.match(styles, /hub-finance-workspace \.hub-channel-tabs button\[aria-current="page"\]/);
 });
+
+test("Finance workspace groups every existing channel under the four reference tabs", async () => {
+  const workspace = await readFile(new URL("../../components/hub/FinanceWorkspace.jsx", import.meta.url), "utf8");
+  const quickAdd = await readFile(new URL("../../components/hub/QuickAdd.jsx", import.meta.url), "utf8");
+  for (const id of ["income", "expenses", "transfers", "categories", "budgets", "subscriptions", "accounts", "goals"]) {
+    assert.match(workspace, new RegExp(`"${id}"`));
+  }
+  for (const action of ["expenses", "income", "transfers", "goals", "accounts", "expense-categories"]) assert.match(quickAdd, new RegExp(`id: "${action}"|id === "${action}"`));
+  for (const label of ["Overview", "Transactions", "Planning", "Recurring"]) assert.match(workspace, new RegExp(label));
+  assert.match(workspace, /onOpenAccounts=\{\(\) => setDetail\("accounts"\)\}/);
+  assert.match(workspace, /onOpenGoals=\{\(\) => setDetail\("goals"\)\}/);
+  assert.match(workspace, /CHANNEL_DESTINATIONS/);
+  assert.match(workspace, /useSearchParams\(\)/);
+  assert.match(quickAdd, /fixedValues \|\| \{\}/);
+});

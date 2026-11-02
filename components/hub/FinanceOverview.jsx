@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight, Eye, EyeOff, Landmark, Target } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import FinanceLastUpdated from "@/components/hub/FinanceLastUpdated";
 import { getFinanceMonthRange, sumAvailableBalances, sumFinanceAmounts } from "@/lib/hub/finance-overview.mjs";
@@ -10,23 +11,24 @@ const PRIVACY_KEY = "4allx:finance-balance-privacy:v1";
 const currency = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
 const amount = (value) => currency.format(Number(value || 0));
 
-export default function FinanceOverview() {
+export default function FinanceOverview({ onOpenAccounts, onOpenGoals }) {
   const [hidden, setHidden] = useState(true);
   const [accountsExpanded, setAccountsExpanded] = useState(false);
-  const [snapshot, setSnapshot] = useState({ loading: true, accounts: [], income: [], expenses: [], error: "" });
+  const [snapshot, setSnapshot] = useState({ loading: true, accounts: [], income: [], expenses: [], goals: [], error: "" });
 
   const load = useCallback(async () => {
     try {
       const client = requireSupabase();
       const { start, end } = getFinanceMonthRange();
-      const [accountsResult, incomeResult, expensesResult] = await Promise.all([
+      const [accountsResult, incomeResult, expensesResult, goalsResult] = await Promise.all([
         client.from("bank_accounts").select("id,name,bank_name,balance,currency").is("deleted_at", null).order("bank_name"),
         client.from("income_entries").select("amount").is("deleted_at", null).gte("received_on", start).lt("received_on", end),
         client.from("expenses").select("amount").is("deleted_at", null).gte("spent_on", start).lt("spent_on", end),
+        client.from("financial_goals").select("id").is("deleted_at", null),
       ]);
       const failed = [accountsResult, incomeResult, expensesResult].find((result) => result.error);
       if (failed) throw failed.error;
-      setSnapshot({ loading: false, accounts: accountsResult.data || [], income: incomeResult.data || [], expenses: expensesResult.data || [], error: "" });
+      setSnapshot({ loading: false, accounts: accountsResult.data || [], income: incomeResult.data || [], expenses: expensesResult.data || [], goals: goalsResult.error ? [] : goalsResult.data || [], error: "" });
     } catch (error) {
       setSnapshot((current) => ({ ...current, loading: false, error: error?.message || "Ringkasan Finance gagal dimuat." }));
     }
@@ -40,6 +42,7 @@ export default function FinanceOverview() {
       .on("postgres_changes", { event: "*", schema: "public", table: "bank_accounts" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "income_entries" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "financial_goals" }, load)
       .subscribe();
     return () => { client.removeChannel(channel); };
   }, [load]);
@@ -66,13 +69,18 @@ export default function FinanceOverview() {
       <div><span>Income bulan ini</span><strong>{snapshot.loading || snapshot.error ? "—" : displayAmount(sumFinanceAmounts(snapshot.income))}</strong></div>
       <div><span>Expense bulan ini</span><strong>{snapshot.loading || snapshot.error ? "—" : displayAmount(sumFinanceAmounts(snapshot.expenses))}</strong></div>
     </div>
-    {snapshot.accounts.length > 0 && <>
+    {snapshot.accounts.length > 0 && <div className="hub-finance-accounts-block">
+      <header><strong>Accounts ({snapshot.accounts.length})</strong><button type="button" onClick={onOpenAccounts} aria-label="Buka semua rekening">Lihat semua <ArrowRight size={14} aria-hidden="true" /></button></header>
       <ul className="hub-finance-account-balances" aria-label="Saldo per rekening">
         {(accountsExpanded ? snapshot.accounts : snapshot.accounts.slice(0, 2)).map((account) => <li key={account.id}><span>{[account.bank_name, account.name].filter(Boolean).join(" · ") || "Rekening"}</span><strong>{displayAmount(account.balance)}</strong></li>)}
       </ul>
       {snapshot.accounts.length > 2 && <button type="button" className="hub-finance-accounts-toggle" aria-expanded={accountsExpanded} onClick={() => setAccountsExpanded((expanded) => !expanded)}>{accountsExpanded ? "Tampilkan lebih sedikit" : `Lihat semua rekening · ${snapshot.accounts.length}`}</button>}
-    </>}
+    </div>}
     {snapshot.error && <p className="hub-finance-overview-error" role="status">{snapshot.error}</p>}
     <FinanceLastUpdated hideAmounts={hidden} />
+    <div className="hub-finance-overview-links">
+      <Link className="hub-finance-overview-link" href="/finance/portfolio"><Landmark aria-hidden="true" /><span><strong>Portfolio Tracker</strong><small>Investasi · terpisah dari saldo</small></span><ArrowUpRight aria-hidden="true" /></Link>
+      <button type="button" className="hub-finance-overview-link" onClick={onOpenGoals}><Target aria-hidden="true" /><span><strong>Financial Goals</strong><small>{snapshot.loading ? "Memuat target" : `${snapshot.goals.length} target aktif`}</small></span><ArrowRight aria-hidden="true" /></button>
+    </div>
   </section>;
 }

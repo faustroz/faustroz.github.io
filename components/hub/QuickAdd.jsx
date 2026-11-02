@@ -1,26 +1,33 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Plus, X } from "lucide-react";
+import { ArrowDownRight, ArrowLeftRight, ArrowUpRight, Check, ChevronRight, Landmark, Plus, Tag, Target, X } from "lucide-react";
 import { FINANCE_CHANNELS } from "@/lib/hub/module-config.mjs";
 import { createCrudRepository } from "@/lib/hub/crud.mjs";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
-const OPTIONS = [FINANCE_CHANNELS.find(({ id }) => id === "expenses"), FINANCE_CHANNELS.find(({ id }) => id === "income")];
-const initial = (fields) => Object.fromEntries(fields.map((field) => [field.name, field.type === "checkbox" ? false : field.defaultValue ?? ""]));
+const OPTIONS = [
+  { ...FINANCE_CHANNELS.find(({ id }) => id === "expenses"), quickLabel: "Expense", quickIcon: ArrowUpRight },
+  { ...FINANCE_CHANNELS.find(({ id }) => id === "income"), quickLabel: "Income", quickIcon: ArrowDownRight },
+  { ...FINANCE_CHANNELS.find(({ id }) => id === "transfers"), quickLabel: "Transfer", quickIcon: ArrowLeftRight },
+  { ...FINANCE_CHANNELS.find(({ id }) => id === "goals"), quickLabel: "New Goal", quickIcon: Target },
+  { ...FINANCE_CHANNELS.find(({ id }) => id === "accounts"), quickLabel: "New Account", quickIcon: Landmark },
+  { ...FINANCE_CHANNELS.find(({ id }) => id === "categories").sections[0], id: "expense-categories", quickLabel: "New Category", quickIcon: Tag },
+];
+const initial = (fields) => Object.fromEntries(fields.filter((field) => field.type !== "computed").map((field) => [field.name, field.type === "checkbox" ? false : field.defaultValue ?? ""]));
 
 export default function QuickAdd() {
-  const [open, setOpen] = useState(false); const [kind, setKind] = useState(OPTIONS[0].id); const config = OPTIONS.find((item) => item.id === kind) || OPTIONS[0];
+  const [open, setOpen] = useState(false); const [formStarted, setFormStarted] = useState(false); const [kind, setKind] = useState(OPTIONS[0].id); const config = OPTIONS.find((item) => item.id === kind) || OPTIONS[0];
   const [form, setForm] = useState(() => initial(config.fields)); const [status, setStatus] = useState(""); const [notice, setNotice] = useState("");
   const noticeTimer = useRef(null);
   const [lookups, setLookups] = useState({});
   const repository = useMemo(() => supabase ? createCrudRepository(supabase, config.table, { orderBy: config.orderBy }) : null, [config]);
-  const choose = (id) => { const next = OPTIONS.find((item) => item.id === id); setKind(id); setForm(initial(next.fields)); };
+  const choose = (id, startForm = true) => { const next = OPTIONS.find((item) => item.id === id); if (!next) return; setKind(id); setForm(initial(next.fields)); setFormStarted(startForm); setStatus(""); };
   useEffect(() => {
     const openForQuickAction = (event) => {
       const next = OPTIONS.find((item) => item.id === event.detail?.kind);
       if (!next) return;
-      choose(next.id);
+      choose(next.id, true);
       setStatus("");
       setOpen(true);
     };
@@ -30,17 +37,22 @@ export default function QuickAdd() {
   useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
   useEffect(() => { let active = true; const fields = config.fields.filter((field) => field.type === "lookup"); if (!fields.length || !supabase) { setLookups({}); return undefined; } Promise.all(fields.map(async (field) => { const columns = [...new Set([field.lookup.value, ...field.lookup.label, ...(field.lookup.include || []), ...(field.lookup.kinds ? ["kind"] : [])])].join(","); const { data, error } = await supabase.from(field.lookup.table).select(columns).order(field.lookup.value); if (error) throw error; return [field.name, (data || []).filter((row) => !field.lookup.kinds || field.lookup.kinds.includes(row.kind))]; })).then((entries) => active && setLookups(Object.fromEntries(entries))).catch((error) => active && setStatus(error.message)); return () => { active = false; }; }, [config]);
   const save = async (event) => { event.preventDefault(); setStatus("WRITING…"); try {
-    const values = Object.fromEntries(config.fields.map((field) => [field.name, field.type === "number" ? (form[field.name] === "" ? null : Number(form[field.name])) : field.type === "tags" ? String(form[field.name]).split(",").map((x) => x.trim()).filter(Boolean) : field.optional && form[field.name] === "" ? null : form[field.name]]));
+    const values = { ...Object.fromEntries(config.fields.filter((field) => field.type !== "computed").map((field) => [field.name, field.type === "number" ? (form[field.name] === "" ? null : Number(form[field.name])) : field.type === "tags" ? String(form[field.name]).split(",").map((x) => x.trim()).filter(Boolean) : field.optional && form[field.name] === "" ? null : form[field.name]])), ...(config.fixedValues || {}) };
     if (!repository) throw new Error("Supabase is not configured.");
     await repository.create(values); setOpen(false); setForm(initial(config.fields)); setNotice(`${config.label} saved.`); window.clearTimeout(noticeTimer.current); noticeTimer.current = window.setTimeout(() => setNotice(""), 4000);
   } catch (error) { setStatus(error.message); return; } setStatus(""); };
   return <>
-    <button className="hub-quick-add-trigger" type="button" onClick={() => setOpen(true)} aria-label="Quick add private record" disabled={!isSupabaseConfigured}><Plus /> <span>ADD</span></button>
+    <button className="hub-quick-add-trigger" type="button" onClick={() => { setFormStarted(false); setOpen(true); }} aria-label="Quick add private record" disabled={!isSupabaseConfigured}><Plus /> <span>ADD</span></button>
     {notice && <span className="hub-quick-add-feedback" role="status"><Check aria-hidden="true" /> {notice}</span>}
-    {open && <div className="hub-crud-modal-backdrop" onMouseDown={() => setOpen(false)}><form className="hub-crud-form hub-crud-modal hub-quick-add" onSubmit={save} onMouseDown={(event) => event.stopPropagation()}><div className="hub-crud-form-head"><span>QUICK ADD / PRIVATE</span><button type="button" onClick={() => setOpen(false)} aria-label="Close quick add"><X /></button></div>
-      <label><span>TYPE</span><select value={kind} onChange={(event) => choose(event.target.value)}>{OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-      <div className="hub-form-grid">{config.fields.map((field, index) => <label key={field.name} className={field.type === "textarea" ? "hub-field-wide" : undefined}><span>{field.label}</span>{field.type === "textarea" ? <textarea autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })} /> : field.type === "lookup" ? <select required={field.required} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}><option value="">{field.optional ? "Not assigned" : "Select an option"}</option>{(lookups[field.name] || []).map((row) => <option key={row[field.lookup.value]} value={row[field.lookup.value]} style={row.color ? { color: row.color } : undefined}>{row.color ? "● " : ""}{field.lookup.label.map((key) => row[key]).filter(Boolean).join(" · ")}</option>)}</select> : field.type === "select" ? <select required={field.required} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}>{field.options.map((x) => <option key={x}>{x}</option>)}</select> : <input autoFocus={index === 0} type={field.type === "tags" ? "text" : field.type || "text"} required={field.required} min={field.min} max={field.max} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })} />}</label>)}</div>
+    {open && <div className="hub-crud-modal-backdrop" onMouseDown={() => setOpen(false)}><div role="dialog" aria-modal="true" aria-label="Quick Add" className={`hub-crud-form hub-crud-modal hub-quick-add${formStarted ? " hub-quick-add--form" : ""}`} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }} onMouseDown={(event) => event.stopPropagation()}><div className="hub-crud-form-head"><span>{formStarted ? "QUICK ADD / PRIVATE" : "QUICK ADD"}</span><button type="button" onClick={() => setOpen(false)} aria-label="Close quick add"><X /></button></div>
+      {!formStarted ? <>
+        <div className="hub-quick-add-primary">{OPTIONS.slice(0, 3).map((item) => { const Icon = item.quickIcon; return <button key={item.id} type="button" onClick={() => choose(item.id)}><Icon aria-hidden="true" /><span>{item.quickLabel}</span></button>; })}</div>
+        <div className="hub-quick-add-secondary">{OPTIONS.slice(3).map((item) => { const Icon = item.quickIcon; return <button key={item.id} type="button" onClick={() => choose(item.id)}><Icon aria-hidden="true" /><span>{item.quickLabel}</span><ChevronRight aria-hidden="true" /></button>; })}</div>
+      </> : <form className="hub-quick-add-fields" onSubmit={save}>
+        <label className="hub-quick-add-type"><span>TYPE</span><select value={kind} onChange={(event) => choose(event.target.value)}>{OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.quickLabel}</option>)}</select></label>
+        <div className="hub-form-grid">{config.fields.filter((field) => field.type !== "computed").map((field, index) => <label key={field.name} className={field.type === "textarea" ? "hub-field-wide" : undefined}><span>{field.label}</span>{field.type === "textarea" ? <textarea autoFocus={index === 0} required={field.required} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })} /> : field.type === "lookup" ? <select required={field.required} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}><option value="">{field.optional ? "Not assigned" : "Select an option"}</option>{(lookups[field.name] || []).map((row) => <option key={row[field.lookup.value]} value={row[field.lookup.value]} style={row.color ? { color: row.color } : undefined}>{row.color ? "● " : ""}{field.lookup.label.map((key) => row[key]).filter(Boolean).join(" · ")}</option>)}</select> : field.type === "select" ? <select required={field.required} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}>{field.options.map((x) => <option key={x}>{x}</option>)}</select> : field.type === "checkbox" ? <input type="checkbox" checked={Boolean(form[field.name])} onChange={(e) => setForm({ ...form, [field.name]: e.target.checked })} /> : <input autoFocus={index === 0} type={field.type === "tags" ? "text" : field.type || "text"} required={field.required} min={field.min} max={field.max} value={form[field.name]} onChange={(e) => setForm({ ...form, [field.name]: e.target.value })} />}</label>)}</div>
       {status && <p className="hub-data-error">{status}</p>}<button className="hub-save-button" type="submit"><Check /> COMMIT ENTRY</button>
-    </form></div>}
+      </form>}
+    </div></div>}
   </>;
 }

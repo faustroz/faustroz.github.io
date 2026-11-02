@@ -3876,6 +3876,73 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease;
 }
 .hub-shell:not(.hub-shell--practice) .hub-module-card:hover { box-shadow:0 1rem 2.25rem rgba(0,0,0,.3); }
+
+/* Finance navigation follows the four task groups in the mobile-first workspace. */
+.hub-finance-page .hub-finance-heading { margin-bottom:.9rem; }
+.hub-finance-page .hub-finance-heading h1 { font-size:clamp(1.7rem,3vw,2.1rem); }
+.hub-finance-workspace { display:grid; gap:.8rem; }
+.hub-finance-primary-tabs,
+.hub-finance-subtabs { display:flex; width:max-content; max-width:100%; gap:.2rem; padding:.22rem; overflow-x:auto; overscroll-behavior-inline:contain; -webkit-overflow-scrolling:touch; border:1px solid var(--hub-line); border-radius:999px; background:var(--hub-panel); scrollbar-width:none; }
+.hub-finance-primary-tabs::-webkit-scrollbar,
+.hub-finance-subtabs::-webkit-scrollbar { display:none; }
+.hub-finance-primary-tabs button,
+.hub-finance-subtabs button { min-width:5.2rem; min-height:2.55rem; flex:0 0 auto; padding:.45rem .85rem; border:1px solid transparent; border-radius:999px; color:var(--hub-muted); background:transparent; font-size:.72rem; white-space:nowrap; cursor:pointer; }
+.hub-finance-primary-tabs button[aria-current="page"],
+.hub-finance-subtabs button[aria-current="page"] { border-color:var(--hub-line-bright); color:#111; background:#f4f4f5; font-weight:600; }
+.hub-finance-subtabs { margin-top:-.25rem; }
+.hub-finance-subtabs button { min-width:6.2rem; min-height:2.4rem; }
+.hub-finance-accounts-block { display:grid; gap:.55rem; padding:.72rem .8rem; border:1px solid var(--hub-line); border-radius:9px; background:var(--hub-panel-raised); }
+.hub-finance-accounts-block > header { display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
+.hub-finance-accounts-block > header > strong { color:var(--hub-text); font-size:.78rem; }
+.hub-finance-accounts-block > header > button { display:inline-flex; align-items:center; gap:.3rem; min-height:2.5rem; padding:.4rem .5rem; border:0; color:var(--hub-muted); background:transparent; font-size:.68rem; cursor:pointer; }
+.hub-finance-accounts-block .hub-finance-account-balances { padding-top:.5rem; }
+.hub-finance-overview-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
+.hub-finance-overview-link { min-width:0; min-height:3.6rem; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.6rem; padding:.55rem .7rem; border:1px solid var(--hub-line); border-radius:9px; color:var(--hub-text); background:var(--hub-panel-raised); text-align:left; text-decoration:none; cursor:pointer; }
+.hub-finance-overview-link > svg:first-child { width:1.05rem; color:var(--hub-muted); }
+.hub-finance-overview-link > svg:last-child { width:.9rem; color:var(--hub-muted); }
+.hub-finance-overview-link > span { display:grid; gap:.12rem; min-width:0; }
+.hub-finance-overview-link strong { overflow:hidden; font-size:.75rem; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.hub-finance-overview-link small { overflow:hidden; color:var(--hub-muted); font-size:.62rem; text-overflow:ellipsis; white-space:nowrap; }
+.hub-finance-back { width:max-content; min-height:2.65rem; display:inline-flex; align-items:center; gap:.45rem; padding:.4rem .65rem; border:1px solid var(--hub-line); border-radius:6px; color:var(--hub-text); background:var(--hub-panel); font-size:.75rem; cursor:pointer; }
+.hub-finance-workspace > .hub-crud-panel { min-width:0; }
+.hub-finance-workspace > .hub-crud-sections { min-width:0; }
+
+/* Quick Add is a compact action sheet first, then a focused form. */
+.hub-crud-modal.hub-quick-add { width:min(100%,28rem); display:block; padding:.9rem; border-radius:14px; }
+.hub-quick-add .hub-crud-form-head { align-items:center; margin-bottom:.8rem; }
+.hub-quick-add .hub-crud-form-head > span { color:var(--hub-text); font:600 .95rem/1.3 var(--font-geist-sans),sans-serif; letter-spacing:normal; }
+.hub-quick-add .hub-crud-form-head > span > button { width:auto; height:auto; padding:0; border:0; color:var(--hub-text); background:transparent; font:inherit; cursor:pointer; }
+.hub-quick-add-primary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; padding:.1rem 0 .75rem; }
+.hub-quick-add-primary > button { min-width:0; min-height:5rem; display:grid; align-content:center; justify-items:center; gap:.55rem; padding:.55rem .35rem; border:1px solid var(--hub-line); border-radius:9px; color:var(--hub-text); background:var(--hub-panel-raised); font-size:.72rem; cursor:pointer; }
+.hub-quick-add-primary > button svg { width:1.2rem; height:1.2rem; color:var(--hub-muted); }
+.hub-quick-add-primary > button:first-child svg { color:var(--hub-danger); }
+.hub-quick-add-primary > button:nth-child(2) svg { color:var(--hub-accent); }
+.hub-quick-add-secondary { display:grid; border-top:1px solid var(--hub-line); }
+.hub-quick-add-secondary > button { min-height:3.15rem; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.65rem; padding:.55rem .35rem; border:0; border-bottom:1px solid var(--hub-line); color:var(--hub-text); background:transparent; text-align:left; font-size:.74rem; cursor:pointer; }
+.hub-quick-add-secondary > button:last-child { border-bottom:0; }
+.hub-quick-add-secondary > button > svg:first-child { width:1.05rem; color:var(--hub-muted); }
+.hub-quick-add-secondary > button > svg:last-child { width:.9rem; color:var(--hub-muted); }
+.hub-quick-add-fields { display:grid; gap:.8rem; }
+.hub-quick-add-type { display:grid; gap:.4rem; color:var(--hub-muted); font:.62rem var(--font-geist-mono),monospace; letter-spacing:.06em; }
+.hub-quick-add-type select { min-height:2.75rem; padding:.55rem .65rem; border:1px solid var(--hub-line); border-radius:5px; color:var(--hub-text); background:var(--hub-panel-raised); font:500 .76rem var(--font-geist-sans),sans-serif; letter-spacing:normal; }
+.hub-quick-add-fields .hub-form-grid { gap:.75rem; }
+.hub-quick-add-fields .hub-save-button { width:100%; min-height:2.8rem; margin-top:.1rem; }
+.hub-quick-add-fields > .hub-data-error { margin:0; }
+
+@media (max-width:767px) {
+  .hub-finance-page .hub-finance-heading { margin-bottom:.65rem; }
+  .hub-finance-primary-tabs { width:100%; justify-content:flex-start; }
+  .hub-finance-primary-tabs button { min-width:0; min-height:2.75rem; flex:1 0 auto; padding-inline:.72rem; font-size:.68rem; }
+  .hub-finance-subtabs { width:100%; }
+  .hub-finance-subtabs button { min-height:2.7rem; }
+  .hub-finance-overview-links { grid-template-columns:1fr; }
+  .hub-finance-overview-link { min-height:3.3rem; }
+  .hub-finance-accounts-block { padding:.62rem .65rem; }
+  .hub-crud-modal-backdrop:has(.hub-quick-add) { align-items:end; padding:0; }
+  .hub-crud-modal.hub-quick-add { width:100%; max-height:min(84dvh,44rem); padding:1rem max(1rem,env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left)); border-right:0; border-bottom:0; border-left:0; border-radius:16px 16px 0 0; }
+  .hub-quick-add-primary > button { min-height:4.7rem; }
+}
+
 @media (prefers-reduced-motion:reduce) {
   .hub-shell:not(.hub-shell--practice) :where(button,a,[role="button"],.hub-module-card,.hub-insight-card,.hub-focus-panel,.hub-settings-card,.hub-specialist-link,.hub-vault-folder,.hub-vault-file),
   .hub-shell:not(.hub-shell--practice) .hub-mobile-dock :where(a,button) svg { transition:none !important; }
