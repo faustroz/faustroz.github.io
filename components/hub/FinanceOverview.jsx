@@ -12,6 +12,7 @@ const amount = (value) => currency.format(Number(value || 0));
 
 export default function FinanceOverview() {
   const [hidden, setHidden] = useState(true);
+  const [accountsExpanded, setAccountsExpanded] = useState(false);
   const [snapshot, setSnapshot] = useState({ loading: true, accounts: [], income: [], expenses: [], error: "" });
 
   const load = useCallback(async () => {
@@ -65,9 +66,12 @@ export default function FinanceOverview() {
       <div><span>Income bulan ini</span><strong>{snapshot.loading || snapshot.error ? "—" : displayAmount(sumFinanceAmounts(snapshot.income))}</strong></div>
       <div><span>Expense bulan ini</span><strong>{snapshot.loading || snapshot.error ? "—" : displayAmount(sumFinanceAmounts(snapshot.expenses))}</strong></div>
     </div>
-    {snapshot.accounts.length > 0 && <ul className="hub-finance-account-balances" aria-label="Saldo per rekening">
-      {snapshot.accounts.map((account) => <li key={account.id}><span>{[account.bank_name, account.name].filter(Boolean).join(" · ") || "Rekening"}</span><strong>{displayAmount(account.balance)}</strong></li>)}
-    </ul>}
+    {snapshot.accounts.length > 0 && <>
+      <ul className="hub-finance-account-balances" aria-label="Saldo per rekening">
+        {(accountsExpanded ? snapshot.accounts : snapshot.accounts.slice(0, 2)).map((account) => <li key={account.id}><span>{[account.bank_name, account.name].filter(Boolean).join(" · ") || "Rekening"}</span><strong>{displayAmount(account.balance)}</strong></li>)}
+      </ul>
+      {snapshot.accounts.length > 2 && <button type="button" className="hub-finance-accounts-toggle" aria-expanded={accountsExpanded} onClick={() => setAccountsExpanded((expanded) => !expanded)}>{accountsExpanded ? "Tampilkan lebih sedikit" : `Lihat semua rekening · ${snapshot.accounts.length}`}</button>}
+    </>}
     {snapshot.error && <p className="hub-finance-overview-error" role="status">{snapshot.error}</p>}
     <FinanceLastUpdated hideAmounts={hidden} />
   </section>;

@@ -282,7 +282,7 @@ export default function CrudPanel({ table, title, description, fields, displayFi
   };
 
   return (
-    <section className="hub-crud-panel">
+    <section className="hub-crud-panel" data-table={table}>
       <header className="hub-crud-heading">
         <div><span>DATA CHANNEL / {table.toUpperCase()}</span><h2>{title}</h2><p>{description}</p></div>
         <button type="button" onClick={() => { reset(); setFormOpen(true); }}><Plus aria-hidden="true" /> NEW ENTRY</button>
