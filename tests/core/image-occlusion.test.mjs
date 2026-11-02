@@ -429,6 +429,8 @@ test("Image Occlusion collections persist editable groups and expose a responsiv
   assert.match(workspace, /repository\.createGroup\(name\)/);
   assert.match(workspace, /repository\.renameGroup\(group\.id, group\.name, name\)/);
   assert.match(workspace, /repository\.deleteGroup\(group\.id, group\.name\)/);
+  assert.match(workspace, /groupOptions\.filter\(\(name\) => name !== IMAGE_OCCLUSION_DEFAULT_GROUP\)/);
+  assert.match(workspace, /!manageGroupsOpen && \(loading \?/);
   assert.match(workspace, /set\.group_name \|\| IMAGE_OCCLUSION_DEFAULT_GROUP/);
   assert.match(repository, /group_name: cleanGroupName/);
   assert.match(repository, /academic_image_occlusion_groups/);
