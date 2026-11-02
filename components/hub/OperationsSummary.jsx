@@ -31,6 +31,16 @@ function formatActivityDate(value) {
   return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
+function groupRecentActivity(activities) {
+  const groups = new Map();
+  activities.forEach((activity) => {
+    const group = groups.get(activity.source);
+    if (group) group.count += 1;
+    else groups.set(activity.source, { ...activity, count: 1 });
+  });
+  return [...groups.values()];
+}
+
 function openGlobalSearch() {
   window.dispatchEvent(new Event("hub:open-search"));
 }
@@ -105,6 +115,7 @@ export default function OperationsSummary() {
   const [now, setNow] = useState(null);
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  const recentActivityGroups = groupRecentActivity(state.snapshot?.recentActivity || []);
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured || !service || inFlight.current) {
@@ -171,7 +182,7 @@ export default function OperationsSummary() {
         <section className="hub-home-recent">
           <div className="hub-home-section-heading"><div><span>ACTIVITY / PRIVATE</span><h2>Recent activity</h2></div><button type="button" onClick={load} disabled={state.refreshing} aria-label="Refresh Home data"><RefreshCw className={state.refreshing ? "hub-spin" : ""} aria-hidden="true" /></button></div>
           {state.error && <p className="hub-home-stale" role="status">Connection issue · Menampilkan data terakhir yang berhasil dimuat.</p>}
-          {state.snapshot.recentActivity.length ? <ol>{state.snapshot.recentActivity.map((activity) => <li key={activity.id}><span className="hub-home-activity-dot" aria-hidden="true" /><div><Link href={activity.href}>{activity.title}</Link><small>{activity.source} · {formatActivityDate(activity.updatedAt)}</small></div><ArrowUpRight aria-hidden="true" /></li>)}</ol> : <div className="hub-home-empty-activity"><Clock3 aria-hidden="true" /><p>Belum ada aktivitas terbaru.</p></div>}
+          {recentActivityGroups.length ? <ol>{recentActivityGroups.map((activity) => <li key={activity.source}><span className="hub-home-activity-dot" aria-hidden="true" /><div><Link href={activity.href}>{activity.title}</Link><small>{activity.source} · {formatActivityDate(activity.updatedAt)}{activity.count > 1 ? ` · ${activity.count} aktivitas terbaru` : ""}</small></div><ArrowUpRight aria-hidden="true" /></li>)}</ol> : <div className="hub-home-empty-activity"><Clock3 aria-hidden="true" /><p>Belum ada aktivitas terbaru.</p></div>}
         </section>
         <section className="hub-home-signal">
           <div className="hub-home-section-meta"><span>DATA CHANNEL</span>{state.refreshing ? <span>SYNCING</span> : <span>CONNECTED</span>}</div>

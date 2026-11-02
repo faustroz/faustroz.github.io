@@ -4053,3 +4053,185 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
     padding-bottom: 1rem;
   }
 }
+
+/* Cross-module refinement: keep the existing command-console language,
+   but give every private workspace the same compact rhythm and controls. */
+:root {
+  --hub-radius-control: 6px;
+  --hub-radius-panel: 10px;
+  --hub-space-control: 0.75rem;
+  --hub-space-panel: 1rem;
+}
+
+.hub-shell:not(.hub-shell--practice) {
+  color-scheme: dark;
+  background: var(--hub-ink);
+}
+
+.hub-shell:not(.hub-shell--practice) :where(button, a[href], [role="button"]) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.hub-shell:not(.hub-shell--practice) :where(button, a[href], input, select, textarea, [role="button"]):focus-visible {
+  outline: 2px solid var(--hub-accent);
+  outline-offset: 2px;
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-private-page,
+.hub-shell:not(.hub-shell--practice) .hub-finance-page {
+  padding-top: clamp(1.1rem, 2.6vw, 2.4rem);
+  padding-right: max(clamp(1rem, 3vw, 2.25rem), env(safe-area-inset-right));
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  padding-left: max(clamp(1rem, 3vw, 2.25rem), env(safe-area-inset-left));
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-private-heading {
+  margin-bottom: clamp(1rem, 2.2vw, 1.65rem);
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-private-heading h1 {
+  max-width: 24ch;
+  margin: 0.4rem 0 0.5rem;
+  font-size: clamp(1.85rem, 3.2vw, 2.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-private-heading p {
+  max-width: 68ch;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-channel-tabs {
+  gap: 0.2rem;
+  margin: 1.1rem 0 0.85rem;
+  padding-bottom: 0.15rem;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-channel-tabs::-webkit-scrollbar,
+.hub-shell:not(.hub-shell--practice) .hub-finance-subtabs::-webkit-scrollbar {
+  display: none;
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-channel-tabs button {
+  min-width: max-content;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--hub-radius-control);
+  font-size: 0.68rem;
+  letter-spacing: 0.045em;
+}
+
+.hub-shell:not(.hub-shell--practice) :where(.hub-crud-panel, .hub-settings-card, .hub-insight-card, .hub-trading-panel, .hub-trading-overview, .hub-auth-terminal, .hub-import-card) {
+  border-color: var(--hub-line);
+  border-radius: var(--hub-radius-panel);
+  box-shadow: none;
+}
+
+.hub-shell:not(.hub-shell--practice) :where(.hub-crud-form input, .hub-crud-form select, .hub-crud-form textarea, .hub-auth-form input, .hub-question-filter-grid select, .hub-finance-workspace input, .hub-finance-workspace select, .hub-finance-workspace textarea) {
+  border-color: var(--hub-line-bright);
+  border-radius: var(--hub-radius-control);
+  color-scheme: dark;
+}
+
+.hub-shell:not(.hub-shell--practice) :where(.hub-crud-form input, .hub-crud-form select, .hub-auth-form input, .hub-question-filter-grid select, .hub-finance-workspace input, .hub-finance-workspace select) {
+  min-height: 2.75rem;
+}
+
+.hub-shell:not(.hub-shell--practice) :where(.hub-save-button, .hub-auth-form button, .hub-crud-heading > button, .hub-question-icon-button, .hub-json-restore-label, .hub-csv-template-button) {
+  min-height: 2.65rem;
+  border-radius: var(--hub-radius-control);
+  box-shadow: none;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.hub-shell:not(.hub-shell--practice) .hub-home-command {
+  padding-top: clamp(1rem, 2.4vw, 2rem);
+}
+
+.hub-home-header {
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding-bottom: clamp(1rem, 2vw, 1.6rem);
+}
+
+.hub-home-welcome h1 {
+  margin-top: 0.55rem;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+}
+
+.hub-home-command-grid {
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1rem, 2.2vw, 1.6rem) 0;
+}
+
+.hub-home-lower-grid {
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding-top: 1rem;
+}
+
+.hub-home-recent li {
+  min-height: 3.25rem;
+  padding-block: 0.55rem;
+}
+
+.hub-home-recent li small {
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-home-recent li > svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.hub-home-focus,
+.hub-home-search,
+.hub-home-actions a,
+.hub-home-actions button,
+.hub-home-private-state > a,
+.hub-home-private-state > button {
+  border-radius: var(--hub-radius-control);
+}
+
+.hub-home-focus:hover,
+.hub-home-actions a:hover,
+.hub-home-actions button:hover {
+  transform: none;
+}
+
+@media (max-width: 767px) {
+  .hub-shell:not(.hub-shell--practice) .hub-private-page,
+  .hub-shell:not(.hub-shell--practice) .hub-finance-page {
+    padding-top: 1rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .hub-shell:not(.hub-shell--practice) .hub-private-heading h1 {
+    font-size: clamp(1.75rem, 8vw, 2.35rem);
+  }
+
+  .hub-shell:not(.hub-shell--practice) .hub-private-heading p {
+    font-size: 0.8rem;
+  }
+
+  .hub-shell:not(.hub-shell--practice) .hub-channel-tabs button {
+    padding-inline: 0.7rem;
+  }
+
+  .hub-home-welcome h1 {
+    font-size: clamp(2.25rem, 10vw, 3.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-shell:not(.hub-shell--practice) :where(button, a[href], [role="button"], .hub-home-skeleton) {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
