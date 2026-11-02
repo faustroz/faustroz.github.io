@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRetryRun, createImageOcclusionRun, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getImageOcclusionRatingFromKey, groupCardsByImage, IMAGE_OCCLUSION_DEFAULT_GROUP, isValidImageOcclusionRun, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
+import { applyImageOcclusionRating, createImageOcclusionCardPayloads, createImageOcclusionImagePayloads, createImageOcclusionRepository, createImageOcclusionRetryRun, createImageOcclusionRun, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getImageOcclusionRatingFromKey, groupCardsByImage, IMAGE_OCCLUSION_DEFAULT_GROUP, isValidImageOcclusionRun, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, shuffleArray, shuffleCardsByImage, validateOcclusionMasks, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "../../lib/hub/image-occlusion.mjs";
 import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, IMAGE_OCCLUSION_SOUND_EVENTS, IMAGE_OCCLUSION_SOUND_SETTINGS_KEY, playImageOcclusionSound, readImageOcclusionSoundSettings, writeImageOcclusionSoundSettings } from "../../lib/hub/image-occlusion-sounds.mjs";
 
 const cards = [
@@ -25,6 +25,34 @@ test("Image Occlusion groups normalize legacy values and filter sets without cha
   assert.deepEqual(getImageOcclusionGroups(sets), ["Anatomi", "Histologi", "Tanpa grup"]);
   assert.deepEqual(filterImageOcclusionSetsByGroup(sets, "HISTOLOGI").map(({ id }) => id), ["b"]);
   assert.equal(filterImageOcclusionSetsByGroup(sets).length, 3);
+});
+
+test("existing Image Occlusion collections remain visible before the group migration is applied", async () => {
+  const legacySet = { id: "old-set", title: "Histologi Hepatobilier", image_path: "owner/old.png", mode: "hide_all", answer_mode: "mask_only", created_at: "2026-01-01", updated_at: "2026-01-02" };
+  const client = {
+    auth: {},
+    storage: {},
+    from(table) {
+      let columns = "";
+      return {
+        select(value) { columns = value; return this; },
+        order() { return this; },
+        in() { return this; },
+        then(resolve) {
+          if (table === "academic_image_occlusion_sets" && columns.includes("group_name")) {
+            return resolve({ data: null, error: { code: "42703", message: "column group_name does not exist" } });
+          }
+          const data = table === "academic_image_occlusion_sets" ? [legacySet] : [];
+          return resolve({ data, error: null });
+        },
+      };
+    },
+  };
+  const sets = await createImageOcclusionRepository(client).listSets();
+  assert.equal(sets.length, 1);
+  assert.equal(sets[0].id, "old-set");
+  assert.equal(sets[0].title, "Histologi Hepatobilier");
+  assert.equal(sets[0].group_name, IMAGE_OCCLUSION_DEFAULT_GROUP);
 });
 
 test("rating an Image Occlusion card records the rating and immediately advances without losing prior responses", () => {
@@ -399,6 +427,8 @@ test("Image Occlusion collections persist editable groups and expose a responsiv
   assert.match(workspace, /set\.group_name \|\| IMAGE_OCCLUSION_DEFAULT_GROUP/);
   assert.match(repository, /group_name: cleanGroupName/);
   assert.match(repository, /select\("id,title,group_name,image_path,mode,answer_mode,created_at,updated_at"\)/);
+  assert.match(repository, /isMissingImageOcclusionGroupColumn\(error\)/);
+  assert.match(repository, /Keep existing collections visible while the additive group migration is pending/);
   assert.match(migration, /add column if not exists group_name text not null default 'Tanpa grup'/);
   assert.match(styles, /hub-occlusion-group-filter select/);
   assert.match(styles, /hub-occlusion-filter-empty/);
