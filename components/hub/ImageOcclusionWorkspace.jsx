@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Shuffle, Trash2, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, normalizeImageOcclusionGroup, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", groupName: IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: "answer", activeImageId: null, images: [] });
@@ -40,8 +40,15 @@ export default function ImageOcclusionWorkspace() {
   const [status, setStatus] = useState("");
   const [draft, setDraft] = useState(null);
   const [groupFilter, setGroupFilter] = useState("");
+  const [managedGroups, setManagedGroups] = useState([]);
+  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [groupBusy, setGroupBusy] = useState(false);
+  const [groupManagementError, setGroupManagementError] = useState("");
+  const [groupManagementAvailable, setGroupManagementAvailable] = useState(true);
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
-  const groupOptions = useMemo(() => getImageOcclusionGroups(sets), [sets]);
+  const groupOptions = useMemo(() => getImageOcclusionGroups(sets, managedGroups), [sets, managedGroups]);
   const visibleSets = useMemo(() => filterImageOcclusionSetsByGroup(sets, groupFilter), [sets, groupFilter]);
 
   useEffect(() => {
@@ -76,6 +83,15 @@ export default function ImageOcclusionWorkspace() {
     setLoading(true); setError("");
     try {
       const data = await repository.listSets();
+      try {
+        setManagedGroups(await repository.listGroups());
+        setGroupManagementAvailable(true);
+        setGroupManagementError("");
+      } catch {
+        setManagedGroups([]);
+        setGroupManagementAvailable(false);
+        setGroupManagementError("Kelola grup belum tersedia. Terapkan migrasi 043 di Supabase terlebih dahulu.");
+      }
       const client = requireSupabase();
       const nextSets = await Promise.all(data.map(async (set) => {
         const sourceImages = set.images?.length ? set.images : [{ id: null, image_path: set.image_path, cards: set.cards }];
@@ -260,6 +276,52 @@ export default function ImageOcclusionWorkspace() {
     finally { setSaving(false); }
   };
 
+  const createGroup = async (event) => {
+    event.preventDefault();
+    const name = normalizeImageOcclusionGroup(newGroupName);
+    if (!newGroupName.trim() || name === IMAGE_OCCLUSION_DEFAULT_GROUP || groupOptions.some((option) => option.toLocaleLowerCase("id") === name.toLocaleLowerCase("id"))) {
+      setGroupManagementError("Masukkan nama grup baru yang belum digunakan.");
+      return;
+    }
+    setGroupBusy(true); setGroupManagementError("");
+    try {
+      const created = await repository.createGroup(name);
+      setManagedGroups((current) => [...current, created]); setNewGroupName("");
+    } catch (groupError) { setGroupManagementError(groupError?.message || "Grup gagal dibuat."); }
+    finally { setGroupBusy(false); }
+  };
+
+  const renameGroup = async (group) => {
+    const name = normalizeImageOcclusionGroup(editingGroup?.name);
+    if (!editingGroup?.name?.trim() || name === IMAGE_OCCLUSION_DEFAULT_GROUP || groupOptions.some((option) => option !== group.name && option.toLocaleLowerCase("id") === name.toLocaleLowerCase("id"))) {
+      setGroupManagementError("Masukkan nama grup yang belum digunakan.");
+      return;
+    }
+    setGroupBusy(true); setGroupManagementError("");
+    try {
+      const renamed = await repository.renameGroup(group.id, group.name, name);
+      setManagedGroups((current) => current.map((item) => item.id === group.id ? renamed : item));
+      setSets((current) => current.map((set) => set.group_name === group.name ? { ...set, group_name: name } : set));
+      setGroupFilter((current) => current === group.name ? name : current);
+      setDraft((current) => current?.groupName === group.name ? { ...current, groupName: name } : current);
+      setEditingGroup(null);
+    } catch (groupError) { setGroupManagementError(groupError?.message || "Nama grup gagal diperbarui."); }
+    finally { setGroupBusy(false); }
+  };
+
+  const deleteGroup = async (group) => {
+    if (group.name === IMAGE_OCCLUSION_DEFAULT_GROUP || !window.confirm(`Hapus grup “${group.name}”? Kumpulan di dalamnya akan dipindahkan ke “${IMAGE_OCCLUSION_DEFAULT_GROUP}”.`)) return;
+    setGroupBusy(true); setGroupManagementError("");
+    try {
+      await repository.deleteGroup(group.id, group.name);
+      setManagedGroups((current) => current.filter((item) => item.id !== group.id));
+      setSets((current) => current.map((set) => set.group_name === group.name ? { ...set, group_name: IMAGE_OCCLUSION_DEFAULT_GROUP } : set));
+      setGroupFilter((current) => current === group.name ? "" : current);
+      setDraft((current) => current?.groupName === group.name ? { ...current, groupName: IMAGE_OCCLUSION_DEFAULT_GROUP } : current);
+    } catch (groupError) { setGroupManagementError(groupError?.message || "Grup gagal dihapus."); }
+    finally { setGroupBusy(false); }
+  };
+
   const deleteSet = async (set) => {
     if (!window.confirm(`Hapus kumpulan “${set.title}”, semua kartu, dan riwayat review Image Occlusion secara permanen?`)) return;
     setError(""); setStatus("");
@@ -289,7 +351,7 @@ export default function ImageOcclusionWorkspace() {
       <div className="hub-occlusion-editor-heading"><div><span>{draft.id ? "EDIT IMAGE SET" : "NEW IMAGE SET"}</span><h4>{draft.id ? "Edit kartu dan mask" : "Siapkan gambar"}</h4></div><button type="button" className="hub-occlusion-icon-button" aria-label="Tutup editor" onClick={() => { releaseDraftUrls(draft.images); setDraft(null); setPreviewOpen(false); }}><X size={16} /></button></div>
       <div className="hub-occlusion-form-grid">
         <label><span>Nama kumpulan</span><input value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Contoh: Anatomi hepatobilier" /></label>
-        <label><span>Grup</span><input list="hub-occlusion-group-options" value={draft.groupName} maxLength={80} onChange={(event) => setDraft({ ...draft, groupName: event.target.value })} placeholder="Contoh: Histologi" /><datalist id="hub-occlusion-group-options">{groupOptions.map((group) => <option key={group} value={group} />)}</datalist></label>
+        <div className="hub-occlusion-group-field"><label><span>Grup</span><select value={draft.groupName} onChange={(event) => setDraft({ ...draft, groupName: event.target.value })}>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label><button type="button" className="hub-occlusion-group-manage-trigger" onClick={() => setManageGroupsOpen(true)}>Kelola grup</button></div>
         <label><span>Konten kartu</span><select value={draft.answerMode} onChange={(event) => setDraft({ ...draft, answerMode: event.target.value })}><option value="answer">Mask + jawaban</option><option value="mask_only">Mask saja · tanpa jawaban teks</option></select></label>
       </div>
       <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih satu atau beberapa PNG / JPG sekaligus · maksimal 5 MB per gambar.</span></div>
@@ -323,19 +385,32 @@ export default function ImageOcclusionWorkspace() {
         <span>{groupFilter ? `${visibleSets.length} / ${sets.length}` : sets.length} KUMPULAN</span>
       </div>
       <div className="hub-occlusion-library-controls">
-        {sets.length > 0 && <label className="hub-occlusion-group-filter"><span>GRUP</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Filter kumpulan berdasarkan grup"><option value="">Semua grup</option>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label>}
+        {groupOptions.length > 1 && <label className="hub-occlusion-group-filter"><span>GRUP</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)} aria-label="Filter kumpulan berdasarkan grup"><option value="">Semua grup</option>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label>}
+        <button type="button" className="hub-occlusion-group-manage-trigger" aria-expanded={manageGroupsOpen} aria-controls="hub-occlusion-group-manager" onClick={() => setManageGroupsOpen((open) => !open)}>{manageGroupsOpen ? "Tutup kelola grup" : "Kelola grup"}</button>
         <button
-        type="button"
-        className={`hub-occlusion-shuffle-button${shuffleEnabled ? " is-active" : ""}`}
-        onClick={() => toggleShuffle(!shuffleEnabled)}
-        title={shuffleEnabled ? "Pengacakan aktif: Gambar diacak, lalu semua mask di gambar tersebut dihabiskan sebelum ke gambar berikutnya. Klik untuk matikan." : "Pengacakan nonaktif: Kartu berurutan sesuai pembuatan. Klik untuk aktifkan."}
-        aria-pressed={shuffleEnabled}
-      >
-        <Shuffle size={13} />
-        <span>Acak: <b>{shuffleEnabled ? "ON" : "OFF"}</b></span>
-      </button>
+          type="button"
+          className={`hub-occlusion-shuffle-button${shuffleEnabled ? " is-active" : ""}`}
+          onClick={() => toggleShuffle(!shuffleEnabled)}
+          title={shuffleEnabled ? "Pengacakan aktif: Gambar diacak, lalu semua mask di gambar tersebut dihabiskan sebelum ke gambar berikutnya. Klik untuk matikan." : "Pengacakan nonaktif: Kartu berurutan sesuai pembuatan. Klik untuk aktifkan."}
+          aria-pressed={shuffleEnabled}
+        >
+          <Shuffle size={13} />
+          <span>Acak: <b>{shuffleEnabled ? "ON" : "OFF"}</b></span>
+        </button>
       </div>
     </div>
+    {manageGroupsOpen && <section className="hub-occlusion-group-manager" id="hub-occlusion-group-manager" aria-label="Kelola grup Image Occlusion">
+      <div className="hub-occlusion-group-manager-heading"><div><h4>Kelola grup</h4><p>Buat grup untuk mengatur kumpulan Image Occlusion.</p></div><button type="button" className="hub-occlusion-icon-button" aria-label="Tutup kelola grup" onClick={() => setManageGroupsOpen(false)}><X size={15} /></button></div>
+      {groupManagementError && <p className="hub-data-error" role="alert">{groupManagementError}</p>}
+      <form className="hub-occlusion-group-create" onSubmit={createGroup}><label htmlFor="hub-occlusion-new-group">Grup baru</label><input id="hub-occlusion-new-group" value={newGroupName} maxLength={80} onChange={(event) => { setNewGroupName(event.target.value); if (groupManagementAvailable) setGroupManagementError(""); }} placeholder="Contoh: Histologi" disabled={groupBusy || !groupManagementAvailable} /><button type="submit" className="hub-question-tool-button" disabled={groupBusy || !groupManagementAvailable || !newGroupName.trim()}><Plus size={14} />Tambah</button></form>
+      <ul className="hub-occlusion-group-list">{groupOptions.map((name) => {
+        const group = managedGroups.find((item) => item.name === name);
+        const isDefault = name === IMAGE_OCCLUSION_DEFAULT_GROUP;
+        const count = sets.filter((set) => normalizeImageOcclusionGroup(set.group_name) === name).length;
+        const isEditing = editingGroup?.id === group?.id && group?.id;
+        return <li key={name}>{isEditing ? <><input aria-label={`Nama grup ${name}`} value={editingGroup.name} maxLength={80} onChange={(event) => setEditingGroup({ ...editingGroup, name: event.target.value })} /><button type="button" aria-label={`Simpan nama grup ${name}`} disabled={groupBusy} onClick={() => renameGroup(group)}><Check size={15} /></button><button type="button" aria-label="Batal mengganti nama grup" disabled={groupBusy} onClick={() => setEditingGroup(null)}><X size={15} /></button></> : <><span className="hub-occlusion-group-name">{name}{isDefault && <small>DEFAULT</small>}</span><span className="hub-occlusion-group-count">{count} kumpulan</span>{group?.id && <><button type="button" aria-label={`Ubah nama grup ${name}`} disabled={groupBusy} onClick={() => setEditingGroup({ id: group.id, name })}><Pencil size={14} /></button><button type="button" aria-label={`Hapus grup ${name}`} disabled={groupBusy} onClick={() => deleteGroup(group)}><Trash2 size={14} /></button></>}</>}</li>;
+      })}</ul>
+    </section>}
     {loading ? <div className="hub-data-state">MEMUAT KUMPULAN GAMBAR…</div> : sets.length === 0 ? <div className="hub-occlusion-empty-state"><span className="hub-occlusion-empty-icon"><ImagePlus size={19} /></span><div><h4>Belum ada kumpulan gambar</h4><p>Satukan beberapa gambar, lalu buat mask dan kartu belajar untuk setiap bagian.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={15} /> Buat kumpulan pertama</button></div> : visibleSets.length === 0 ? <div className="hub-occlusion-filter-empty" role="status"><span>Tidak ada kumpulan dalam grup ini.</span><button type="button" onClick={() => setGroupFilter("")}>Tampilkan semua grup</button></div> : <div className="hub-occlusion-set-list">{visibleSets.map((set) => {
       const dueCount = set.cards.filter((card) => !card.reviewState || Date.parse(card.reviewState.due_at) <= Date.now()).length;
       const masteredCount = set.cards.filter((card) => card.reviewState?.mastered).length;
