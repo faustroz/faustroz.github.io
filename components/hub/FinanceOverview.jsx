@@ -54,12 +54,12 @@ export default function FinanceOverview({ onOpenAccounts, onOpenGoals }) {
   };
 
   const balanceTotal = sumAvailableBalances(snapshot.accounts);
-  const currentMonth = new Intl.DateTimeFormat("id-ID", { month: "short", year: "numeric" }).format(new Date());
+  const currentMonth = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(new Date());
   const displayAmount = (value) => hidden ? "••••••" : amount(value);
 
   return <section className="hub-finance-overview" aria-label="Ringkasan saldo operasional">
     <header className="hub-finance-overview-head">
-      <div><span>SALDO OPERASIONAL · {currentMonth.toUpperCase()}</span><h2>Ringkasan saldo</h2></div>
+      <div><span>{currentMonth.toUpperCase()}</span><h2>Ringkasan saldo</h2></div>
       <button type="button" className="hub-finance-privacy-toggle" onClick={togglePrivacy} aria-label={hidden ? "Tampilkan nominal saldo" : "Sembunyikan nominal saldo"} aria-pressed={hidden}>
         {hidden ? <Eye size={15} aria-hidden="true" /> : <EyeOff size={15} aria-hidden="true" />}{hidden ? "Tampilkan" : "Sembunyikan"}
       </button>

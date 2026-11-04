@@ -33,6 +33,9 @@ function normalizeForm(fields, form) {
 function displayValue(field, value) {
   if (field.type === "checkbox") return value ? "ACTIVE" : "PAUSED";
   if (field.type === "tags") return Array.isArray(value) ? value.join(" / ") : "—";
+  if (field.type === "date" && value) {
+    return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
+  }
   if (field.format === "currency") {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0);
   }
@@ -104,7 +107,8 @@ function budgetProgress(budget, expenses) {
   const startKey = dateKey(start);
   const endKey = dateKey(next);
   const spent = expenses.filter((expense) => expense.category === budget.name && expense.spent_on >= startKey && expense.spent_on < endKey).reduce((total, expense) => total + Number(expense.amount || 0), 0);
-  return { spent, remaining: limit - spent, percent: limit > 0 ? Math.min(100, (spent / limit) * 100) : 0, periodLabel: `${startKey} — ${endKey}` };
+  const mediumDate = (value) => new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(value);
+  return { spent, remaining: limit - spent, percent: limit > 0 ? Math.min(100, (spent / limit) * 100) : 0, periodLabel: `${mediumDate(start)} — ${mediumDate(next)}` };
 }
 
 export default function CrudPanel({ table, title, description, fields, displayFields, orderBy, ledger, filter, recordScope, fixedValues, onRecordsChange }) {
@@ -343,7 +347,7 @@ export default function CrudPanel({ table, title, description, fields, displayFi
       {loading ? (
         <div className="hub-data-state"><RefreshCw className="hub-spin" /> READING PRIVATE TABLE</div>
       ) : records.length === 0 ? (
-        <div className="hub-data-state">NO RECORDS / CHANNEL READY</div>
+        <div className="hub-data-state">NO RECORDS YET</div>
       ) : visibleRecords.length === 0 ? (
         <div className="hub-data-state">NO ENTRIES FOR THIS MONTH</div>
       ) : (
@@ -356,7 +360,7 @@ export default function CrudPanel({ table, title, description, fields, displayFi
                   const match = field.type === "lookup" ? (lookups[field.name] || []).find((row) => row[field.lookup.value] === record[field.name]) : null;
                   const color = field.type === "color" ? record[field.name] : match?.color;
                   const lookupLabel = match && field.displayLookupLabel ? field.lookup.label.map((key) => match[key]).filter(Boolean).join(" · ") : (field.fallbackField && record[field.fallbackField]) || displayValue(field, record[field.name]);
-                  return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color && <i style={{ backgroundColor: color }} aria-hidden="true" />}{lookupLabel}</strong></div>;
+                  return <div key={field.name}><span>{field.label}</span><strong className={color ? "hub-record-color-value" : undefined}>{color ? <i style={{ backgroundColor: color }} role="img" aria-label={lookupLabel} /> : lookupLabel}</strong></div>;
                 })}
                 {table === "budgets" && (() => {
                   const progress = budgetProgressById[record.id];

@@ -7,7 +7,7 @@ export default function InsightsPage() {
     <main className="hub-private-page">
       <header className="hub-private-heading hub-reveal">
         <span>06 / OPERATION INSIGHTS</span>
-        <h1>Reality, not dashboard theater.</h1>
+        <h1>Reality, not dashboard theater</h1>
         <p>Small analytics derived only from your authenticated Finance records.</p>
       </header>
       <OperationsInsights />

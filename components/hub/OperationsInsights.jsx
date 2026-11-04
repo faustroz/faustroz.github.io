@@ -9,6 +9,8 @@ function formatIDR(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0);
 }
 
+const compactIDR = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", notation: "compact", maximumFractionDigits: 1 });
+
 function formatBytes(bytes) {
   if (!bytes) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.ceil(bytes / 1024))} KB`;
@@ -54,7 +56,7 @@ export default function OperationsInsights() {
   return (
     <div className="hub-insights-grid">
       <InsightCard icon={CircleDollarSign} eyebrow="FINANCE / CURRENT MONTH" title={finance.expenseCount ? formatIDR(finance.currentExpenses) : "No expense data."}>
-        {!finance.hasData ? <p>No finance records yet.</p> : <>{finance.hasTrend && <div className="hub-insight-trend" aria-label="Six-month expense trend">{finance.trend.map((month) => <span key={month.key}><i style={{ height: `${(month.total / trendMaximum) * 100}%` }} /><small>{month.label}</small></span>)}</div>}<dl><div><dt>Balance total</dt><dd>{finance.accountCount ? formatIDR(finance.balanceTotal) : "No accounts"}</dd></div><div><dt>Previous month</dt><dd>{finance.previousExpenses ? formatIDR(finance.previousExpenses) : "No prior expense"}</dd></div><div><dt>Budgets / goals</dt><dd>{finance.budgetCount} / {finance.goalCount}</dd></div><div><dt>Active subscriptions</dt><dd>{finance.activeSubscriptions}</dd></div>{finance.goalProgress !== null && <div><dt>Average goal progress</dt><dd>{finance.goalProgress.toFixed(0)}%</dd></div>}</dl></>}
+        {!finance.hasData ? <p>No finance records yet.</p> : <>{finance.hasTrend && <div className="hub-insight-trend" aria-label="Six-month expense trend">{finance.trend.map((month, index) => { const current = index === finance.trend.length - 1; return <span key={month.key} data-current={current || undefined}>{current && <b>{compactIDR.format(month.total)}</b>}<i style={{ height: `${(month.total / trendMaximum) * 100}%` }} /><small>{month.label}</small></span>; })}</div>}<dl><div><dt>Balance total</dt><dd>{finance.accountCount ? formatIDR(finance.balanceTotal) : "No accounts"}</dd></div><div><dt>Previous month</dt><dd>{finance.previousExpenses ? formatIDR(finance.previousExpenses) : "No prior expense"}</dd></div><div><dt>Budgets / goals</dt><dd>{finance.budgetCount} / {finance.goalCount}</dd></div><div><dt>Active subscriptions</dt><dd>{finance.activeSubscriptions}</dd></div>{finance.goalProgress !== null && <div><dt>Average goal progress</dt><dd>{finance.goalProgress.toFixed(0)}%</dd></div>}</dl></>}
       </InsightCard>
       <InsightCard icon={GraduationCap} eyebrow="ACADEMIC / CUMULATIVE" title={academic.ipk === null ? "No academic data." : `IPK ${academic.ipk.toFixed(2)}`}>
         {!academic.hasData ? <p>Add a grade record to calculate credits and IPK.</p> : <dl><div><dt>Credits / SKS</dt><dd>{academic.credits}</dd></div><div><dt>Semesters</dt><dd>{academic.semesterCount}</dd></div><div><dt>Grade records</dt><dd>{academic.recordCount}</dd></div></dl>}
