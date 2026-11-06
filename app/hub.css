@@ -4381,12 +4381,13 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 }
 
 /* ============================================================
-   ACADEMIC RECORD PAGE / tighten the tail of the page
-   The floating mobile dock's clearance used to be reserved three times over
-   — on .hub-content, on .hub-private-page and again as 7rem of footer padding
-   — which stacked into a tall empty band under the footer rule. Reserve it
-   once, on the shell, so the footer stays a compact bordered strip and the
-   leftover space below it reads as the end of the page.
+   ACADEMIC RECORD PAGE / join the tail of the page to the dock
+   The mobile dock is already a full-bleed bar sitting at bottom:0, but the
+   shell reserved a flat 5.4rem for it while the bar measures 4.1rem plus its
+   1px top border. The leftover ~20px showed as a sliver of background between
+   the footer strip and the bar, which is what made the bar read as floating.
+   --hub-dock-bar now carries that height to both the reservation and the bar
+   itself, so neither can drift from the other.
    ============================================================ */
 .hub-shell--academic .hub-private-page.hub-academic-page {
   padding-bottom: clamp(0.5rem, 1.5vw, 1rem);
@@ -4394,13 +4395,15 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 
 @media (max-width: 767px) {
   /* Lay the shell out as a column and let the content take the slack, so the
-     footer is always pinned directly above the strip the dock floats in —
-     never stranded mid-screen with an empty band under it. */
+     footer is always pinned directly onto the dock bar — never stranded
+     mid-screen with an empty band under it. */
   .hub-shell--academic {
+    /* 0.45rem of dock padding twice, a 3.2rem tap target, a 1px top border. */
+    --hub-dock-bar: calc(4.1rem + 1px + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    padding-bottom: calc(5.4rem + env(safe-area-inset-bottom));
+    padding-bottom: var(--hub-dock-bar);
   }
 
   .hub-shell--academic:not(.hub-shell--finance):not(.hub-shell--practice) .hub-content {
@@ -4410,6 +4413,15 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   }
 
   .hub-shell--academic .hub-footer { padding-bottom: 1.1rem; }
+
+  /* Held to the exact height the shell reserved, and without the lift shadow
+     that used to set it apart from whatever scrolled underneath: the footer
+     now rests on its top border rather than hovering above it. */
+  .hub-shell--academic:not(.hub-shell--finance) .hub-mobile-dock {
+    box-sizing: border-box;
+    min-height: var(--hub-dock-bar);
+    box-shadow: none;
+  }
 }
 
 /* ============================================================
