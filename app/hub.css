@@ -4379,3 +4379,21 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-ausc-grid { grid-template-columns:minmax(0,1fr); }
   .hub-ausc-choices { grid-template-columns:minmax(0,1fr); }
 }
+
+/* ============================================================
+   ACADEMIC RECORD PAGE / tighten the tail of the page
+   The floating mobile dock's clearance used to be reserved three times over
+   — on .hub-content, on .hub-private-page and again as 7rem of footer padding
+   — which stacked into a tall empty band under the footer rule. Reserve it
+   once, on the shell, so the footer stays a compact bordered strip and the
+   leftover space below it reads as the end of the page.
+   ============================================================ */
+.hub-shell--academic .hub-private-page.hub-academic-page {
+  padding-bottom: clamp(0.5rem, 1.5vw, 1rem);
+}
+
+@media (max-width: 767px) {
+  .hub-shell--academic { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+  .hub-shell--academic:not(.hub-shell--finance):not(.hub-shell--practice) .hub-content { padding-bottom: 0; }
+  .hub-shell--academic .hub-footer { padding-bottom: 1.1rem; }
+}

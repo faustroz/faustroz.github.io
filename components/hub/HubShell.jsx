@@ -14,6 +14,7 @@ export default function HubShell({ children }) {
   const portfolioLanding = pathname === "/";
   const financeRoute = pathname?.startsWith("/finance/portfolio");
   const specialistRoute = financeRoute;
+  const academicRoute = pathname === "/academic";
   const practiceRoute = pathname === "/academic/practice";
   const occlusionRoute = pathname === "/academic/occlusion";
   const immersiveStudyRoute = practiceRoute || occlusionRoute;
@@ -23,6 +24,7 @@ export default function HubShell({ children }) {
   if (specialistRoute) shellClasses.push("hub-shell--specialist");
   if (financeRoute) shellClasses.push("hub-shell--finance");
   if (immersiveStudyRoute) shellClasses.push("hub-shell--practice");
+  if (academicRoute) shellClasses.push("hub-shell--academic");
 
   useEffect(() => {
     if (previousPathname.current === pathname) return undefined;
