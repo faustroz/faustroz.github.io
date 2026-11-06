@@ -4329,3 +4329,53 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
   .hub-ecg-analysis-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
   .hub-ecg-analysis-ref { display:none; }
 }
+
+/* ============================================================
+   AUSCULTATION LAB / heart and lung sound library + trainer
+   ============================================================ */
+.hub-ausc-lab { display:grid; gap:.9rem; }
+.hub-ausc-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; }
+.hub-ausc-modes, .hub-ausc-systems, .hub-ausc-types { display:flex; flex-wrap:wrap; gap:.4rem; }
+.hub-ausc-preset { padding:.45rem .7rem; border:1px solid var(--hub-line); border-radius:6px; background:var(--hub-panel-raised); color:var(--hub-text); font:.62rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.07em; text-transform:uppercase; cursor:pointer; }
+.hub-ausc-preset:hover { border-color:var(--hub-line-bright); background:rgba(255,255,255,.035); }
+.hub-ausc-preset[aria-pressed="true"] { background:var(--hub-accent-soft); border-color:var(--hub-line-bright); }
+.hub-ausc-preset:disabled { cursor:default; opacity:.5; }
+.hub-ausc-label { color:var(--hub-muted); font:.62rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.07em; text-transform:uppercase; }
+.hub-ausc-panel { display:grid; gap:1rem; padding:1.2rem; border:1px solid var(--hub-line); border-radius:10px; background:var(--hub-panel); }
+.hub-ausc-note { margin:0; max-width:72ch; color:var(--hub-muted); font-size:.72rem; line-height:1.6; }
+.hub-ausc-empty { margin:0; color:var(--hub-muted); font-size:.72rem; }
+.hub-ausc-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.9rem; }
+.hub-ausc-clip { display:grid; gap:.45rem; align-content:start; padding:.85rem; border:1px solid var(--hub-line); border-radius:8px; background:var(--hub-panel-raised); }
+.hub-ausc-clip-head { display:flex; gap:.4rem; align-items:center; justify-content:space-between; }
+.hub-ausc-clip-badge { color:var(--hub-muted); font:.56rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.07em; }
+.hub-ausc-clip-finding { padding:.15rem .4rem; border:1px solid var(--hub-line); border-radius:4px; color:var(--hub-muted); font:.56rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.07em; }
+.hub-ausc-clip-finding.is-abnormal { border-color:rgba(255,255,255,0.45); background:var(--hub-accent-soft); color:var(--hub-text); }
+.hub-ausc-clip-title { margin:0; color:var(--hub-text); font-size:.82rem; font-weight:500; }
+.hub-ausc-clip-site { margin:0; color:var(--hub-muted); font:.58rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.04em; line-height:1.5; }
+.hub-ausc-audio { width:100%; height:34px; }
+.hub-ausc-clip-detail { margin:0; color:var(--hub-muted); font-size:.7rem; line-height:1.6; }
+.hub-ausc-clip-file { margin:0; color:var(--hub-muted); font:.56rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.04em; opacity:.7; overflow-wrap:anywhere; }
+.hub-ausc-trainer { display:grid; gap:.8rem; max-width:46rem; }
+.hub-ausc-trainer-head { display:flex; align-items:center; justify-content:space-between; gap:.6rem; }
+.hub-ausc-trainer-intro, .hub-ausc-trainer-site { margin:0; color:var(--hub-muted); font-size:.72rem; line-height:1.6; }
+.hub-ausc-score { color:var(--hub-text); font:.58rem "IBM Plex Mono",var(--font-geist-mono),monospace; letter-spacing:.06em; }
+.hub-ausc-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
+.hub-ausc-choice { padding:.6rem .7rem; border:1px solid var(--hub-line); border-radius:6px; background:var(--hub-panel-raised); color:var(--hub-text); font-size:.74rem; text-align:left; cursor:pointer; }
+.hub-ausc-choice:hover:not(:disabled) { border-color:var(--hub-line-bright); }
+.hub-ausc-choice:disabled { cursor:default; }
+.hub-ausc-choice.is-correct { border-color:rgba(255,255,255,0.55); background:var(--hub-accent-soft); }
+.hub-ausc-choice.is-wrong { border-color:var(--hub-line-bright); opacity:.55; text-decoration:line-through; }
+.hub-ausc-feedback { display:grid; gap:.5rem; justify-items:start; padding:.7rem .8rem; border-left:2px solid var(--hub-line-bright); }
+.hub-ausc-verdict { margin:0; color:var(--hub-text); font-size:.78rem; font-weight:500; }
+.hub-ausc-source { padding-top:.7rem; border-top:1px solid var(--hub-line); }
+.hub-ausc-source p { margin:0; color:var(--hub-muted); font-size:.68rem; line-height:1.65; }
+.hub-ausc-source strong { color:var(--hub-text); font-weight:500; }
+.hub-ausc-source a { color:var(--hub-text); text-decoration:underline; text-underline-offset:2px; }
+
+@media (max-width:1100px) {
+  .hub-ausc-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:760px) {
+  .hub-ausc-grid { grid-template-columns:minmax(0,1fr); }
+  .hub-ausc-choices { grid-template-columns:minmax(0,1fr); }
+}
