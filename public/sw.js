@@ -1,6 +1,6 @@
 // Bump this whenever shell markup changes so a standalone install cannot pair
 // fresh HTML with a stale JavaScript bundle during hydration.
-const CACHE_NAME = "4allx-shell-v2";
+const CACHE_NAME = "4allx-shell-v3";
 const APP_SHELL = ["/", "/hub", "/offline.html", "/hub-manifest.webmanifest", "/icons/fd-os-icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -44,7 +44,22 @@ self.addEventListener("fetch", (event) => {
 
   if (/^\/(?:_next\/|icons\/)|\.(?:css|js|mjs|woff2?|svg|png|ico|webmanifest)$/i.test(url.pathname)) {
     event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-      const copy = response.clone();
+      const immutableAsset = url.pathname.startsWith("/_next/static/")
+        || url.pathname === "/ferdy-profile-256-v1.webp";
+      // Only the cache copy carries the long-lived header. The page always
+      // gets the untouched response: a body can be read once, and cache.put
+      // consumes whichever Response it is handed, so returning that same
+      // object would hand the page an already-drained stream.
+      let copy = response.clone();
+      if (immutableAsset && response.ok) {
+        const headers = new Headers(copy.headers);
+        headers.set("Cache-Control", "public, max-age=31536000, immutable");
+        copy = new Response(copy.body, {
+          status: copy.status,
+          statusText: copy.statusText,
+          headers,
+        });
+      }
       caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
       return response;
     })));

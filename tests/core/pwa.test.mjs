@@ -21,7 +21,9 @@ test("service worker keeps API traffic and non-GET requests out of cache", async
   assert.match(worker, /url\.origin !== self\.location\.origin/);
   assert.match(worker, /Never cache Supabase/);
   assert.match(worker, /SKIP_WAITING/);
-  assert.match(worker, /4allx-shell-v2/);
+  // Shape, not a pinned number: the name has to stay versioned so activate
+  // can drop older caches, but a bump should not be a test edit.
+  assert.match(worker, /const CACHE_NAME = "4allx-shell-v\d+";/);
   assert.match(worker, /then\(\(\) => self\.skipWaiting\(\)\)/);
 });
 
