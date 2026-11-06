@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CircleAlert, RotateCcw } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createPracticeRun, readPracticeRun, writePracticeRun } from "@/lib/hub/academic-practice.mjs";
+import { createPracticeRun, getPracticeRunStorage, migratePracticeRun, writePracticeRun } from "@/lib/hub/academic-practice.mjs";
 import { createQuestionRepository, VALID_OPTIONS } from "@/lib/hub/question-bank.mjs";
 import { buildSessionSnapshot } from "@/lib/hub/academic-performance.mjs";
 
@@ -27,8 +27,10 @@ export default function AcademicPracticePage() {
   const questionStartedAt = useRef(Date.now());
   const finishLock = useRef(false);
 
-  useEffect(() => { setRun(readPracticeRun(window.sessionStorage)); setReady(true); }, []);
-  useEffect(() => { if (ready && run) writePracticeRun(window.sessionStorage, run); }, [ready, run]);
+  useEffect(() => { setRun(migratePracticeRun(window)); setReady(true); }, []);
+  // Every state change is written straight back, so closing the tab mid-question
+  // loses nothing: the run is picked up again from localStorage on return.
+  useEffect(() => { if (ready && run) writePracticeRun(getPracticeRunStorage(window), run); }, [ready, run]);
   const question = useMemo(() => run?.questions?.[run.index] || null, [run]);
   const essay = isEssay(question);
   const isCorrect = Boolean(run?.submitted && question && !essay && run.selectedAnswer === question.shuffledCorrectAnswer);
@@ -168,7 +170,7 @@ export default function AcademicPracticePage() {
   if (!ready) return <main className="academic-practice"><div className="academic-practice__loading" aria-label="Memuat sesi latihan" /></main>;
   if (!run || !question) return <main className="academic-practice academic-practice--missing"><div className="academic-practice__missing-content">
     <p className="academic-practice__eyebrow">ACADEMIC / QUESTION BANK</p><h1>Sesi latihan tidak ditemukan.</h1>
-    <p>Sesi tersimpan sementara di tab browser ini. Mulai latihan baru dari Question Bank.</p>
+    <p>Tidak ada sesi tersimpan di perangkat ini. Mulai latihan baru dari Question Bank.</p>
     <Link className="academic-practice__button academic-practice__button--primary" href="/academic">Kembali ke Question Bank</Link>
   </div></main>;
 

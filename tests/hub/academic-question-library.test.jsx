@@ -111,6 +111,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     mockDbQuestions = [...sampleQuestions];
     mockPush.mockClear();
     window.sessionStorage.clear();
+    window.localStorage.clear();
     render(<QuestionLibrary />);
     await waitFor(() => expect(screen.getByText(/3 SOAL TERSEDIA/i)).toBeInTheDocument());
 
@@ -119,7 +120,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     fireEvent.click(screen.getByRole("button", { name: /mulai latihan/i }));
 
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/academic/practice"));
-    const run = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1"));
+    const run = JSON.parse(window.localStorage.getItem("4allx:academic-practice-run:v1"));
     expect(run.questions).toHaveLength(2);
     expect(run.block).toBe("Kardiovaskular");
     expect(run.topic).toBe("Aritmia");

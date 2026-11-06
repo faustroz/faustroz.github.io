@@ -33,8 +33,11 @@ import {
 } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import {
+  clearPracticeRun,
   createPracticeRun,
-  PRACTICE_RUN_STORAGE_KEY,
+  describePracticeRun,
+  getPracticeRunStorage,
+  migratePracticeRun,
   readPracticeFilters,
   writePracticeFilters,
   writePracticeRun,
@@ -151,8 +154,8 @@ export default function QuestionLibrary() {
   const [essayDueQuestions, setEssayDueQuestions] = useState([]);
   const [loadingEssayDue, setLoadingEssayDue] = useState(false);
   const [essayDueError, setEssayDueError] = useState("");
-  const [expandedSessionId, setExpandedSessionId] = useState("");
   const [restoringBackup, setRestoringBackup] = useState(false);
+  const [savedRun, setSavedRun] = useState(null);
 
   // ---------------------------------------------------------------------------
   // CSV IMPORT STATE
@@ -202,6 +205,8 @@ export default function QuestionLibrary() {
   useEffect(() => {
     loadQuestions();
   }, [loadQuestions]);
+
+  useEffect(() => { setSavedRun(describePracticeRun(migratePracticeRun(window))); }, []);
 
   useEffect(() => {
     const savedFilters = readPracticeFilters(window.sessionStorage);
@@ -346,13 +351,13 @@ export default function QuestionLibrary() {
       setNotification(sessionError.message || "Sesi latihan tidak dapat disimpan ke riwayat.");
       return;
     }
-    if (!session || !writePracticeRun(window.sessionStorage, session)) {
+    if (!session || !writePracticeRun(getPracticeRunStorage(window), session)) {
       if (session?.sessionId) repository.abandonSession(session.sessionId).catch(() => {});
       setNotification("Sesi latihan tidak dapat disiapkan. Periksa penyimpanan browser lalu coba lagi.");
       return;
     }
     if (!writePracticeFilters(window.sessionStorage, { examType: practiceExamType, block: practiceBlock, subject: practiceSubject, topic: practiceTopic, questionType: practiceFormat })) {
-      window.sessionStorage.removeItem(PRACTICE_RUN_STORAGE_KEY);
+      clearPracticeRun(window);
       if (session.sessionId) repository.abandonSession(session.sessionId).catch(() => {});
       setNotification("Pilihan latihan tidak dapat disimpan. Periksa penyimpanan browser lalu coba lagi.");
       return;
@@ -941,24 +946,6 @@ export default function QuestionLibrary() {
               {performanceData.weakAreas.length > 0 && <p style={{ margin: "0.7rem 0 0", fontSize: "0.78rem", color: "var(--hub-muted)" }}><strong style={{ color: "var(--hub-text)" }}>Area untuk ditinjau:</strong> {performanceData.weakAreas.map((area) => `${area.category} ${area.name} (${area.accuracy}%, ${area.graded} soal)`).join(" · ")}</p>}
               {performanceData.totals.mcqGraded === 0 && <p style={{ margin: "0.7rem 0 0", fontSize: "0.78rem", color: "var(--hub-muted)" }}>Belum ada attempt MCQ yang dapat dihitung. Mulai latihan untuk membangun ringkasan berbasis data.</p>}
               {(performanceData.byBlock.length > 0 || performanceData.bySubject.length > 0) && <details style={{ marginTop: "0.65rem" }}><summary style={{ cursor: "pointer", color: "var(--hub-muted)", fontSize: "0.78rem" }}>Rincian per blok &amp; subject</summary><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 13rem), 1fr))", gap: "1rem", marginTop: "0.55rem" }}>{[["Blok", performanceData.byBlock], ["Subject", performanceData.bySubject]].map(([title, groups]) => <div key={title}><strong style={{ color: "var(--hub-text)", fontSize: "0.76rem" }}>{title}</strong>{groups.map((group) => <p key={group.name} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", margin: "0.35rem 0", color: "var(--hub-muted)", fontSize: "0.75rem" }}><span>{group.name} · {group.graded} MCQ</span><b style={{ color: "var(--hub-text)", flexShrink: 0 }}>{group.accuracy}%</b></p>)}</div>)}</div></details>}
-              <details style={{ marginTop: "0.75rem" }}>
-                <summary style={{ cursor: "pointer", color: "var(--hub-text)", fontSize: "0.82rem" }}>Riwayat sesi ({performanceData.sessions.length})</summary>
-                {performanceData.sessions.length ? <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--hub-line)" }}>{performanceData.sessions.slice(0, 12).map((session) => {
-                  const snapshot = Array.isArray(session.answers) ? session.answers : [];
-                  const correct = snapshot.filter((answer) => answer.status === "correct").length;
-                  const wrong = snapshot.filter((answer) => answer.status === "wrong").length;
-                  const unanswered = snapshot.filter((answer) => answer.status === "unanswered").length;
-                  return <article key={session.id} style={{ padding: "0.7rem 0", borderBottom: "1px solid var(--hub-line)" }}>
-                    <button type="button" onClick={() => setExpandedSessionId((id) => id === session.id ? "" : session.id)} aria-expanded={expandedSessionId === session.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem", width: "100%", textAlign: "left", border: 0, padding: 0, background: "transparent", color: "var(--hub-text)", cursor: "pointer" }}>
-                      <span style={{ minWidth: 0 }}><strong>{session.title || "Practice Session"}</strong><small style={{ display: "block", color: "var(--hub-muted)", marginTop: "0.2rem" }}>{new Date(session.started_at || session.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {session.total_questions} soal · {[session.filters?.examType, session.filters?.block, session.filters?.subject].filter(Boolean).join(" / ") || "Semua filter"}</small></span>
-                      <span style={{ flexShrink: 0, textAlign: "right", fontSize: "0.76rem", color: "var(--hub-muted)" }}>{session.status === "completed" ? (session.accuracy_percent == null ? "Essay / belum ada nilai MCQ" : `${session.accuracy_percent}% MCQ`) : session.status === "in_progress" ? "Belum selesai" : "Ditinggalkan"}<small style={{ display: "block", marginTop: "0.2rem" }}>{session.status === "completed" ? `${correct} benar · ${wrong} salah · ${unanswered} kosong` : ""}</small></span>
-                    </button>
-                    {expandedSessionId === session.id && <div style={{ marginTop: "0.65rem", paddingTop: "0.6rem", borderTop: "1px solid var(--hub-line)" }}>
-                      {snapshot.length ? snapshot.map((answer, index) => <div key={`${session.id}-${answer.questionId}-${index}`} style={{ padding: "0.5rem 0", borderBottom: "1px solid var(--hub-line)", fontSize: "0.78rem" }}><strong>{String(index + 1).padStart(2, "0")} · {answer.status === "correct" ? "Benar" : answer.status === "wrong" ? "Salah" : answer.status === "essay" ? "Essay · tinjau sendiri" : "Belum dijawab"}</strong><p style={{ margin: "0.25rem 0", whiteSpace: "pre-wrap", color: "var(--hub-text)" }}>{answer.questionText}</p>{answer.questionType === "essay" ? <p style={{ margin: 0, color: "var(--hub-muted)", whiteSpace: "pre-wrap" }}>Jawaban: {answer.essayAnswer || "—"}<br />Referensi: {answer.referenceAnswer || "—"}</p> : <p style={{ margin: 0, color: "var(--hub-muted)" }}>Jawaban Anda: {answer.selectedAnswer || "—"} · Kunci: {answer.correctAnswer || "—"}</p>}{answer.timeSpentSeconds != null && <small style={{ display: "block", marginTop: "0.2rem", color: "var(--hub-muted)" }}>Waktu soal: {answer.timeSpentSeconds} detik</small>}</div>) : <p style={{ margin: 0, color: "var(--hub-muted)", fontSize: "0.78rem" }}>Sesi lama atau belum selesai belum memiliki snapshot jawaban.</p>}
-                    </div>}
-                  </article>;
-                })}</div> : <p style={{ margin: "0.6rem 0 0", color: "var(--hub-muted)", fontSize: "0.78rem" }}>Riwayat akan muncul setelah sesi latihan diselesaikan.</p>}
-              </details>
             </>}
           </section>
           <section className="hub-essay-due-review" aria-label="Essay Spaced Repetition">
@@ -968,6 +955,21 @@ export default function QuestionLibrary() {
           {!practiceActive ? (
             /* Practice Setup Screen */
             <div style={{ maxWidth: "62rem", margin: "0 auto", display: "grid", gap: "1rem" }}>
+              {savedRun && (
+                <div className="hub-practice-resume" role="status">
+                  <div>
+                    <strong>Sesi belum selesai</strong>
+                    <p>
+                      Soal {savedRun.position} dari {savedRun.total} · {savedRun.answered} sudah dijawab
+                      {savedRun.startedAt ? ` · dimulai ${new Date(savedRun.startedAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}` : ""}
+                    </p>
+                  </div>
+                  <div className="hub-practice-resume__actions">
+                    <button type="button" className="hub-question-tool-button" onClick={() => router.push("/academic/practice")}>Lanjutkan sesi</button>
+                    <button type="button" className="hub-practice-resume__discard" onClick={() => { clearPracticeRun(window); setSavedRun(null); }}>Buang sesi ini</button>
+                  </div>
+                </div>
+              )}
               <div style={{ border: "1px solid var(--hub-line)", padding: "1.25rem", borderRadius: "8px", background: "var(--hub-panel)" }}>
                 <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
                   SETUP PRACTICE SESSION

@@ -34,16 +34,17 @@ const questions = [
 describe("standalone Academic Practice page", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
     mockBack.mockClear();
     attemptInsert.mockClear();
     attemptUpdate.mockClear();
     reviewRpc.mockClear();
-    writePracticeRun(window.sessionStorage, createPracticeRun(questions, { block: "Block 1", topic: "Topic A" }));
+    writePracticeRun(window.localStorage, createPracticeRun(questions, { block: "Block 1", topic: "Topic A" }));
   });
 
   it("supports essay answers and keeps them outside automatic MCQ scoring", async () => {
     const essay = { id: "essay-1", question_type: "essay", question_text: "Jelaskan proses bilirubin.", reference_answer: "Heme diubah menjadi bilirubin lalu dikonjugasi.", explanation: "Tinjau tahap di hepar.", options: {} };
-    writePracticeRun(window.sessionStorage, createPracticeRun([essay], { examType: "OSPE", subject: "Fisiologi", questionType: "essay" }));
+    writePracticeRun(window.localStorage, createPracticeRun([essay], { examType: "OSPE", subject: "Fisiologi", questionType: "essay" }));
     render(<AcademicPracticePage />);
     expect(await screen.findByText(essay.question_text)).toBeInTheDocument();
     expect(screen.queryByText(essay.reference_answer)).not.toBeInTheDocument();
@@ -52,25 +53,25 @@ describe("standalone Academic Practice page", () => {
     expect(await screen.findByText(essay.reference_answer)).toBeInTheDocument();
     await waitFor(() => expect(attemptInsert).toHaveBeenCalledTimes(1));
     expect(attemptInsert.mock.calls[0][0]).toMatchObject({ question_id: "essay-1", response_text: "Jawaban saya", is_correct: null, selected_answer: null });
-    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(0);
+    expect(JSON.parse(window.localStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(0);
     for (const rating of ["Again", "Hard", "Good", "Easy"]) expect(screen.getByRole("button", { name: rating })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Again" }));
     await waitFor(() => expect(reviewRpc).toHaveBeenCalledWith("rate_academic_essay_attempt_review", { p_attempt_id: "attempt-test", p_rating: "again" }));
-    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).responses[0].reviewRating).toBe("again");
+    expect(JSON.parse(window.localStorage.getItem("4allx:academic-practice-run:v1")).responses[0].reviewRating).toBe("again");
   });
 
   it("resolves question images through a private signed URL at display time", async () => {
     const imageQuestion = { ...questions[0], image_path: "owner-id/question.webp", image_url: "https://expired.example" };
-    writePracticeRun(window.sessionStorage, createPracticeRun([imageQuestion]));
+    writePracticeRun(window.localStorage, createPracticeRun([imageQuestion]));
     render(<AcademicPracticePage />);
     const image = await screen.findByRole("img", { name: "Gambar soal" });
     expect(image).toHaveAttribute("src", "signed:owner-id/question.webp");
-    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).questions[0]).not.toHaveProperty("image_url");
+    expect(JSON.parse(window.localStorage.getItem("4allx:academic-practice-run:v1")).questions[0]).not.toHaveProperty("image_url");
   });
 
   it("keeps the answer hidden until submit, saves only once, advances, and shows a separate result", async () => {
     render(<AcademicPracticePage />);
-    const initialRun = JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1"));
+    const initialRun = JSON.parse(window.localStorage.getItem("4allx:academic-practice-run:v1"));
     const firstQuestion = initialRun.questions[0];
     const secondQuestion = initialRun.questions[1];
     expect(await screen.findByText(firstQuestion.question_text)).toBeInTheDocument();
@@ -90,7 +91,7 @@ describe("standalone Academic Practice page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /NEXT QUESTION/i }));
     expect(await screen.findByText(secondQuestion.question_text)).toBeInTheDocument();
-    expect(JSON.parse(window.sessionStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(1);
+    expect(JSON.parse(window.localStorage.getItem("4allx:academic-practice-run:v1")).stats.wrong).toBe(1);
 
     const secondAnswer = secondQuestion.shuffledCorrectAnswer;
     fireEvent.click(screen.getByRole("radio", { name: new RegExp(`^${secondAnswer}`) }));
