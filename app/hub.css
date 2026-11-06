@@ -4411,3 +4411,32 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 
   .hub-shell--academic .hub-footer { padding-bottom: 1.1rem; }
 }
+
+/* ============================================================
+   QUIZ ANSWER FEEDBACK / micro-interactions for the practice labs
+   Paired with lib/hub/quiz-feedback.mjs, which plays the matching tone.
+   Both animations are suppressed under prefers-reduced-motion.
+   ============================================================ */
+@keyframes hub-quiz-correct-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--hub-accent-soft); }
+  38% { transform: scale(1.045); box-shadow: 0 0 0 .5rem rgba(100,239,173,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(100,239,173,0); }
+}
+
+@keyframes hub-quiz-wrong-shake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-4px); }
+  38% { transform: translateX(4px); }
+  58% { transform: translateX(-2.5px); }
+  78% { transform: translateX(2.5px); }
+}
+
+.is-correct-pulse { animation: hub-quiz-correct-pulse 420ms cubic-bezier(.2,.7,.2,1); }
+.is-wrong-shake { animation: hub-quiz-wrong-shake 320ms cubic-bezier(.36,.07,.19,.97); }
+
+.hub-ecg-verdict.is-correct-pulse, .hub-ausc-verdict.is-correct-pulse { color: var(--hub-accent); }
+.hub-ecg-verdict.is-wrong-shake, .hub-ausc-verdict.is-wrong-shake { color: var(--hub-danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .is-correct-pulse, .is-wrong-shake { animation: none; }
+}

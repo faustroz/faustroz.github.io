@@ -5,6 +5,7 @@ import { generateEcg, makeRng } from "@/lib/hub/ecg-rhythms.mjs";
 import { analyzeEcg, ECG_REFERENCE } from "@/lib/hub/ecg-analysis.mjs";
 import { ECG_CASES, ECG_CATEGORIES, DIFFICULTY_LABELS, getCaseById, casesByDifficulty } from "@/lib/hub/ecg-cases.mjs";
 import { computeSheetLayout, drawEcgSheet } from "@/lib/hub/ecg-paper.mjs";
+import { playQuizSound, readQuizSoundSettings, signalAnswer, unlockQuizAudio, writeQuizSoundSettings } from "@/lib/hub/quiz-feedback.mjs";
 
 const DURATION_SEC = 10;
 const MISTAKES_KEY = "hub-ecg-mistakes";
@@ -133,8 +134,23 @@ export default function EcgLab() {
   const [quizPick, setQuizPick] = useState(null);
   const [mistakes, setMistakes] = useState({});
   const [visibleSeconds, setVisibleSeconds] = useState(10);
+  const [feedback, setFeedback] = useState("");
+  const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => { setMistakes(loadMistakes()); }, []);
+  useEffect(() => { setSoundOn(readQuizSoundSettings(window.localStorage).enabled); }, []);
+
+  const toggleSound = useCallback(() => {
+    setSoundOn((current) => {
+      const next = !current;
+      writeQuizSoundSettings(window.localStorage, { ...readQuizSoundSettings(window.localStorage), enabled: next });
+      if (next) {
+        unlockQuizAudio();
+        playQuizSound("next");
+      }
+      return next;
+    });
+  }, []);
 
   const activeCase = getCaseById(caseId);
   const gen = useMemo(() => (activeCase ? generateEcg(activeCase.params, DURATION_SEC, 7) : null), [activeCase]);
@@ -178,13 +194,16 @@ export default function EcgLab() {
     setDifficulty(diff);
     setQuizSeed((value) => value + 1);
     setQuizPick(null);
+    setFeedback("");
     setMode("quiz");
   }, []);
 
   const answerQuiz = useCallback((pickedId) => {
     if (quizPick) return;
+    const isCorrect = pickedId === quizCase.id;
     setQuizPick(pickedId);
-    if (pickedId !== quizCase.id) {
+    setFeedback(signalAnswer(isCorrect));
+    if (!isCorrect) {
       setMistakes((current) => {
         const next = { ...current, [quizCase.id]: (current[quizCase.id] || 0) + 1 };
         saveMistakes(next);
@@ -194,8 +213,10 @@ export default function EcgLab() {
   }, [quizCase, quizPick]);
 
   const nextQuiz = useCallback(() => {
+    playQuizSound("next");
     setQuizSeed((value) => value + 1);
     setQuizPick(null);
+    setFeedback("");
   }, []);
 
   const clearMistakes = useCallback(() => {
@@ -263,7 +284,13 @@ export default function EcgLab() {
               <EcgCanvas gen={quizGen} settings={{ paperSpeed, gain, zoom }} panSec={panSec} cursorSec={null} onPanDrag={(value) => setPanSec(panClamped(value))} onLayout={(layout) => setVisibleSeconds(layout.totalSeconds)} />
             </section>
             <section className="hub-ecg-side" aria-label="Quiz measurements">
-              <span className="hub-ecg-tag">{quizAnswered ? (quizPick === quizCase.id ? "CORRECT" : "INCORRECT") : "MEASUREMENTS"}</span>
+              <span
+                key={`${quizSeed}-${quizPick ?? "none"}`}
+                className={"hub-ecg-tag hub-ecg-verdict" + (quizAnswered ? ` ${feedback}` : "")}
+                role={quizAnswered ? "status" : undefined}
+              >
+                {quizAnswered ? (quizPick === quizCase.id ? "CORRECT" : "INCORRECT") : "MEASUREMENTS"}
+              </span>
               {quizAnswered ? (
                 <>
                   <AnalysisPanel analysis={analyzeEcg(quizGen, quizCase)} />
@@ -282,9 +309,21 @@ export default function EcgLab() {
             </div>
             <div className="hub-ecg-quiz-options" role="group" aria-label="Diagnosis options">
               {quizOptions.map((option) => (
-                <button key={option.id} type="button" className={"hub-pocus-preset" + (quizAnswered && option.id === quizCase.id ? " is-active" : "") + (quizAnswered && option.id === quizPick && option.id !== quizCase.id ? " is-wrong" : "")} disabled={quizAnswered} onClick={() => answerQuiz(option.id)}>{option.diagnosis}</button>
+                <button
+                  key={option.id}
+                  type="button"
+                  className={"hub-pocus-preset"
+                    + (quizAnswered && option.id === quizCase.id ? " is-active" : "")
+                    + (quizAnswered && option.id === quizPick && option.id !== quizCase.id ? " is-wrong" : "")
+                    + (quizAnswered && option.id === quizPick ? ` ${feedback}` : "")}
+                  disabled={quizAnswered}
+                  onClick={() => answerQuiz(option.id)}
+                >
+                  {option.diagnosis}
+                </button>
               ))}
             </div>
+            <button type="button" className="hub-pocus-preset" aria-pressed={soundOn} onClick={toggleSound}>{soundOn ? "SOUND ON" : "SOUND OFF"}</button>
             {quizAnswered && <button type="button" className="hub-pocus-preset" onClick={nextQuiz}>NEXT →</button>}
           </section>
         </>

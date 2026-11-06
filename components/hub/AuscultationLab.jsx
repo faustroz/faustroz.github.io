@@ -9,6 +9,7 @@ import {
   getAuscultationClips,
   scoreTrainerAnswer,
 } from "@/lib/hub/auscultation-library.mjs";
+import { playQuizSound, signalAnswer } from "@/lib/hub/quiz-feedback.mjs";
 
 function ClipCard({ clip }) {
   return (
@@ -29,11 +30,14 @@ function ClipCard({ clip }) {
 function Trainer({ clips }) {
   const [round, setRound] = useState(null);
   const [result, setResult] = useState(null);
+  const [feedback, setFeedback] = useState("");
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const audioRef = useRef(null);
 
   const nextRound = useCallback(() => {
+    playQuizSound("next");
     setResult(null);
+    setFeedback("");
     setRound(buildTrainerRound(clips));
   }, [clips]);
 
@@ -41,6 +45,7 @@ function Trainer({ clips }) {
     if (!round || result) return;
     const outcome = scoreTrainerAnswer(round, choiceId);
     setResult(outcome);
+    setFeedback(signalAnswer(outcome.correct));
     setScore((current) => ({ correct: current.correct + (outcome.correct ? 1 : 0), total: current.total + 1 }));
   }, [round, result]);
 
@@ -65,14 +70,15 @@ function Trainer({ clips }) {
       <div className="hub-ausc-choices" role="group" aria-label="Answer choices">
         {round.choices.map((choice) => {
           const state = !result ? "" : choice.id === round.answerId ? " is-correct" : choice.id === result.choiceId ? " is-wrong" : "";
+          const animation = result && choice.id === result.choiceId ? ` ${feedback}` : "";
           return (
-            <button key={choice.id} type="button" className={"hub-ausc-choice" + state} onClick={() => answer(choice.id)} disabled={Boolean(result)}>{choice.label}</button>
+            <button key={choice.id} type="button" className={"hub-ausc-choice" + state + animation} onClick={() => answer(choice.id)} disabled={Boolean(result)}>{choice.label}</button>
           );
         })}
       </div>
       {result ? (
         <div className="hub-ausc-feedback" role="status">
-          <p className="hub-ausc-verdict">{result.correct ? "Correct." : `Not quite — this is ${round.clip.typeLabel}.`}</p>
+          <p className={"hub-ausc-verdict " + feedback}>{result.correct ? "Correct." : `Not quite — this is ${round.clip.typeLabel}.`}</p>
           <p className="hub-ausc-clip-detail">{round.clip.teaching}</p>
           <button type="button" className="hub-ausc-preset" onClick={nextRound}>NEXT SOUND</button>
         </div>
