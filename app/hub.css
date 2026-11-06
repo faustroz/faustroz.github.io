@@ -4393,7 +4393,21 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 }
 
 @media (max-width: 767px) {
-  .hub-shell--academic { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
-  .hub-shell--academic:not(.hub-shell--finance):not(.hub-shell--practice) .hub-content { padding-bottom: 0; }
+  /* Lay the shell out as a column and let the content take the slack, so the
+     footer is always pinned directly above the strip the dock floats in —
+     never stranded mid-screen with an empty band under it. */
+  .hub-shell--academic {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding-bottom: calc(5.4rem + env(safe-area-inset-bottom));
+  }
+
+  .hub-shell--academic:not(.hub-shell--finance):not(.hub-shell--practice) .hub-content {
+    flex: 1 0 auto;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
   .hub-shell--academic .hub-footer { padding-bottom: 1.1rem; }
 }
