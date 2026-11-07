@@ -10,13 +10,13 @@ import QuickAdd from "@/components/hub/QuickAdd";
 import NotificationCenter from "@/components/hub/NotificationCenter";
 
 const mobileSections = [
-  { id: "workspace", label: "Workspace", heading: "Workspace routes", ids: ["finance", "academic", "vault", "osint", "insights"], icon: WalletCards },
+  { id: "workspace", label: "Workspace", heading: "Workspace routes", ids: ["finance", "academic", "osint", "insights"], icon: WalletCards },
   { id: "system", label: "System", heading: "System routes", ids: ["trash", "settings"], icon: Settings },
 ];
 
 const desktopSections = [
   { label: "HOME", ids: ["home"] },
-  { label: "WORKSPACE", ids: ["finance", "academic", "vault", "osint", "insights"] },
+  { label: "WORKSPACE", ids: ["finance", "academic", "osint", "insights"] },
   { label: "SYSTEM", ids: ["trash", "settings"] },
 ];
 
@@ -33,7 +33,6 @@ const secondaryIcons = {
   finance: WalletCards,
   settings: Settings,
   insights: ChartNoAxesCombined,
-  vault: WalletCards,
   academic: ChartNoAxesCombined,
   trash: X,
   osint: Search,

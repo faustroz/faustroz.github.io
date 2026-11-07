@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, BookOpen, CircleDollarSign, Clock3, FileText, GraduationCap, LockKeyhole, Plus, RefreshCw, Search, Signal } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, BookOpen, CircleDollarSign, Clock3, GraduationCap, LockKeyhole, Plus, RefreshCw, Search, Signal } from "lucide-react";
 import { createOperationsService } from "@/lib/hub/operations.mjs";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import TradingMonitorCard from "@/components/hub/TradingMonitorCard";
@@ -50,7 +50,7 @@ function openQuickAdd(kind) {
 }
 
 function SearchLauncher() {
-  return <button className="hub-home-search" type="button" onClick={openGlobalSearch}><Search aria-hidden="true" /><span>Search finance, academic, vault…</span><kbd>Ctrl K</kbd></button>;
+  return <button className="hub-home-search" type="button" onClick={openGlobalSearch}><Search aria-hidden="true" /><span>Search finance, academic, system…</span><kbd>Ctrl K</kbd></button>;
 }
 
 function LoadingHome() {
@@ -73,7 +73,7 @@ function CurrentFocus({ focus }) {
     <p>Aktivitas dan pengingat pribadi akan muncul di sini ketika tersedia.</p>
   </section>;
 
-  const icons = { Finance: CircleDollarSign, Academic: GraduationCap, Vault: FileText, System: Signal };
+  const icons = { Finance: CircleDollarSign, Academic: GraduationCap, System: Signal };
   const Icon = icons[focus.source] || Signal;
   return <Link href={focus.href} className="hub-home-focus">
     <div className="hub-home-section-meta"><span>NOW / CURRENT FOCUS</span><span>{focus.source}</span></div>
@@ -145,7 +145,7 @@ export default function OperationsSummary() {
   useEffect(() => {
     if (!state.authenticated || !supabase) return undefined;
     let timer;
-    const tables = ["expenses", "income_entries", "subscriptions", "budgets", "financial_goals", "academic_records", "academic_mku_records", "academic_question_attempts", "vault_documents", "hub_notifications"];
+    const tables = ["expenses", "income_entries", "subscriptions", "budgets", "financial_goals", "academic_records", "academic_mku_records", "academic_question_attempts", "hub_notifications"];
     let channel = supabase.channel("home-command-center-live");
     for (const table of tables) channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
       window.clearTimeout(timer);
@@ -175,7 +175,6 @@ export default function OperationsSummary() {
         <button type="button" onClick={() => openQuickAdd("expenses")}><Plus aria-hidden="true" /> Add expense</button>
         <button type="button" onClick={() => openQuickAdd("income")}><Plus aria-hidden="true" /> Add income</button>
         <Link href="/academic"><GraduationCap aria-hidden="true" /> Record grade</Link>
-        <Link href="/vault"><FileText aria-hidden="true" /> Open Vault</Link>
       </section>
 
       <section className="hub-home-lower-grid">

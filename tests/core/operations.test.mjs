@@ -47,12 +47,11 @@ test("system alerts take priority and cross-module records appear in activity", 
     expenses: [{ id: "e1", title: "Books", category: "Study", spent_on: "2026-08-28", created_at: "2026-08-28T08:00:00Z", updated_at: "2026-08-28T08:00:00Z" }],
     financial_goals: [{ id: "g1", name: "Emergency fund", deadline: "2026-09-10", progress: "25", updated_at: "2026-08-29T08:00:00Z" }],
     academic_records: [{ id: "a1", course_name: "Anatomy", semester: "3", credits: 4, grade: "A", created_at: "2026-08-30T08:00:00Z", updated_at: "2026-08-30T08:00:00Z" }],
-    vault_documents: [{ id: "v1", file_name: "notes.pdf", created_at: "2026-08-30T10:00:00Z", updated_at: "2026-08-30T10:00:00Z" }],
     hub_notifications: [{ id: "n1", title: "Budget review", body: "Review the monthly limit.", read_at: null, created_at: "2026-08-31T08:00:00Z" }],
   });
 
   assert.deepEqual(snapshot.currentFocus, { source: "System", title: "Budget review", detail: "Review the monthly limit.", href: "/insights" });
-  assert.deepEqual(snapshot.recentActivity.map(({ source }) => source), ["System", "Vault", "Academic", "Finance", "Finance"]);
+  assert.deepEqual(snapshot.recentActivity.map(({ source }) => source), ["System", "Academic", "Finance", "Finance"]);
 });
 
 test("academic overview combines course records and reports only actual question accuracy", () => {

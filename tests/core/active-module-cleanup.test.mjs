@@ -19,15 +19,10 @@ test("active Search, Trash, and notifications exclude retired modules", async ()
   assert.match(backup, /LEGACY_COMPAT_TABLES/);
 });
 
-test("Vault content indexing stays owner-private and bounded", async () => {
-  const [migration, vault] = await Promise.all([
-    readFile(new URL("../../supabase/migrations/023-global-search-portfolio-owner.sql", import.meta.url), "utf8"),
-    readFile(new URL("../../components/hub/VaultPanel.jsx", import.meta.url), "utf8"),
-  ]);
+test("Vault search-text column stays owner-private and bounded", async () => {
+  const migration = await readFile(new URL("../../supabase/migrations/023-global-search-portfolio-owner.sql", import.meta.url), "utf8");
 
   assert.match(migration, /char_length\(search_text\) <= 32768/);
   assert.match(migration, /enable row level security/);
   assert.match(migration, /revoke all on public\.vault_documents from anon/);
-  assert.match(vault, /SEARCH_TEXT_LIMIT = 32768/);
-  assert.match(vault, /file\.type\.startsWith\("text\/"\)/);
 });

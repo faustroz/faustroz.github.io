@@ -1,4 +1,4 @@
-﻿import { CircleDollarSign, FolderArchive, GraduationCap } from "lucide-react";
+﻿import { CircleDollarSign, GraduationCap } from "lucide-react";
 import { deriveInsightsSnapshot } from "@/lib/hub/insights.mjs";
 
 const records = {
@@ -18,8 +18,6 @@ const records = {
     { credits: 3, grade: "B+", semester: "2" }, { credits: 4, grade: "A", semester: "2" },
     { credits: 2, grade: "B", semester: "3" }, { credits: 4, grade: "A", semester: "3" },
   ],
-  vault_documents: [3_842_118, 2_648_201, 1_204_889, 984_340, 610_221, 425_012, 388_411, 244_900, 182_442, 96_311, 44_019, 18_220].map((byte_size, index) => ({ id: `doc-${index}`, byte_size })),
-  vault_folders: [{ id: "f1" }, { id: "f2" }, { id: "f3" }, { id: "f4" }],
 };
 
 function formatIDR(value) {
@@ -28,24 +26,18 @@ function formatIDR(value) {
 
 const compactIDR = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", notation: "compact", maximumFractionDigits: 1 });
 
-function formatBytes(bytes) {
-  if (!bytes) return "0 KB";
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.ceil(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function InsightCard({ icon: Icon, eyebrow, title, children }) {
   return <article className="hub-insight-card"><Icon aria-hidden="true" /><span>{eyebrow}</span><h2>{title}</h2>{children}</article>;
 }
 
 export default function InsightsPreview() {
   const snapshot = deriveInsightsSnapshot(records, new Date(2026, 10, 3));
-  const { finance, academic, vault } = snapshot;
+  const { finance, academic } = snapshot;
   const trendMaximum = Math.max(...finance.trend.map(({ total }) => total), 1);
   return (
     <main className="hub-private-page">
       <header className="hub-private-heading hub-reveal">
-        <span>06 / OPERATION INSIGHTS</span>
+        <span>OPERATION INSIGHTS</span>
         <h1>Reality, not dashboard theater</h1>
         <p>Small analytics derived only from your authenticated Finance records.</p>
       </header>
@@ -55,9 +47,6 @@ export default function InsightsPreview() {
         </InsightCard>
         <InsightCard icon={GraduationCap} eyebrow="ACADEMIC / CUMULATIVE" title={academic.ipk === null ? "No academic data." : `IPK ${academic.ipk.toFixed(2)}`}>
           {!academic.hasData ? <p>Add a grade record to calculate credits and IPK.</p> : <dl><div><dt>Credits / SKS</dt><dd>{academic.credits}</dd></div><div><dt>Semesters</dt><dd>{academic.semesterCount}</dd></div><div><dt>Grade records</dt><dd>{academic.recordCount}</dd></div></dl>}
-        </InsightCard>
-        <InsightCard icon={FolderArchive} eyebrow="VAULT / PRIVATE STORAGE" title={vault.hasData ? `${vault.documentCount} files` : "Vault is empty."}>
-          {!vault.hasData ? <p>Upload a file or create a folder to start organizing private documents.</p> : <dl><div><dt>Storage used</dt><dd>{formatBytes(vault.byteSize)}</dd></div><div><dt>Folders</dt><dd>{vault.folderCount}</dd></div><div><dt>Documents</dt><dd>{vault.documentCount}</dd></div></dl>}
         </InsightCard>
       </div>
     </main>

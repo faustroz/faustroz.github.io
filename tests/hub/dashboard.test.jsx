@@ -10,7 +10,7 @@ describe("Personal Hub dashboard", () => {
   it("renders the dynamic command center and keeps the monitoring entry available", async () => {
     render(<HubHome />);
 
-    expect(screen.getByRole("button", { name: /search finance, academic, vault/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /search finance, academic, system/i })).toBeVisible();
     await waitFor(() => expect(screen.getByRole("heading", { name: /hubungkan sesi pribadi/i })).toBeVisible());
     expect(screen.queryByRole("link", { name: /open study/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /open projects/i })).not.toBeInTheDocument();

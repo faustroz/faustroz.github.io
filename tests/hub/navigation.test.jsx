@@ -21,7 +21,6 @@ describe("Hub navigation contract", () => {
       ["finance", "/finance"],
       ["settings", "/settings"],
       ["insights", "/insights"],
-      ["vault", "/vault"],
       ["academic", "/academic"],
       ["trash", "/trash"],
       ["osint", "/osint"],
@@ -103,7 +102,7 @@ describe("HubNavigation", () => {
     const desktop = screen.getByRole("navigation", { name: /primary navigation/i });
 
     expect(within(desktop).getByLabelText("HOME")).toHaveTextContent(/Home/);
-    expect(within(desktop).getByLabelText("WORKSPACE")).toHaveTextContent(/Finance.*Academic.*Vault.*OSINT.*Insights/);
+    expect(within(desktop).getByLabelText("WORKSPACE")).toHaveTextContent(/Finance.*Academic.*OSINT.*Insights/);
     expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/Trash.*Settings/);
   });
 
@@ -112,16 +111,16 @@ describe("HubNavigation", () => {
     render(<HubNavigation />);
     const desktop = screen.getByRole("navigation", { name: /primary navigation/i });
 
-    expect(within(desktop).getByLabelText("WORKSPACE")).toHaveTextContent(/01.*Finance.*02.*Academic.*03.*Vault.*04.*OSINT.*05.*Insights/);
-    expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/06.*Trash.*07.*Settings/);
+    expect(within(desktop).getByLabelText("WORKSPACE")).toHaveTextContent(/01.*Finance.*02.*Academic.*03.*OSINT.*04.*Insights/);
+    expect(within(desktop).getByLabelText("SYSTEM")).toHaveTextContent(/05.*Trash.*06.*Settings/);
 
     const mobile = screen.getByRole("navigation", { name: /mobile navigation/i });
     await user.click(within(mobile).getByRole("button", { name: /open workspace navigation/i }));
-    expect(screen.getByRole("dialog", { name: /workspace navigation/i })).toHaveTextContent(/01.*Finance.*02.*Academic.*03.*Vault.*04.*OSINT.*05.*Insights/);
+    expect(screen.getByRole("dialog", { name: /workspace navigation/i })).toHaveTextContent(/01.*Finance.*02.*Academic.*03.*OSINT.*04.*Insights/);
 
     await user.keyboard("{Escape}");
     await user.click(within(mobile).getByRole("button", { name: /open system navigation/i }));
-    expect(screen.getByRole("dialog", { name: /system navigation/i })).toHaveTextContent(/06.*Trash.*07.*Settings/);
+    expect(screen.getByRole("dialog", { name: /system navigation/i })).toHaveTextContent(/05.*Trash.*06.*Settings/);
   });
 
   it("opens Workspace, highlights its current route, and restores trigger focus", async () => {

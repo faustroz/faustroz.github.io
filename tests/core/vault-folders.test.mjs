@@ -10,11 +10,8 @@ test("Vault folders are persistent and owner-scoped", async () => {
   assert.match(sql, /auth\.uid\(\) = user_id/);
 });
 
-test("Vault Drive uses owner-scoped folder IDs for nested navigation and files", async () => {
-  const [migration, panel] = await Promise.all([
-    readFile(new URL("../../supabase/migrations/022-vault-drive-structure.sql", import.meta.url), "utf8"),
-    readFile(new URL("../../components/hub/VaultPanel.jsx", import.meta.url), "utf8"),
-  ]);
+test("Vault schema keeps owner-scoped folder IDs for nested navigation and files", async () => {
+  const migration = await readFile(new URL("../../supabase/migrations/022-vault-drive-structure.sql", import.meta.url), "utf8");
   assert.match(migration, /add column if not exists parent_id uuid/);
   assert.match(migration, /add column if not exists folder_id uuid/);
   assert.match(migration, /on delete restrict/);
@@ -23,13 +20,4 @@ test("Vault Drive uses owner-scoped folder IDs for nested navigation and files",
   assert.match(migration, /Parent folder must belong to the same owner/);
   assert.match(migration, /Document folder must belong to the same owner/);
   assert.match(migration, /Folder hierarchy cannot contain a cycle/);
-  assert.match(panel, /select\("id,name,parent_id,created_at"\)/);
-  assert.match(panel, /folder_id: destination\.folderId/);
-  assert.match(panel, /multiple aria-label="Upload multiple files"/);
-  assert.match(panel, /multiple webkitdirectory/);
-  assert.match(panel, /ensureFolderPath\(folderSegments\)/);
-  assert.match(panel, /folder_id: folderId \|\| null/);
-  assert.match(panel, /hub-vault-breadcrumb/);
-  assert.match(panel, /hub-vault-browser--\$\{view\}/);
-  assert.match(panel, /deleted_at: new Date\(\)\.toISOString\(\)/);
 });
