@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CircleAlert, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, RotateCcw, ZoomIn } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createPracticeRun, getPracticeRunStorage, migratePracticeRun, writePracticeRun } from "@/lib/hub/academic-practice.mjs";
 import { createQuestionRepository, VALID_OPTIONS } from "@/lib/hub/question-bank.mjs";
@@ -171,62 +171,74 @@ export default function AcademicPracticePage() {
   if (!run || !question) return <main className="academic-practice academic-practice--missing"><div className="academic-practice__missing-content">
     <p className="academic-practice__eyebrow">ACADEMIC / QUESTION BANK</p><h1>Sesi latihan tidak ditemukan.</h1>
     <p>Tidak ada sesi tersimpan di perangkat ini. Mulai latihan baru dari Question Bank.</p>
-    <Link className="academic-practice__button academic-practice__button--primary" href="/academic">Kembali ke Question Bank</Link>
+    <Link className="academic-practice__button academic-practice__button--primary" href="/academic"><ArrowLeft size={16} /> Kembali ke Question Bank</Link>
   </div></main>;
+
+  const exitButton = <div className="academic-practice__topbar-start"><button className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><span className="academic-practice__topbar-label" aria-hidden="true">Question Bank</span></div>;
 
   if (run.finished) {
     const answeredMcq = run.stats.correct + run.stats.wrong;
     const unanswered = run.responses.filter((item) => !item.submitted).length;
+    const accuracy = answeredMcq ? percent(run.stats.correct, answeredMcq) : 0;
     return <main className="academic-practice academic-practice--result">
-      <header className="academic-practice__topbar"><button className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><div><p className="academic-practice__eyebrow">PRACTICE MODE</p><span className="academic-practice__topbar-title">Hasil sesi</span></div><span className="academic-practice__topbar-spacer" /></header>
+      <header className="academic-practice__topbar">{exitButton}<div className="academic-practice__topbar-center"><p className="academic-practice__eyebrow">PRACTICE MODE</p><span className="academic-practice__topbar-title">Hasil sesi</span></div><span className="academic-practice__topbar-spacer" /></header>
       <section className="academic-practice__result-content">
         <p className="academic-practice__eyebrow">SESI SELESAI</p>
         <p className="academic-practice__result-summary">{run.questions.length} soal dalam sesi</p>
-        <h1>{answeredMcq ? percent(run.stats.correct, answeredMcq) : "—"}{answeredMcq > 0 && <small>%</small>}</h1>
-        <p className="academic-practice__result-summary">{run.stats.correct} MCQ benar <span>·</span> {run.stats.wrong} salah <span>·</span> {unanswered} belum dijawab</p>
-        <p className="academic-practice__result-summary">{run.stats.essaysToReview} essay untuk ditinjau sendiri</p>
+        <h1>{answeredMcq ? accuracy : "—"}{answeredMcq > 0 && <small>%</small>}</h1>
+        <p className="academic-practice__result-caption">{answeredMcq ? `Akurasi dari ${answeredMcq} MCQ yang dijawab.` : "Belum ada MCQ yang dijawab."}</p>
+        {answeredMcq > 0 && <div className="academic-practice__result-bar" role="progressbar" aria-valuenow={accuracy} aria-valuemin="0" aria-valuemax="100"><span style={{ width: accuracy + "%" }} /></div>}
+        <p className="academic-practice__result-stats">
+          <span className="is-correct"><strong>{run.stats.correct}</strong> MCQ benar</span>
+          <span className="is-wrong"><strong>{run.stats.wrong}</strong> salah</span>
+          <span><strong>{unanswered}</strong> belum dijawab</span>
+          <span><strong>{run.stats.essaysToReview}</strong> essay untuk ditinjau sendiri</span>
+        </p>
         {run.historyError && <div className="academic-practice__feedback is-wrong" role="alert"><p>Riwayat sesi belum tersimpan.</p><button type="button" className="academic-practice__text-button" onClick={async () => setRun(await persistCompletion(run))}>Coba simpan riwayat lagi</button></div>}
-        {run.historySaved && <p className="academic-practice__save-state" role="status">Riwayat sesi tersimpan</p>}
-        {answeredMcq > 0 && <div className="academic-practice__result-bar" role="progressbar" aria-valuenow={percent(run.stats.correct, answeredMcq)} aria-valuemin="0" aria-valuemax="100"><span style={{ width: percent(run.stats.correct, answeredMcq) + "%" }} /></div>}
-        <details className="academic-practice__review">
-          <summary>Review {run.questions.length} soal</summary>
-          <div>{run.questions.map((item, index) => {
-            const itemResponse = run.responses[index];
-            const itemIsEssay = isEssay(item);
-            return <article key={item.id}>
-              <p><strong>{String(index + 1).padStart(2, "0")} · {item.exam_type || "MCQ"} · {itemIsEssay ? "ESSAY" : "MCQ"}</strong></p>
-              <p>{item.question_text}</p>
-              {itemIsEssay ? <><p><small>Jawaban Anda:</small><br />{itemResponse?.essayAnswer || "Belum dijawab"}</p><p><small>Reference answer:</small><br />{item.reference_answer}</p></> : <p>{itemResponse?.submitted ? (itemResponse.isCorrect ? "Benar" : "Salah") + " · Jawaban Anda: " + (itemResponse.selectedAnswer || "—") + " · Kunci: " + item.shuffledCorrectAnswer : "Belum dijawab"}</p>}
-            </article>;
-          })}</div>
-        </details>
+        {run.historySaved && <p className="academic-practice__save-state is-saved" role="status">Riwayat sesi tersimpan</p>}
         <div className="academic-practice__result-actions">
           {run.stats.incorrectQuestions.length > 0 && <button className="academic-practice__button academic-practice__button--primary" onClick={() => startNewRun(run.stats.incorrectQuestions)}><RotateCcw size={16} /> Ulangi soal salah <span>{run.stats.incorrectQuestions.length}</span></button>}
           <button className="academic-practice__button" onClick={() => startNewRun(run.questions)}><RotateCcw size={16} /> Latihan lagi</button>
           <button className="academic-practice__text-button" onClick={() => router.back()}><ArrowLeft size={15} /> Kembali ke Question Bank</button>
         </div>
+        <details className="academic-practice__review">
+          <summary>Review {run.questions.length} soal <ChevronDown size={18} aria-hidden="true" /></summary>
+          <div>{run.questions.map((item, index) => {
+            const itemResponse = run.responses[index];
+            const itemIsEssay = isEssay(item);
+            const state = !itemResponse?.submitted ? "is-pending" : itemIsEssay ? "is-essay" : itemResponse.isCorrect ? "is-correct" : "is-wrong";
+            return <article key={item.id} className={state}>
+              <p><strong>{String(index + 1).padStart(2, "0")} · {item.exam_type || "MCQ"} · {itemIsEssay ? "ESSAY" : "MCQ"}</strong></p>
+              <p>{item.question_text}</p>
+              {itemIsEssay ? <><p><small>Jawaban Anda:</small><br />{itemResponse?.essayAnswer || "Belum dijawab"}</p><p><small>Reference answer:</small><br />{item.reference_answer}</p></> : <p className="academic-practice__review-verdict">{itemResponse?.submitted ? (itemResponse.isCorrect ? "Benar" : "Salah") + " · Jawaban Anda: " + (itemResponse.selectedAnswer || "—") + " · Kunci: " + item.shuffledCorrectAnswer : "Belum dijawab"}</p>}
+            </article>;
+          })}</div>
+        </details>
       </section>
     </main>;
   }
 
   const progress = Math.round(((run.index + (run.submitted ? 1 : 0)) / run.questions.length) * 100);
   const metadata = [question.exam_type, question.block || run.block, question.subject, question.topic || run.topic, question.subtopic].filter(Boolean);
+  const saveState = savingAttempt ? "Menyimpan jawaban…" : attemptMessage;
 
   return <main className="academic-practice">
-    <header className="academic-practice__topbar"><button className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><div><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : run.reviewKind === "due" ? "ESSAY SPACED REVIEW" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><div className="academic-practice__score"><span className="is-correct">{run.stats.correct} benar</span><span className="is-wrong">{run.stats.wrong} salah</span></div></header>
+    <header className="academic-practice__topbar">{exitButton}<div className="academic-practice__topbar-center"><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : run.reviewKind === "due" ? "ESSAY SPACED REVIEW" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><div className="academic-practice__score"><span className="is-correct">{run.stats.correct} benar</span><span className="is-wrong">{run.stats.wrong} salah</span></div></header>
     <div className="academic-practice__progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100"><span style={{ width: progress + "%" }} /></div>
     <section className="academic-practice__content" key={question.id}>
       <div className="academic-practice__metadata">{metadata.map((item) => <span key={item}>{item}</span>)}<span>{essay ? "ESSAY" : "MCQ"}</span></div>
       <h1 className="academic-practice__question">{question.question_text}</h1>
       {/* eslint-disable-next-line @next/next/no-img-element -- Supabase signed URLs are private and created client-side per session. */}
-      {imageUrl && <button className="academic-practice__image-button" type="button" onClick={() => setZoomImage(true)} aria-label="Perbesar gambar soal"><img className="academic-practice__question-image" src={imageUrl} alt="Gambar soal" /></button>}
+      {imageUrl && <button className="academic-practice__image-button" type="button" onClick={() => setZoomImage(true)} aria-label="Perbesar gambar soal"><img className="academic-practice__question-image" src={imageUrl} alt="Gambar soal" /><span className="academic-practice__image-hint" aria-hidden="true"><ZoomIn size={14} /> Perbesar</span></button>}
       {essay ? <div className="academic-practice__essay">
-        <label htmlFor="practice-essay-answer">Jawaban Anda</label>
-        <textarea id="practice-essay-answer" rows={8} value={run.essayAnswer} disabled={run.submitted} onChange={(event) => updateAnswer("essayAnswer", event.target.value)} placeholder="Tuliskan jawaban singkat atau uraian..." />
-        {run.submitted && <div className="academic-practice__feedback"><p className="academic-practice__feedback-title">Essay dikirim · tinjau jawaban dan referensi</p><p><strong>Jawaban Anda</strong><br />{response?.essayAnswer}</p><p><strong>Reference answer</strong><br />{question.reference_answer}</p>{question.explanation && <p className="academic-practice__explanation">{question.explanation}</p>}
-          <div className="academic-practice__essay-review"><span>Seberapa baik Anda mengingat jawaban?</span><div role="group" aria-label="Rating spaced repetition essay">{essayReviewRatings.map(([value, label]) => <button type="button" key={value} aria-pressed={response?.reviewRating === value} className={response?.reviewRating === value ? "is-selected" : ""} disabled={!response?.attemptId || savingAttempt || savingEssayRating || Boolean(response?.reviewRating)} onClick={() => rateEssay(value)}>{label}</button>)}</div>{savingEssayRating && <small role="status">Menyimpan rating…</small>}{response?.reviewRating && <small>Rating tersimpan: {response.reviewRating.toUpperCase()}</small>}{attemptMessage && <small className="academic-practice__save-state" aria-live="polite">{savingAttempt ? "Menyimpan jawaban…" : attemptMessage}</small>}</div>
+        {!run.submitted && <><label htmlFor="practice-essay-answer">Jawaban Anda</label>
+        <textarea id="practice-essay-answer" rows={8} value={run.essayAnswer} onChange={(event) => updateAnswer("essayAnswer", event.target.value)} placeholder="Tuliskan jawaban singkat atau uraian..." /></>}
+        {run.submitted && <div className="academic-practice__feedback academic-practice__feedback--essay"><p className="academic-practice__feedback-title">Essay dikirim · tinjau jawaban dan referensi</p>
+          <div className="academic-practice__essay-compare"><div><span>Jawaban Anda</span><p>{response?.essayAnswer}</p></div><div className="is-reference"><span>Reference answer</span><p>{question.reference_answer}</p></div></div>
+          {question.explanation && <div className="academic-practice__explanation-block"><span>Pembahasan</span><p className="academic-practice__explanation">{question.explanation}</p></div>}
+          <div className="academic-practice__essay-review"><div className="academic-practice__essay-review-head"><span>Seberapa baik Anda mengingat jawaban?</span>{savingEssayRating && <small role="status">Menyimpan rating…</small>}{response?.reviewRating && <small>Rating tersimpan: {response.reviewRating.toUpperCase()}</small>}</div><div role="group" aria-label="Rating spaced repetition essay">{essayReviewRatings.map(([value, label]) => <button type="button" key={value} aria-pressed={response?.reviewRating === value} className={response?.reviewRating === value ? "is-selected" : ""} disabled={!response?.attemptId || savingAttempt || savingEssayRating || Boolean(response?.reviewRating)} onClick={() => rateEssay(value)}>{label}</button>)}</div></div>
         </div>}
-      </div> : <div className="academic-practice__options" role="radiogroup" aria-label="Pilihan jawaban">
+      </div> : <div className={"academic-practice__options" + (run.submitted ? " is-submitted" : "")} role="radiogroup" aria-label="Pilihan jawaban">
         {VALID_OPTIONS.map((option) => {
           const selected = run.selectedAnswer === option;
           const correctOption = option === question.shuffledCorrectAnswer;
@@ -235,12 +247,12 @@ export default function AcademicPracticePage() {
           if (selected && !run.submitted) classes.push("is-selected");
           if (run.submitted && correctOption) classes.push("is-correct");
           if (wrongSelected) classes.push("is-wrong");
-          return <button key={option} type="button" role="radio" aria-checked={selected} disabled={run.submitted} className={classes.join(" ")} onClick={() => updateAnswer("selectedAnswer", option)}><span className="academic-practice__option-letter">{option}</span><span className="academic-practice__option-text">{question.shuffledOptions[option]}</span>{run.submitted && correctOption && <Check size={17} aria-label="Jawaban benar" />}{wrongSelected && <CircleAlert size={17} aria-label="Jawaban Anda salah" />}</button>;
+          return <button key={option} type="button" role="radio" aria-checked={selected} disabled={run.submitted} className={classes.join(" ")} onClick={() => updateAnswer("selectedAnswer", option)}><span className="academic-practice__option-letter">{option}</span><span className="academic-practice__option-text">{question.shuffledOptions[option]}</span>{run.submitted && correctOption && <span className="academic-practice__option-tag"><Check size={17} aria-label="Jawaban benar" /><span aria-hidden="true">Kunci</span></span>}{wrongSelected && <span className="academic-practice__option-tag"><CircleAlert size={17} aria-label="Jawaban Anda salah" /><span aria-hidden="true">Jawaban Anda</span></span>}</button>;
         })}
-        {run.submitted && <div className={"academic-practice__feedback " + (isCorrect ? "is-correct" : "is-wrong")}><p className="academic-practice__feedback-title">{isCorrect ? "Jawaban benar" : "Belum tepat"}</p>{!isCorrect && <p><span>Jawaban yang benar:</span> <strong>{question.shuffledCorrectAnswer}. {question.shuffledOptions[question.shuffledCorrectAnswer]}</strong></p>}{question.explanation && <p className="academic-practice__explanation">{question.explanation}</p>}</div>}
+        {run.submitted && <div className={"academic-practice__feedback " + (isCorrect ? "is-correct" : "is-wrong")}><p className="academic-practice__feedback-title">{isCorrect ? "Jawaban benar" : "Belum tepat"}</p>{!isCorrect && <p className="academic-practice__feedback-answer"><span>Jawaban yang benar:</span> <strong>{question.shuffledCorrectAnswer}. {question.shuffledOptions[question.shuffledCorrectAnswer]}</strong></p>}{question.explanation && <div className="academic-practice__explanation-block"><span>Pembahasan</span><p className="academic-practice__explanation">{question.explanation}</p></div>}</div>}
       </div>}
-      <div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Periksa jawaban"} <ArrowRight size={16} /></button></> : <button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button>}</div>
     </section>
+    <footer className="academic-practice__actionbar"><div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Periksa jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button></>}</div></footer>
     {zoomImage && imageUrl && <div className="academic-practice__image-overlay" role="dialog" aria-modal="true" aria-label="Gambar soal" onClick={() => setZoomImage(false)}>
       <button type="button" onClick={() => setZoomImage(false)} aria-label="Tutup gambar">×</button>
       {/* eslint-disable-next-line @next/next/no-img-element -- private question image is served from a user-scoped signed URL. */}
