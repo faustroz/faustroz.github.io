@@ -1,62 +1,67 @@
-import { ArrowDown, Github, Instagram, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowDown, ArrowUpRight, Github, Instagram, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+const SOCIALS = [
+  { label: "GitHub", href: "https://github.com/faustroz", Icon: Github },
+  { label: "Instagram", href: "https://instagram.com/ferdydiatmikaa", Icon: Instagram },
+  { label: "Email", href: "mailto:ferdydiatmika171@gmail.com", Icon: Mail },
+];
+
 export default function Hero() {
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-      <div className="max-w-4xl mx-auto text-center">
-        <div className="mb-8">
-          <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-4xl font-bold text-gray-700 shadow-lg overflow-hidden">
-            <Image
-              src="/ferdy.webp"
-              alt="Profile"
-              width={128}
-              height={128}
-              priority
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight">
-            Ferdy Diatmika
-          </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 font-medium">
+    <section className="lp-hero">
+      <div className="lp-shell lp-hero__grid">
+        <div>
+          <p className="lp-eyebrow">
+            <span className="lp-dot" aria-hidden="true" />
             Web Developer &amp; Digital Solutions Specialist
           </p>
-          <p className="text-sm sm:text-base md:text-lg text-gray-500 max-w-2xl mx-auto mb-8 leading-relaxed">
+
+          <h1 className="lp-hero__title">Ferdy Diatmika</h1>
+
+          <p className="lp-hero__lead">
             Creating modern, responsive, and user-friendly web applications that
             help businesses grow and succeed in the digital world.
           </p>
+
+          <div className="lp-actions">
+            <Link href="#about" className="lp-btn lp-btn--primary">
+              Learn More
+            </Link>
+            <Link
+              href="mailto:ferdydiatmika171@gmail.com"
+              className="lp-btn lp-btn--ghost"
+            >
+              Get In Touch
+              <ArrowUpRight className="lp-btn__icon" aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="lp-socials">
+            <p className="lp-socials__label">Elsewhere</p>
+            {SOCIALS.map(({ label, href, Icon }) => (
+              <Link key={label} href={href} className="lp-social">
+                <Icon aria-hidden="true" />
+                <span className="sr-only">{label}</span>
+              </Link>
+            ))}
+          </div>
+
+          <Link href="#portfolio" className="lp-scrollcue">
+            Selected work
+            <ArrowDown aria-hidden="true" />
+          </Link>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 w-full max-w-md mx-auto px-4">
-          <Button asChild size="lg" className="w-full sm:w-auto bg-gray-900 hover:bg-gray-850">
-            <Link href="#about" className="w-full justify-center">Learn More</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-            <Link href="mailto:ferdydiatmika171@gmail.com" className="w-full justify-center">Get In Touch</Link>
-          </Button>
-        </div>
-
-        <div className="flex justify-center space-x-6 mb-12">
-          <Link href="https://github.com/faustroz" className="text-gray-600 hover:text-gray-900 transition-colors">
-            <Github className="w-6 h-6" />
-            <span className="sr-only">GitHub</span>
-          </Link>
-          <Link href="https://instagram.com/ferdydiatmikaa" className="text-gray-600 hover:text-gray-900 transition-colors">
-            <Instagram className="w-6 h-6" />
-            <span className="sr-only">Instagram</span>
-          </Link>
-          <Link href="mailto:ferdydiatmika171@gmail.com" className="text-gray-600 hover:text-gray-900 transition-colors">
-            <Mail className="w-6 h-6" />
-            <span className="sr-only">Email</span>
-          </Link>
-        </div>
-
-        <div className="animate-bounce">
-          <ArrowDown className="w-6 h-6 mx-auto text-gray-400" />
+        <div className="lp-portrait">
+          <Image
+            src="/ferdy.webp"
+            alt="Portrait of Ferdy Diatmika"
+            fill
+            sizes="(min-width: 900px) 340px, 148px"
+            priority
+          />
         </div>
       </div>
     </section>
