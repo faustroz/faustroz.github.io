@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Info } from "lucide-react";
 import CrudPanel from "@/components/hub/CrudPanel";
 import QuestionLibrary from "@/components/hub/QuestionLibrary";
 import { calculateAcademicTarget, calculateOspeScore, GRADE_POINTS } from "@/lib/hub/academic.mjs";
@@ -77,14 +78,17 @@ export default function AcademicPanel() {
 
     <section id="academic-panel-overview" className="hub-academic-page-panel" role="tabpanel" aria-labelledby="academic-tab-overview" hidden={activePage !== "overview"}>
       <section className="hub-academic-overview">
-        <article className="hub-academic-gpa"><span>IPK / CUMULATIVE</span><strong>{credits ? ipk.toFixed(2) : "—"}</strong><small>{credits ? "Blok kedokteran + MKU" : "Belum ada nilai tercatat"}</small></article>
-        <div className="hub-academic-overview-stats">
-          <article><span>TOTAL SKS</span><strong>{credits}</strong></article>
-          <article><span>SEMESTER</span><strong>{bySemester.length}</strong></article>
-          <article><span>IP TERBARU{latestSemester ? ` · ${latestSemester.semester}` : ""}</span><strong>{latestSemester ? latestSemester.ip.toFixed(2) : "—"}</strong></article>
-        </div>
+        <article className="hub-academic-gpa">
+          <header><span>IPK / CUMULATIVE</span><span>BLOK + MKU</span></header>
+          <div><strong className={credits ? undefined : "is-empty"}>{credits ? ipk.toFixed(2) : "—"}</strong><small>{credits ? "Blok kedokteran + MKU" : "Belum ada nilai tercatat"}</small></div>
+        </article>
+        <dl className="hub-academic-overview-stats">
+          <div><dt>TOTAL SKS</dt><dd>{credits}</dd></div>
+          <div><dt>SEMESTER</dt><dd>{bySemester.length}</dd></div>
+          <div><dt>IP TERBARU{latestSemester ? ` · ${latestSemester.semester}` : ""}</dt><dd>{latestSemester ? latestSemester.ip.toFixed(2) : "—"}</dd></div>
+        </dl>
       </section>
-      <p className="hub-academic-shared-note">IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p>
+      <p className="hub-academic-shared-note"><Info aria-hidden="true" />IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p>
     </section>
 
     <section id="academic-panel-grades" className="hub-academic-page-panel hub-academic-grades" role="tabpanel" aria-labelledby="academic-tab-grades" hidden={activePage !== "grades"}>

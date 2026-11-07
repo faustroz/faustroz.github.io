@@ -4454,3 +4454,139 @@ input[type="color"] { width:100%; min-height:2.75rem; padding:.28rem; cursor:poi
 .hub-practice-resume__actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .hub-practice-resume__discard { padding: .5rem .7rem; border: 1px solid var(--hub-line); border-radius: 6px; background: transparent; color: var(--hub-muted); font-size: .76rem; cursor: pointer; }
 .hub-practice-resume__discard:hover { border-color: var(--hub-line-bright); color: var(--hub-text); }
+
+/* ============================================================
+   ACADEMIC / Quiet Console redesign
+   One working surface per tab: a display-weight page heading,
+   clinical labs as tiles, a segmented tab bar, and 14px panels
+   that separate by tone and hairline rather than shadow.
+   Scoped to the Academic page so other Hub modules keep their
+   current treatment; the doubled class outranks the shell rules.
+   ============================================================ */
+.hub-shell .hub-private-page.hub-academic-page {
+  --ac-gap: clamp(1rem, 2vw, 1.25rem);
+  --ac-radius: 14px;
+  --ac-mono: "IBM Plex Mono", var(--font-geist-mono), monospace;
+  --ac-body: "Manrope", var(--font-geist-sans), sans-serif;
+}
+
+/* Heading */
+.hub-shell .hub-private-page.hub-academic-page .hub-private-heading { max-width: 60rem; margin: 0 0 clamp(1.5rem, 3vw, 2rem); }
+.hub-shell .hub-private-page.hub-academic-page .hub-private-heading > span { display: block; color: var(--hub-muted); font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-private-heading h1 { max-width: 14ch; margin: .9rem 0; color: var(--hub-text); font: 500 clamp(2.5rem, 4vw + 1rem, 3.75rem)/.98 var(--hub-display); letter-spacing: -.045em; text-wrap: balance; }
+.hub-shell .hub-private-page.hub-academic-page .hub-private-heading p { max-width: 56ch; margin: 0; color: var(--hub-muted); font-size: .95rem; line-height: 1.55; }
+
+/* Clinical labs */
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-labs { display: grid; gap: .75rem; margin: 0 0 clamp(1.5rem, 3vw, 2rem); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-labs > span { color: var(--hub-muted); font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-labs > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: .75rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab { display: flex; align-items: center; gap: .9rem; min-height: 4rem; padding: 0 1.1rem; border: 1px solid var(--hub-line); border-radius: 12px; background: var(--hub-panel); color: var(--hub-text); text-decoration: none; transition: border-color .18s ease, background-color .18s ease; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab:hover { border-color: var(--hub-line-bright); background: var(--hub-panel-raised); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab i { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border: 1px solid var(--hub-line-bright); border-radius: 8px; color: var(--hub-accent); font-style: normal; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab i svg { width: 1.1rem; height: 1.1rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab strong { flex: 1; min-width: 0; font: 600 .95rem/1.2 var(--ac-body); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab em { display: inline-flex; align-items: center; gap: .35rem; color: var(--hub-muted); font: 500 .8rem/1 var(--ac-body); font-style: normal; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab em svg { width: .9rem; height: .9rem; transition: transform .18s ease; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab:hover em { color: var(--hub-text); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-lab:hover em svg { transform: translate(2px, -2px); }
+
+/* Tab bar */
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-nav { display: flex; flex-wrap: nowrap; gap: .25rem; margin: 0 0 clamp(1.25rem, 2.5vw, 1.75rem); padding: .3rem; border: 1px solid var(--hub-line); border-radius: 12px; background: var(--hub-panel); overflow-x: auto; scrollbar-width: none; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-nav::-webkit-scrollbar { display: none; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-nav button { flex: 0 0 auto; min-height: 2.75rem; padding: 0 1.1rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--hub-muted); font: 500 .875rem/1 var(--ac-body); letter-spacing: 0; text-transform: none; white-space: nowrap; cursor: pointer; transition: color .18s ease, background-color .18s ease; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-nav button:hover { color: var(--hub-text); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-nav button.is-active { border-color: var(--hub-line-bright); background: var(--hub-panel-raised); color: var(--hub-text); font-weight: 600; }
+
+/* Overview */
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-overview { display: flex; flex-wrap: wrap; gap: var(--ac-gap); margin: 0; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa { flex: 2 1 28rem; min-width: 0; min-height: 16rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.75rem; padding: clamp(1.4rem, 3vw, 2.25rem); border: 1px solid var(--hub-line-bright); border-radius: var(--ac-radius); background: #141414; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa header { display: flex; justify-content: space-between; gap: 1rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa header span { color: var(--hub-muted); font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa strong { display: block; margin: 0; color: var(--hub-text); font: 400 clamp(4.75rem, 11vw, 9.5rem)/.86 var(--hub-display); letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa strong.is-empty { color: var(--hub-muted); font-size: clamp(3rem, 6vw, 4.5rem); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa small { display: block; margin-top: .9rem; color: var(--hub-muted); font-size: .875rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-overview-stats { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; justify-content: center; margin: 0; padding: .5rem clamp(1.25rem, 2.5vw, 1.75rem); border: 1px solid var(--hub-line); border-radius: var(--ac-radius); background: var(--hub-panel); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-overview-stats > div { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1.35rem 0; border-top: 1px solid var(--hub-line); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-overview-stats > div:first-child { border-top: 0; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-overview-stats dt { color: var(--hub-muted); font: .68rem/1.35 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-overview-stats dd { margin: 0; color: var(--hub-text); font: 500 clamp(1.75rem, 3vw, 2.25rem)/1 var(--hub-display); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-shared-note { display: flex; align-items: center; gap: .6rem; margin: 1rem 0 0; color: var(--hub-muted); font-size: .82rem; line-height: 1.5; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-shared-note svg { width: 1rem; height: 1rem; flex: none; }
+
+/* Grades & Credits */
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin: 0 0 var(--ac-gap); padding: 1.1rem 1.35rem; border: 1px solid var(--hub-line); border-radius: var(--ac-radius); background: var(--hub-panel); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type > div:first-child { flex: 1 1 20rem; min-width: 0; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type > div:first-child span { font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type p { margin: .4rem 0 0; font-size: .82rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type [role="tablist"] { display: flex; gap: .25rem; padding: .25rem; border: 1px solid var(--hub-line); border-radius: 10px; background: transparent; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type button { min-height: 2.75rem; padding: 0 1rem; border: 0; border-radius: 7px; background: transparent; color: var(--hub-muted); font: 500 .72rem/1 var(--ac-mono); letter-spacing: .06em; cursor: pointer; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type button.is-active { background: var(--hub-accent); color: var(--hub-ink); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-crud-panel { border: 1px solid var(--hub-line); border-radius: var(--ac-radius); background: var(--hub-panel); overflow: hidden; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-crud-heading { align-items: flex-end; padding: clamp(1.25rem, 2.5vw, 1.75rem); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-crud-heading h2 { font: 500 clamp(1.4rem, 2.6vw, 1.75rem)/1.08 var(--hub-display); letter-spacing: -.03em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-ledger-controls { margin: 0; padding: 1rem clamp(1.25rem, 2.5vw, 1.75rem); border: 0; border-bottom: 1px solid var(--hub-line); background: transparent; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-ledger-controls select { min-height: 2.75rem; padding: 0 .8rem; border-color: var(--hub-line-bright); border-radius: 8px; background: var(--hub-panel-raised); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-record { padding: 1.1rem clamp(1.25rem, 2.5vw, 1.75rem); transition: background-color .18s ease; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-grades .hub-record:hover { background: var(--hub-panel-raised); }
+
+/* Calculator cards (Academic Target, OSPE) */
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-calculator, .hub-academic-target) { gap: 1.5rem; margin: 0; padding: clamp(1.4rem, 3vw, 2rem); border: 1px solid var(--hub-line); border-radius: var(--ac-radius); background: var(--hub-panel); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-target { max-width: 60rem; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-calculator, .hub-academic-target) > header span { color: var(--hub-muted); font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-calculator, .hub-academic-target) > header h2 { margin: .6rem 0 .5rem; color: var(--hub-text); font: 500 clamp(1.6rem, 3vw, 1.9rem)/1.05 var(--hub-display); letter-spacing: -.035em; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-calculator, .hub-academic-target) > header p { font-size: .875rem; line-height: 1.55; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-calculator, .hub-academic-target) > header > b { padding: .45rem .75rem; border: 1px solid var(--hub-line-bright); border-radius: 999px; color: var(--hub-text); font: 500 .7rem/1 var(--ac-mono); letter-spacing: .06em; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-inputs, .hub-academic-target-inputs) { gap: 1rem; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-inputs label > span, .hub-academic-target-inputs label) { gap: .5rem; color: var(--hub-muted); font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-inputs, .hub-academic-target-inputs) :is(input, select) { min-height: 2.9rem; padding: 0 .9rem; border: 1px solid var(--hub-line-bright); border-radius: 8px; background: var(--hub-panel-raised); color: var(--hub-text); font: 400 1rem/1 var(--ac-body); letter-spacing: 0; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-results, .hub-academic-target-results) { gap: 1.1rem; padding-top: 1.4rem; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-results, .hub-academic-target-results) dl { gap: 1.25rem; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-results, .hub-academic-target-results) dt { color: var(--hub-muted); font: .68rem/1.35 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page :is(.hub-ospe-results, .hub-academic-target-results) dd { margin: .45rem 0 0; color: var(--hub-text); font: 500 clamp(1.5rem, 2.6vw, 2rem)/1.05 var(--hub-display); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.hub-shell .hub-private-page.hub-academic-page .hub-ospe-status { display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem; border: 1px solid var(--hub-line-bright); border-radius: 10px; background: var(--hub-panel-raised); color: var(--hub-text); font-size: .875rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-ospe-status::before { content: ""; width: .5rem; height: .5rem; flex: none; border-radius: 50%; background: var(--hub-accent); }
+.hub-shell .hub-private-page.hub-academic-page .hub-ospe-status.is-pass::before { background: #22c55e; }
+.hub-shell .hub-private-page.hub-academic-page .hub-ospe-status.is-danger::before { background: var(--hub-danger); }
+.hub-shell .hub-private-page.hub-academic-page .hub-ospe-empty { font-size: .875rem; }
+
+/* Grade Calculator: rules and OSPE side by side */
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-calculator-page:not([hidden]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr)); gap: var(--ac-gap); align-items: start; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-calculator-page > * { margin: 0; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide { border: 1px solid var(--hub-line); border-radius: var(--ac-radius); background: var(--hub-panel); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-accordion summary { gap: .4rem; padding: 1.25rem 3rem 1.25rem 1.5rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-accordion summary span { color: var(--hub-muted); font: .68rem/1.3 var(--ac-mono); letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-accordion summary small { font-size: .82rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-accordion summary::after { top: 50%; right: 1.5rem; transform: translateY(-50%); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-content { display: grid; gap: 1.1rem; padding: 0 1.5rem 1.5rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-content > p { margin: 0; font-size: .875rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-content > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: .6rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-content > div span { display: flex; flex-wrap: wrap; gap: .3rem; padding: .85rem; border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-panel-raised); color: var(--hub-muted); font: .7rem/1.3 var(--ac-mono); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide-content > div b { order: -1; flex-basis: 100%; color: var(--hub-text); font: 500 1.35rem/1 var(--hub-display); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide ul { gap: 0; margin: 0; }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .35rem 1.5rem; padding: .85rem 0; font: .72rem/1.45 var(--ac-mono); }
+.hub-shell .hub-private-page.hub-academic-page .hub-academic-guide li b { color: var(--hub-text); font: 600 .88rem/1.4 var(--ac-body); }
+
+/* Question Bank */
+.hub-shell .hub-private-page.hub-academic-page .hub-question-bank-workspace { border: 1px solid var(--hub-line); border-radius: var(--ac-radius); background: var(--hub-panel); overflow: hidden; }
+.hub-shell .hub-private-page.hub-academic-page .hub-question-bank-workspace > .hub-crud-heading { align-items: flex-end; padding: clamp(1.25rem, 2.5vw, 1.75rem) !important; }
+.hub-shell .hub-private-page.hub-academic-page .hub-question-bank-workspace > .hub-crud-heading h2 { font-family: var(--hub-display); font-weight: 500; font-size: clamp(1.5rem, 3vw, 1.9rem) !important; line-height: 1.08; letter-spacing: -.035em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-question-tabs { border-radius: 10px !important; }
+.hub-shell .hub-private-page.hub-academic-page .hub-question-mode-tab { min-height: 2.5rem; padding: 0 .9rem; border-radius: 7px; font-size: .68rem; letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-question-mode-tab.is-active { background: var(--hub-accent) !important; color: var(--hub-ink) !important; }
+.hub-shell .hub-private-page.hub-academic-page .hub-learning-stat-grid { grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr)); gap: .75rem; margin-top: 1.1rem; }
+.hub-shell .hub-private-page.hub-academic-page .hub-learning-stat { min-height: 5.5rem; gap: .75rem; padding: 1rem; border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-panel-raised); }
+.hub-shell .hub-private-page.hub-academic-page .hub-learning-stat > span { font-size: .64rem; letter-spacing: .08em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-learning-stat > strong { font: 500 clamp(1.35rem, 2.4vw, 1.75rem)/1 var(--hub-display); letter-spacing: -.03em; }
+.hub-shell .hub-private-page.hub-academic-page .hub-essay-due-review { padding: 1.1rem 1.25rem; border-radius: 12px; background: var(--hub-panel-raised); }
+.hub-shell .hub-private-page.hub-academic-page .hub-practice-resume { padding: 1.1rem 1.25rem; border-radius: 12px; background: #141414; }
+
+@media (max-width: 767px) {
+  .hub-shell .hub-private-page.hub-academic-page .hub-academic-nav button { padding: 0 .9rem; font-size: .84rem; }
+  .hub-shell .hub-private-page.hub-academic-page .hub-academic-gpa { min-height: 12rem; }
+  .hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type [role="tablist"] { width: 100%; }
+  .hub-shell .hub-private-page.hub-academic-page .hub-academic-record-type button { flex: 1; padding-inline: .5rem; font-size: .64rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-shell .hub-private-page.hub-academic-page :is(.hub-academic-lab, .hub-academic-lab em svg, .hub-academic-nav button, .hub-record) { transition: none; }
+}
