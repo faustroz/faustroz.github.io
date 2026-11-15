@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 
-const tables = [["expenses", "Expenses"], ["income_entries", "Income"], ["bank_transfers", "Transfers"], ["financial_goals", "Goals"], ["bank_accounts", "Balances"], ["finance_categories", "Categories"], ["budgets", "Budgets"], ["subscriptions", "Subscriptions"], ["academic_records", "Academic"], ["academic_mku_records", "MKU"], ["vault_documents", "Vault"], ["academic_questions", "Questions"]];
+const tables = [["expenses", "Expenses"], ["income_entries", "Income"], ["bank_transfers", "Transfers"], ["financial_goals", "Goals"], ["bank_accounts", "Balances"], ["finance_categories", "Categories"], ["budgets", "Budgets"], ["subscriptions", "Subscriptions"], ["academic_records", "Academic"], ["academic_mku_records", "MKU"], ["vault_documents", "Vault"], ["academic_questions", "Questions"], ["academic_drug_cards", "Obat"], ["academic_reference_values", "Referensi"]];
 const title = (row) => row.title || row.name || row.course_name || row.file_name || row.question_text || row.front || "Private record";
 
 export default function TrashPanel() {

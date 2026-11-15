@@ -3,7 +3,7 @@
 import { Download, Upload } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 
-const ACTIVE_TABLES = ["bank_accounts", "bank_transfers", "finance_categories", "income_entries", "expenses", "budgets", "subscriptions", "financial_goals", "academic_records", "academic_mku_records", "vault_folders", "vault_documents", "user_settings", "hub_notifications"];
+const ACTIVE_TABLES = ["bank_accounts", "bank_transfers", "finance_categories", "income_entries", "expenses", "budgets", "subscriptions", "financial_goals", "academic_records", "academic_mku_records", "academic_drug_cards", "academic_reference_values", "vault_folders", "vault_documents", "user_settings", "hub_notifications"];
 // Retain read/restore compatibility so removing retired modules never strands
 // existing owner data. These tables are not exposed by active Hub navigation.
 const LEGACY_COMPAT_TABLES = ["bank_account_reconciliations", "study_topics", "study_exams", "study_flashcards", "hub_projects", "project_tasks", "project_changelog", "ai_memory_entries"];

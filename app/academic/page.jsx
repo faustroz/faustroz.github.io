@@ -1,4 +1,4 @@
-import { Activity, ArrowUpRight, ScanLine, Stethoscope } from "lucide-react";
+import { Activity, ArrowUpRight, BookOpen, ScanLine, Stethoscope } from "lucide-react";
 import AcademicPanel from "@/components/hub/AcademicPanel";
 
 export const metadata = { title: "Academic Record — Personal Hub" };
@@ -7,6 +7,7 @@ const CLINICAL_LABS = [
   { href: "/academic/pocus-lab", label: "POCUS Lab", Icon: ScanLine },
   { href: "/academic/ecg-lab", label: "ECG Lab", Icon: Activity },
   { href: "/academic/auscultation-lab", label: "Auscultation Lab", Icon: Stethoscope },
+  { href: "/academic/reference", label: "Referensi & Obat", Icon: BookOpen },
 ];
 
 export default function AcademicPage() {
