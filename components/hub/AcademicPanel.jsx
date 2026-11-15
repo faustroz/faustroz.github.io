@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info } from "lucide-react";
+import { Eye, EyeOff, Info } from "lucide-react";
 import CrudPanel from "@/components/hub/CrudPanel";
 import QuestionLibrary from "@/components/hub/QuestionLibrary";
 import { calculateAcademicTarget, calculateOspeScore, GRADE_POINTS } from "@/lib/hub/academic.mjs";
@@ -60,6 +60,7 @@ export default function AcademicPanel() {
   const [records, setRecords] = useState([]);
   const [mkuRecords, setMkuRecords] = useState([]);
   const [recordType, setRecordType] = useState("medical");
+  const [showIpk, setShowIpk] = useState(false);
   const allRecords = [...records, ...mkuRecords];
   const credits = allRecords.reduce((sum, row) => sum + Number(row.credits || 0), 0);
   const ipk = credits ? allRecords.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / credits : 0;
@@ -79,8 +80,8 @@ export default function AcademicPanel() {
     <section id="academic-panel-overview" className="hub-academic-page-panel" role="tabpanel" aria-labelledby="academic-tab-overview" hidden={activePage !== "overview"}>
       <section className="hub-academic-overview">
         <article className="hub-academic-gpa">
-          <header><span>IPK / CUMULATIVE</span><span>BLOK + MKU</span></header>
-          <div><strong className={credits ? undefined : "is-empty"}>{credits ? ipk.toFixed(2) : "—"}</strong><small>{credits ? "Blok kedokteran + MKU" : "Belum ada nilai tercatat"}</small></div>
+          <header><span>IPK / CUMULATIVE</span><span>BLOK + MKU</span><button type="button" className="hub-academic-gpa-toggle" aria-pressed={showIpk} aria-label={showIpk ? "Sembunyikan IPK" : "Tampilkan IPK"} onClick={() => setShowIpk((value) => !value)}>{showIpk ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</button></header>
+          <div><strong className={credits ? undefined : "is-empty"}>{!credits ? "—" : showIpk ? ipk.toFixed(2) : "••••"}</strong><small>{credits ? "Blok kedokteran + MKU" : "Belum ada nilai tercatat"}</small></div>
         </article>
         <dl className="hub-academic-overview-stats">
           <div><dt>TOTAL SKS</dt><dd>{credits}</dd></div>

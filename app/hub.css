@@ -4803,6 +4803,8 @@ main.academic-practice.academic-practice--missing .academic-practice__missing-co
    Redefines the same token families the dark system uses; literal dark surfaces
    already route through these tokens above.
    ============================================================ */
+.hub-academic-gpa-toggle { display:inline-grid; place-items:center; width:2rem; height:2rem; padding:0; border:1px solid var(--hub-line); border-radius:6px; background:transparent; color:var(--hub-muted); cursor:pointer; }
+.hub-academic-gpa-toggle:hover { color:var(--hub-text); border-color:var(--hub-line-bright); }
 .hub-shell.hub-theme-light {
   color-scheme: light;
   --hub-ink: #f3f5f2;
