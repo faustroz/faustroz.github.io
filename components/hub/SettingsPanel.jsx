@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { KeyRound, LogOut, Save, ShieldCheck, Volume2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { HUB_THEME_CHANGE_EVENT, HUB_THEME_OPTIONS, readHubTheme, writeHubTheme } from "@/lib/hub/theme.mjs";
 import { DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS, playImageOcclusionSound, readImageOcclusionSoundSettings, unlockImageOcclusionAudio, writeImageOcclusionSoundSettings } from "@/lib/hub/image-occlusion-sounds.mjs";
 
 export default function SettingsPanel() {
@@ -11,9 +12,11 @@ export default function SettingsPanel() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [soundSettings, setSoundSettings] = useState({ ...DEFAULT_IMAGE_OCCLUSION_SOUND_SETTINGS });
+  const [theme, setTheme] = useState("system");
 
   useEffect(() => {
     setSoundSettings(readImageOcclusionSoundSettings(window.localStorage));
+    setTheme(readHubTheme(window.localStorage));
     let active = true;
     const load = async () => {
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -66,6 +69,22 @@ export default function SettingsPanel() {
         <h2>Operator account</h2>
         <dl><div><dt>Email</dt><dd>{user?.email || "—"}</dd></div><div><dt>User ID</dt><dd>{user?.id || "—"}</dd></div></dl>
         <button type="button" className="hub-danger-action" onClick={signOut}><LogOut /> SIGN OUT</button>
+      </section>
+
+      <section className="hub-settings-card">
+        <span>DISPLAY / THIS DEVICE</span>
+        <h2>Tampilan</h2>
+        <p>Pilihan ini hanya berlaku di perangkat ini.</p>
+        <label className="hub-settings-field">
+          <span>Tema hub</span>
+          <select value={theme} onChange={(event) => {
+            if (!writeHubTheme(window.localStorage, event.target.value)) return;
+            setTheme(event.target.value);
+            window.dispatchEvent(new Event(HUB_THEME_CHANGE_EVENT));
+          }}>
+            {HUB_THEME_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
       </section>
 
       <section className="hub-settings-card">

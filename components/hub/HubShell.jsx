@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import HubNavigation from "@/components/hub/HubNavigation";
 import HubAuthGate from "@/components/hub/HubAuthGate";
 import { isPrivateHubRoute } from "@/lib/hub/private-routes.mjs";
+import { HUB_THEME_CHANGE_EVENT, readHubTheme, resolveHubTheme } from "@/lib/hub/theme.mjs";
 
 export default function HubShell({ children }) {
   const pathname = usePathname();
@@ -19,12 +20,28 @@ export default function HubShell({ children }) {
   const occlusionRoute = pathname === "/academic/occlusion";
   const immersiveStudyRoute = practiceRoute || occlusionRoute;
   const privateRoute = isPrivateHubRoute(pathname);
+  const [theme, setTheme] = useState("dark");
   const shellClasses = ["hub-shell"];
+
+  useEffect(() => {
+    const media = window.matchMedia?.("(prefers-color-scheme: light)");
+    const sync = () => setTheme(resolveHubTheme(readHubTheme(window.localStorage), media?.matches));
+    sync();
+    window.addEventListener(HUB_THEME_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    media?.addEventListener?.("change", sync);
+    return () => {
+      window.removeEventListener(HUB_THEME_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+      media?.removeEventListener?.("change", sync);
+    };
+  }, []);
 
   if (specialistRoute) shellClasses.push("hub-shell--specialist");
   if (financeRoute) shellClasses.push("hub-shell--finance");
   if (immersiveStudyRoute) shellClasses.push("hub-shell--practice");
   if (academicRoute) shellClasses.push("hub-shell--academic");
+  if (theme === "light") shellClasses.push("hub-theme-light");
 
   useEffect(() => {
     if (previousPathname.current === pathname) return undefined;

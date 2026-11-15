@@ -462,7 +462,7 @@ test("Image Occlusion collections persist editable groups and expose a responsiv
   assert.match(migration, /insert into public\.academic_image_occlusion_groups \(user_id, name\)/);
   assert.match(styles, /hub-occlusion-group-filter select/);
   assert.match(styles, /hub-occlusion-group-filter select \{[^}]*color-scheme:dark/);
-  assert.match(styles, /hub-occlusion-group-filter select option \{ background:#171717; color:#f5f5f5/);
+  assert.match(styles, /hub-occlusion-group-filter select option \{ background:var\(--hub-panel-raised\); color:#f5f5f5/);
   assert.match(styles, /hub-occlusion-filter-empty/);
 });
 
