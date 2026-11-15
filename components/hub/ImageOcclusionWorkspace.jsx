@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Shuffle, Trash2, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
-import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getResumableImageOcclusionRun, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
+import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getResumableImageOcclusionRun, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, getClipboardImageFiles, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", groupName: IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: "answer", activeImageId: null, images: [] });
@@ -173,6 +173,19 @@ export default function ImageOcclusionWorkspace() {
     });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  // Pasted screenshots become source images too; no file picker needed while the editor is open.
+  useEffect(() => {
+    if (!draft) return undefined;
+    const onPaste = (event) => {
+      const images = getClipboardImageFiles(event.clipboardData);
+      if (!images.length) return;
+      event.preventDefault();
+      handleFiles(images);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [draft, handleFiles]);
 
   const selectImage = (image) => {
     setDraft((current) => current ? { ...current, activeImageId: image.id } : current);
@@ -363,7 +376,7 @@ export default function ImageOcclusionWorkspace() {
         <div className="hub-occlusion-group-field"><label><span>Grup</span><select value={draft.groupName} onChange={(event) => setDraft({ ...draft, groupName: event.target.value })}>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label><button type="button" className="hub-occlusion-group-manage-trigger" onClick={() => setManageGroupsOpen(true)}>Kelola grup</button></div>
         <label><span>Konten kartu</span><select value={draft.answerMode} onChange={(event) => setDraft({ ...draft, answerMode: event.target.value })}><option value="answer">Mask + jawaban</option><option value="mask_only">Mask saja · tanpa jawaban teks</option></select></label>
       </div>
-      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih satu atau beberapa PNG / JPG sekaligus · maksimal 5 MB per gambar.</span></div>
+      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih atau tempel (Ctrl+V) satu atau beberapa PNG / JPG sekaligus · maksimal 5 MB per gambar.</span></div>
 
       {draft.images.length > 0 && <div className="hub-occlusion-image-strip" aria-label="Gambar dalam kumpulan">{draft.images.map((image, index) => <div key={image.id} className={`hub-occlusion-image-chip${image.id === activeImage?.id ? " is-active" : ""}`}><button type="button" onClick={() => selectImage(image)} aria-pressed={image.id === activeImage?.id}><img src={image.imageUrl} alt="" /><span>{String(index + 1).padStart(2, "0")} · {image.imageFile?.name || `Gambar ${index + 1}`} · {image.masks.length} mask</span></button><button type="button" className="hub-occlusion-remove-image" aria-label={`Hapus gambar ${index + 1}`} onClick={() => removeImage(image)}><X size={14} /></button></div>)}</div>}
 
