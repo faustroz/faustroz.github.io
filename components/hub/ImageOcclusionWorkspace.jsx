@@ -183,8 +183,22 @@ export default function ImageOcclusionWorkspace() {
       event.preventDefault();
       handleFiles(images);
     };
+    // Without these two, dropping a file anywhere would make the browser open it.
+    const onDragOver = (event) => { if (event.dataTransfer?.types?.includes("Files")) event.preventDefault(); };
+    const onDrop = (event) => {
+      const files = [...(event.dataTransfer?.files || [])];
+      if (!files.length) return;
+      event.preventDefault();
+      handleFiles(files);
+    };
     window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("paste", onPaste);
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
   }, [draft, handleFiles]);
 
   const selectImage = (image) => {
@@ -376,7 +390,7 @@ export default function ImageOcclusionWorkspace() {
         <div className="hub-occlusion-group-field"><label><span>Grup</span><select value={draft.groupName} onChange={(event) => setDraft({ ...draft, groupName: event.target.value })}>{groupOptions.map((group) => <option key={group} value={group}>{group}</option>)}</select></label><button type="button" className="hub-occlusion-group-manage-trigger" onClick={() => setManageGroupsOpen(true)}>Kelola grup</button></div>
         <label><span>Konten kartu</span><select value={draft.answerMode} onChange={(event) => setDraft({ ...draft, answerMode: event.target.value })}><option value="answer">Mask + jawaban</option><option value="mask_only">Mask saja · tanpa jawaban teks</option></select></label>
       </div>
-      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih atau tempel (Ctrl+V) satu atau beberapa PNG / JPG sekaligus · maksimal 5 MB per gambar.</span></div>
+      <div className="hub-occlusion-upload-row"><label className="hub-occlusion-upload-control"><input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={(event) => handleFiles(event.target.files)} aria-label="Pilih satu atau beberapa gambar PNG atau JPG" /><ImagePlus size={15} /><span>Tambah gambar</span></label><span>Pilih, tempel (Ctrl+V), atau seret gambar PNG / JPG ke sini sekaligus · maksimal 5 MB per gambar.</span></div>
 
       {draft.images.length > 0 && <div className="hub-occlusion-image-strip" aria-label="Gambar dalam kumpulan">{draft.images.map((image, index) => <div key={image.id} className={`hub-occlusion-image-chip${image.id === activeImage?.id ? " is-active" : ""}`}><button type="button" onClick={() => selectImage(image)} aria-pressed={image.id === activeImage?.id}><img src={image.imageUrl} alt="" /><span>{String(index + 1).padStart(2, "0")} · {image.imageFile?.name || `Gambar ${index + 1}`} · {image.masks.length} mask</span></button><button type="button" className="hub-occlusion-remove-image" aria-label={`Hapus gambar ${index + 1}`} onClick={() => removeImage(image)}><X size={14} /></button></div>)}</div>}
 
