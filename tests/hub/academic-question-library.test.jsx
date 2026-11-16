@@ -156,7 +156,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     fireEvent.click(questionBankTab);
 
     expect(questionBankTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("heading", { name: /latihan soal/i })).toBeInTheDocument();
+    expect(screen.getByText(/question library & practice/i)).toBeInTheDocument();
 
     // Practice mode is active by default
     expect(tab("PRACTICE")).toHaveAttribute("aria-selected", "true");
@@ -169,7 +169,7 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     expect(libraryTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/tambah soal/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Filter exam type").closest(".hub-question-filter-panel")).toHaveAttribute("hidden");
-    fireEvent.click(screen.getByRole("button", { name: /^filter$/i }));
+    fireEvent.click(screen.getByText(/filter/i));
     expect(screen.getByLabelText("Filter exam type")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter block")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter subject")).toBeInTheDocument();

@@ -40,7 +40,7 @@ export default function HubShell({ children }) {
   if (specialistRoute) shellClasses.push("hub-shell--specialist");
   if (financeRoute) shellClasses.push("hub-shell--finance");
   if (immersiveStudyRoute) shellClasses.push("hub-shell--practice");
-  if (academicRoute) shellClasses.push("hub-shell--academic", "hub-shell--studio");
+  if (academicRoute) shellClasses.push("hub-shell--academic");
   if (theme === "light") shellClasses.push("hub-theme-light");
 
   useEffect(() => {
