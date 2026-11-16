@@ -151,3 +151,25 @@ test("createShareLinkRepository scopes module links to target_id null and item l
   assert.deepEqual(calls.filter(([name]) => name === "is"), [["is", "target_id", null]]);
   assert.throws(() => createShareLinkRepository({}), /Supabase client/);
 });
+
+test("migration 046 adds the auscultation_lab kind and keeps one owner-private RPC", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/046-auscultation-share-link.sql", import.meta.url), "utf8");
+  assert.match(sql, /check \(kind in \('image_occlusion_set', 'question_bank', 'auscultation_lab'\)\)/);
+  assert.match(sql, /\(kind in \('question_bank', 'auscultation_lab'\) and target_id is null\)/);
+  assert.match(sql, /elsif v_link\.kind = 'auscultation_lab' then/);
+  assert.match(sql, /grant execute on function public\.get_shared_content\(text\) to anon, authenticated/);
+  assert.doesNotMatch(sql, /academic_drug_cards|academic_reference_values/);
+});
+
+test("loadSharedContent opens the auscultation lab without signing any image URLs", async () => {
+  let signed = false;
+  const client = {
+    rpc: async () => ({ data: { kind: "auscultation_lab", payload: { title: "Auscultation Lab" } }, error: null }),
+    storage: { from: () => ({ createSignedUrls: async () => { signed = true; return { data: [], error: null }; } }) },
+  };
+  const loaded = await loadSharedContent(client, TOKEN);
+  assert.equal(loaded.kind, "auscultation_lab");
+  assert.equal(loaded.title, "Auscultation Lab");
+  assert.equal(loaded.imageUrls.size, 0);
+  assert.equal(signed, false);
+});

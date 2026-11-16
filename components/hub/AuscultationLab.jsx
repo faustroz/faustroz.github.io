@@ -10,8 +10,10 @@ import {
   scoreTrainerAnswer,
 } from "@/lib/hub/auscultation-library.mjs";
 import { playQuizSound, signalAnswer } from "@/lib/hub/quiz-feedback.mjs";
+import ShareLinkPanel from "@/components/hub/ShareLinkPanel";
+import { Share2 } from "lucide-react";
 
-function ClipCard({ clip }) {
+export function ClipCard({ clip }) {
   return (
     <article className="hub-ausc-clip">
       <div className="hub-ausc-clip-head">
@@ -91,6 +93,7 @@ export default function AuscultationLab() {
   const [mode, setMode] = useState("library");
   const [system, setSystem] = useState("all");
   const [typeId, setTypeId] = useState("all");
+  const [shareOpen, setShareOpen] = useState(false);
 
   const types = useMemo(() => countByType(system), [system]);
   const clips = useMemo(() => getAuscultationClips({ system, typeId }), [system, typeId]);
@@ -106,6 +109,7 @@ export default function AuscultationLab() {
         <div className="hub-ausc-modes" role="group" aria-label="Lab mode">
           <button type="button" className="hub-ausc-preset" aria-pressed={mode === "library"} onClick={() => setMode("library")}>LIBRARY</button>
           <button type="button" className="hub-ausc-preset" aria-pressed={mode === "trainer"} onClick={() => setMode("trainer")}>TRAINER</button>
+          <button type="button" className="hub-ausc-preset" aria-expanded={shareOpen} onClick={() => setShareOpen((open) => !open)}><Share2 size={14} aria-hidden="true" /> Bagikan lab</button>
         </div>
         <div className="hub-ausc-systems" role="group" aria-label="Filter by system">
           <button type="button" className="hub-ausc-preset" aria-pressed={system === "all"} onClick={() => selectSystem("all")}>ALL 100</button>
@@ -116,6 +120,8 @@ export default function AuscultationLab() {
           ))}
         </div>
       </div>
+
+      {shareOpen && <ShareLinkPanel kind="auscultation_lab" title="Auscultation Lab" hint="Siapa pun yang punya link bisa mendengarkan seluruh rekaman lab ini tanpa login. Link memuat domain situs ini. Tamu hanya membaca; progres belajar mereka tidak disimpan." />}
 
       <div className="hub-ausc-types" role="group" aria-label="Filter by sound type">
         <button type="button" className="hub-ausc-preset" aria-pressed={typeId === "all"} onClick={() => setTypeId("all")}>ALL TYPES</button>
