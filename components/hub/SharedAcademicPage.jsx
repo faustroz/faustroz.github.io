@@ -5,8 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Eye, RotateCcw } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import { readShareTokenFromHash, SHARE_KINDS, loadSharedContent, filterSharedQuestions } from "@/lib/hub/share-links.mjs";
-import { AUSCULTATION_SYSTEMS, HLS_CMDS_SOURCE, getAuscultationClips } from "@/lib/hub/auscultation-library.mjs";
-import { ClipCard } from "@/components/hub/AuscultationLab";
+import AuscultationLab from "@/components/hub/AuscultationLab";
 
 const pad = (value) => String(value).padStart(2, "0");
 
@@ -45,7 +44,7 @@ export default function SharedAcademicPage() {
         {!error && !shared && <p className="hub-data-state">MEMUAT KONTEN…</p>}
         {shared?.kind === SHARE_KINDS.IMAGE_OCCLUSION_SET && <SharedOcclusionViewer shared={shared} />}
         {shared?.kind === SHARE_KINDS.QUESTION_BANK && <SharedQuestionBankViewer shared={shared} />}
-        {shared?.kind === SHARE_KINDS.AUSCULTATION_LAB && <SharedAuscultationViewer shared={shared} />}
+        {shared?.kind === SHARE_KINDS.AUSCULTATION_LAB && <SharedAuscultationViewer />}
       </main>
     </div>
   );
@@ -222,35 +221,15 @@ function SharedQuestionBankViewer({ shared }) {
   );
 }
 
-function SharedAuscultationViewer({ shared }) {
-  const [system, setSystem] = useState("all");
-  const clips = useMemo(() => getAuscultationClips({ system }), [system]);
-
+function SharedAuscultationViewer() {
   return (
-    <section className="hub-ausc-lab">
-      <header className="hub-occlusion-study-top">
-        <div><span>AUSCULTATION LAB / SHARED</span><strong>{shared.title}</strong></div>
+    <section className="hub-shared-lab">
+      <header className="hub-private-heading">
+        <span>ACADEMIC · AUSCULTATION LAB / SHARED</span>
+        <h1>Train the ear, not just the eye</h1>
+        <p>Heart and lung recordings from a clinical manikin, labelled by sound type and auscultation site. Educational use — not patient data, not clinical advice.</p>
       </header>
-      <div className="hub-ausc-systems" role="group" aria-label="Filter by system">
-        <button type="button" className="hub-ausc-preset" aria-pressed={system === "all"} onClick={() => setSystem("all")}>ALL {getAuscultationClips().length}</button>
-        {AUSCULTATION_SYSTEMS.map((entry) => (
-          <button key={entry.id} type="button" className="hub-ausc-preset" aria-pressed={system === entry.id} onClick={() => setSystem(entry.id)}>
-            {entry.label.toUpperCase()} {getAuscultationClips({ system: entry.id }).length}
-          </button>
-        ))}
-      </div>
-      <p className="hub-ausc-note">{HLS_CMDS_SOURCE.note}</p>
-      <div className="hub-ausc-grid">
-        {clips.map((clip) => <ClipCard key={clip.id} clip={clip} />)}
-      </div>
-      <footer className="hub-ausc-source">
-        <p>
-          <strong>{HLS_CMDS_SOURCE.title}</strong> by {HLS_CMDS_SOURCE.authors}, licensed{" "}
-          <a href={HLS_CMDS_SOURCE.licenseUrl} target="_blank" rel="noreferrer noopener">{HLS_CMDS_SOURCE.license}</a>. Source:{" "}
-          <a href={HLS_CMDS_SOURCE.sourceUrl} target="_blank" rel="noreferrer noopener">Zenodo</a> ·{" "}
-          <a href={HLS_CMDS_SOURCE.doiUrl} target="_blank" rel="noreferrer noopener">IEEE Data Descriptions</a>. {HLS_CMDS_SOURCE.capture}
-        </p>
-      </footer>
+      <AuscultationLab showShare={false} />
     </section>
   );
 }

@@ -1296,7 +1296,7 @@ export default function QuestionLibrary() {
             <details className="hub-question-more" open={moreMenuOpen} onToggle={(event) => setMoreMenuOpen(event.currentTarget.open)}>
               <summary aria-label="Aksi lainnya" title="Aksi lainnya"><MoreHorizontal size={19} aria-hidden="true" /></summary>
               <div className="hub-question-more-menu" aria-label="Aksi Question Bank lainnya">
-                <button type="button" onClick={() => { setShareOpen((open) => !open); setMoreMenuOpen(false); }} aria-expanded={shareOpen}><Share2 size={14} /> Bagikan bank soal</button>
+                <button type="button" className="hub-share-menu-item" onClick={() => { setShareOpen((open) => !open); setMoreMenuOpen(false); }} aria-expanded={shareOpen}><Share2 size={14} aria-hidden="true" /> Bagikan bank soal</button>
                 <button type="button" onClick={() => { handleExportCsv(); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export CSV</button>
                 <button type="button" onClick={() => { handleExportJson(); setMoreMenuOpen(false); }} disabled={!questions.length}><FileJson size={14} /> Backup JSON</button>
                 <button type="button" onClick={() => { handleAddCategory("exam_type"); setMoreMenuOpen(false); }}>Tambah Exam Type</button>

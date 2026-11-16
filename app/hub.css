@@ -4871,3 +4871,24 @@ html:has(.hub-shell.hub-theme-light) { background: #f3f5f2; color-scheme: light;
 .hub-shared-card dd { margin: 0; white-space: pre-wrap; line-height: 1.5; }
 .hub-shared-card table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 .hub-shared-card th, .hub-shared-card td { text-align: left; padding: .35rem .3rem; border-top: 1px solid var(--hub-line); vertical-align: top; }
+
+/* Share buttons: one look for every share control (panel, toggles, menu item) */
+.hub-shell button.hub-share-button {
+  display: inline-flex; flex-direction: row; align-items: center; justify-content: center;
+  gap: 0.45rem; min-height: 2.4rem; margin: 0; padding: 0.55rem 0.9rem;
+  border: 1px solid var(--hub-line-bright); border-radius: 8px;
+  background: var(--hub-panel-raised); color: var(--hub-text);
+  font: 0.7rem var(--font-geist-mono), monospace; letter-spacing: 0.07em; line-height: 1;
+  text-transform: uppercase; white-space: nowrap; cursor: pointer;
+}
+.hub-shell button.hub-share-button svg { flex: 0 0 auto; width: 0.95rem; height: 0.95rem; }
+.hub-shell button.hub-share-button:hover:not(:disabled) { border-color: var(--hub-text); background: rgba(255, 255, 255, 0.06); }
+.hub-shell button.hub-share-button:disabled { opacity: 0.5; cursor: default; }
+.hub-shell button.hub-share-button[aria-expanded="true"] { background: var(--hub-accent-soft); border-color: var(--hub-line-bright); }
+.hub-shell button.hub-share-button--primary { background: var(--hub-text); border-color: var(--hub-text); color: var(--hub-ink); }
+.hub-shell button.hub-share-button--primary:hover:not(:disabled) { background: #ffffff; border-color: #ffffff; }
+.hub-shell .hub-share-menu-item { display: flex; flex-direction: row; align-items: center; gap: 0.5rem; }
+.hub-shell .hub-share-menu-item svg { flex: 0 0 auto; }
+.hub-shell .hub-share-panel { align-content: start; gap: 0.75rem; padding: 1rem; }
+.hub-shell .hub-share-panel small { display: block; }
+.hub-shell .hub-share-actions { gap: 0.55rem; }

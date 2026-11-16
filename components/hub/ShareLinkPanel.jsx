@@ -48,10 +48,10 @@ export default function ShareLinkPanel({ kind, targetId = null, title, hint = ""
     {!loaded ? <span>Memeriksa link…</span> : token ? <>
       <input readOnly value={url} aria-label={`Link berbagi ${title}`} onFocus={(event) => event.target.select()} />
       <div className="hub-share-actions">
-        <button type="button" onClick={copyLink}><Copy size={14} /> {copied ? "Tersalin" : "Salin link"}</button>
-        <button type="button" onClick={revokeLink} disabled={busy}>Cabut link</button>
+        <button type="button" className="hub-share-button" onClick={copyLink}><Copy size={14} aria-hidden="true" /> {copied ? "Tersalin" : "Salin link"}</button>
+        <button type="button" className="hub-share-button" onClick={revokeLink} disabled={busy}>Cabut link</button>
       </div>
-    </> : <button type="button" onClick={createLink} disabled={busy}><Link2 size={14} /> Buat link publik</button>}
+    </> : <button type="button" className="hub-share-button hub-share-button--primary" onClick={createLink} disabled={busy}><Link2 size={14} aria-hidden="true" /> Buat link publik</button>}
     <small>{hint || `Siapa pun yang punya link bisa membuka ${title} tanpa login. Link memuat domain situs ini. Tamu hanya membaca; progres belajar mereka tidak disimpan.`}</small>
     {error && <p className="hub-data-error" role="alert">{error}</p>}
   </div>;
