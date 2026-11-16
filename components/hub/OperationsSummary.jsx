@@ -102,7 +102,6 @@ function AcademicSnapshot({ academic }) {
   return <Link href="/academic" className="hub-home-academic">
     <div className="hub-home-section-meta"><span>ACADEMIC / PROGRES</span><ArrowUpRight aria-hidden="true" /></div>
     {academic.hasData ? <>
-      <div className="hub-home-academic-main"><GraduationCap aria-hidden="true" /><div><span>IPK KUMULATIF</span><strong>{academic.ipk.toFixed(2)}</strong></div></div>
       <dl><div><dt>SKS</dt><dd>{academic.credits}</dd></div><div><dt>Semester</dt><dd>{academic.semesterCount}</dd></div>{academic.latestSemesterIp !== null && <div><dt>IP {academic.latestSemester}</dt><dd>{academic.latestSemesterIp.toFixed(2)}</dd></div>}</dl>
       {academic.practiceAccuracy !== null && <p className="hub-home-study-progress"><BookOpen aria-hidden="true" /> {academic.practiceAccuracy.toFixed(0)}% benar dari {academic.practiceCount} jawaban terbaru</p>}
     </> : <><h2>Belum ada record akademik.</h2><p>Mulai dari course record atau latihan soal.</p></>}

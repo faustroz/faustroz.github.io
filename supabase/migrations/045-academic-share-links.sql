@@ -2,14 +2,13 @@
 -- kinds:
 --   image_occlusion_set  one Image Occlusion set (target_id = set id)
 --   question_bank       all active MCQ and Essay questions of the owner (target_id null)
---   reference_library   all drug cards and reference values of the owner (target_id null)
 -- The 64-hex token is the only key. Anyone with the link reads that content
 -- (answers included) without signing in. Owners still see only their own rows.
 
 create table if not exists public.academic_share_links (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  kind text not null check (kind in ('image_occlusion_set', 'question_bank', 'reference_library')),
+  kind text not null check (kind in ('image_occlusion_set', 'question_bank')),
   target_id uuid,
   token text not null unique default (replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')) check (token ~ '^[0-9a-f]{64}$'),
   created_at timestamptz not null default now(),
@@ -32,7 +31,7 @@ create policy "owner insert" on public.academic_share_links for insert to authen
     auth.uid() = user_id
     and (
       (kind = 'image_occlusion_set' and exists (select 1 from public.academic_image_occlusion_sets s where s.id = target_id and s.user_id = auth.uid()))
-      or (kind in ('question_bank', 'reference_library') and target_id is null)
+      or (kind = 'question_bank' and target_id is null)
     )
   );
 create policy "owner delete" on public.academic_share_links for delete to authenticated using (auth.uid() = user_id);
@@ -78,25 +77,6 @@ begin
         ) order by q.block nulls last, q.topic nulls last, q.created_at)
         from public.academic_questions q
         where q.user_id = v_link.user_id and q.deleted_at is null
-      ), '[]'::jsonb)
-    );
-  else
-    v_payload := jsonb_build_object(
-      'drugs', coalesce((
-        select jsonb_agg(jsonb_build_object(
-          'id', d.id, 'name', d.name, 'drug_class', d.drug_class, 'mechanism', d.mechanism,
-          'indications', d.indications, 'adverse_effects', d.adverse_effects,
-          'contraindications', d.contraindications, 'interactions', d.interactions, 'notes', d.notes
-        ) order by d.name)
-        from public.academic_drug_cards d
-        where d.user_id = v_link.user_id and d.deleted_at is null
-      ), '[]'::jsonb),
-      'values', coalesce((
-        select jsonb_agg(jsonb_build_object(
-          'id', v.id, 'topic', v.topic, 'parameter', v.parameter, 'value', v.value, 'unit', v.unit, 'notes', v.notes
-        ) order by v.topic, v.parameter)
-        from public.academic_reference_values v
-        where v.user_id = v_link.user_id and v.deleted_at is null
       ), '[]'::jsonb)
     );
   end if;

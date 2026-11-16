@@ -4,10 +4,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Eye, RotateCcw } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
-import { readShareTokenFromHash, SHARE_KINDS, loadSharedContent, filterSharedQuestions, filterSharedReferenceLibrary } from "@/lib/hub/share-links.mjs";
+import { readShareTokenFromHash, SHARE_KINDS, loadSharedContent, filterSharedQuestions } from "@/lib/hub/share-links.mjs";
 
 const pad = (value) => String(value).padStart(2, "0");
-const REFERENCE_FIELDS = [["Kelas", "drug_class"], ["Mekanisme", "mechanism"], ["Indikasi", "indications"], ["Efek samping", "adverse_effects"], ["Kontraindikasi", "contraindications"], ["Interaksi", "interactions"], ["Catatan", "notes"]];
 
 export default function SharedAcademicPage() {
   const [token, setToken] = useState(undefined);
@@ -44,7 +43,6 @@ export default function SharedAcademicPage() {
         {!error && !shared && <p className="hub-data-state">MEMUAT KONTEN…</p>}
         {shared?.kind === SHARE_KINDS.IMAGE_OCCLUSION_SET && <SharedOcclusionViewer shared={shared} />}
         {shared?.kind === SHARE_KINDS.QUESTION_BANK && <SharedQuestionBankViewer shared={shared} />}
-        {shared?.kind === SHARE_KINDS.REFERENCE_LIBRARY && <SharedReferenceViewer shared={shared} />}
       </main>
     </div>
   );
@@ -217,55 +215,6 @@ function SharedQuestionBankViewer({ shared }) {
         </section>
       )}
       {total > 0 && <SharedNav index={index} total={total} onGo={go} />}
-    </section>
-  );
-}
-
-function SharedReferenceViewer({ shared }) {
-  const [query, setQuery] = useState("");
-  const { drugs, values } = useMemo(() => filterSharedReferenceLibrary(shared, query), [shared, query]);
-  const groups = useMemo(() => {
-    const byTopic = new Map();
-    for (const value of values) byTopic.set(value.topic, [...(byTopic.get(value.topic) || []), value]);
-    return [...byTopic.entries()];
-  }, [values]);
-
-  return (
-    <section className="hub-shared-reference">
-      <header className="hub-occlusion-study-top">
-        <div><span>REFERENSI / SHARED</span><strong>Obat, nilai, dosis</strong></div>
-      </header>
-      <input type="search" className="hub-shared-search" aria-label="Cari referensi" placeholder="Cari obat, parameter, atau topik…" value={query} onChange={(event) => setQuery(event.target.value)} />
-      <h2 className="hub-shared-section-title">Kartu obat ({drugs.length})</h2>
-      {drugs.length === 0 && <p className="hub-data-state">Belum ada kartu obat.</p>}
-      {drugs.map((drug) => (
-        <article key={drug.id} className="hub-shared-card">
-          <h3>{drug.name}</h3>
-          <dl>
-            {REFERENCE_FIELDS.filter(([, key]) => drug[key]).map(([label, key]) => (
-              <div key={key}><dt>{label}</dt><dd>{drug[key]}</dd></div>
-            ))}
-          </dl>
-        </article>
-      ))}
-      <h2 className="hub-shared-section-title">Nilai dan dosis ({values.length})</h2>
-      {values.length === 0 && <p className="hub-data-state">Belum ada nilai referensi.</p>}
-      {groups.map(([topic, rows]) => (
-        <article key={topic} className="hub-shared-card">
-          <h3>{topic}</h3>
-          <table>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <th scope="row">{row.parameter}</th>
-                  <td>{row.value}{row.unit ? ` ${row.unit}` : ""}</td>
-                  <td>{row.notes || ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </article>
-      ))}
     </section>
   );
 }

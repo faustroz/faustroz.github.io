@@ -6,7 +6,6 @@ import {
   buildShareUrl,
   createShareLinkRepository,
   filterSharedQuestions,
-  filterSharedReferenceLibrary,
   loadSharedContent,
   normalizeSharedQuestionBank,
   readShareTokenFromHash,
@@ -16,7 +15,7 @@ const TOKEN = "a".repeat(64);
 
 test("share migration keeps links owner-private and exposes only shared content through RPC and signed storage", async () => {
   const sql = await readFile(new URL("../../supabase/migrations/045-academic-share-links.sql", import.meta.url), "utf8");
-  assert.match(sql, /kind in \('image_occlusion_set', 'question_bank', 'reference_library'\)/);
+  assert.match(sql, /kind in \('image_occlusion_set', 'question_bank'\)/);
   assert.match(sql, /enable row level security/);
   assert.match(sql, /create policy "owner select" on public\.academic_share_links for select to authenticated using \(auth\.uid\(\) = user_id\)/);
   assert.match(sql, /token ~ '\^\[0-9a-f\]\{64\}\$'/);
@@ -25,8 +24,6 @@ test("share migration keeps links owner-private and exposes only shared content 
   assert.match(sql, /revoke all on function public\.get_shared_image_occlusion_set\(text\) from public, anon, authenticated/);
   assert.match(sql, /bucket_id = 'academic-question-images' and public\.is_shared_academic_image\(name\)/);
   assert.match(sql, /q\.deleted_at is null/);
-  assert.match(sql, /d\.deleted_at is null/);
-  assert.match(sql, /v\.deleted_at is null/);
   assert.doesNotMatch(sql, /grant[^;]*academic_share_links[^;]*\banon\b/);
 });
 
@@ -40,9 +37,9 @@ test("readShareTokenFromHash accepts only 64 lowercase hex characters", () => {
   assert.equal(readShareTokenFromHash(`#${TOKEN}&x=1`), null);
 });
 
-test("buildShareUrl puts the token in the hash of /share/", () => {
-  assert.equal(buildShareUrl("https://faustroz.github.io/", TOKEN), `https://faustroz.github.io/share/#${TOKEN}`);
-  assert.equal(buildShareUrl("https://faustroz.github.io", TOKEN), `https://faustroz.github.io/share/#${TOKEN}`);
+test("buildShareUrl puts the token in the hash of /share with no trailing slash (GitHub Pages 404s on /share/)", () => {
+  assert.equal(buildShareUrl("https://faustroz.github.io/", TOKEN), `https://faustroz.github.io/share#${TOKEN}`);
+  assert.equal(buildShareUrl("https://faustroz.github.io", TOKEN), `https://faustroz.github.io/share#${TOKEN}`);
 });
 
 test("normalizeSharedImageOcclusionSet orders cards and falls back to the legacy set image", () => {
@@ -89,16 +86,6 @@ test("question bank normalizer lists image paths and filters by block and text",
   assert.equal(normalizeSharedQuestionBank({ title: "x" }), null);
 });
 
-test("reference filter matches drug and value fields", () => {
-  const library = {
-    drugs: [{ id: "d1", name: "Amoksisilin", drug_class: "Antibiotik", mechanism: "", notes: "" }],
-    values: [{ id: "v1", topic: "Hematologi", parameter: "Hb", value: "12-16", unit: "g/dL", notes: "" }],
-  };
-  assert.equal(filterSharedReferenceLibrary(library, "antibiotik").drugs.length, 1);
-  assert.equal(filterSharedReferenceLibrary(library, "hb").values.length, 1);
-  assert.equal(filterSharedReferenceLibrary(library, "zzz").drugs.length, 0);
-});
-
 test("loadSharedContent dispatches by kind and signs only that content's images", async () => {
   const signedBuckets = [];
   const storage = {
@@ -129,13 +116,6 @@ test("loadSharedContent dispatches by kind and signs only that content's images"
   assert.equal(loadedBank.kind, "question_bank");
   assert.equal(loadedBank.imageUrls.get("u/9.png"), "https://signed/u/9.png");
 
-  const reference = {
-    rpc: async () => ({ data: { kind: "reference_library", payload: { drugs: [], values: [] } }, error: null }),
-    storage,
-  };
-  const loadedRef = await loadSharedContent(reference, TOKEN);
-  assert.equal(loadedRef.kind, "reference_library");
-  assert.equal(loadedRef.imageUrls.size, 0);
   assert.deepEqual(signedBuckets, ["academic-question-images", "academic-question-images"]);
 });
 
@@ -167,7 +147,7 @@ test("createShareLinkRepository scopes module links to target_id null and item l
   assert.equal(await repo.createShareLink("image_occlusion_set", "set-1"), TOKEN);
   assert.deepEqual(calls.find(([name]) => name === "insert"), ["insert", { kind: "image_occlusion_set", target_id: "set-1" }]);
   calls.length = 0;
-  await repo.revokeShareLink("reference_library");
+  await repo.revokeShareLink("question_bank");
   assert.deepEqual(calls.filter(([name]) => name === "is"), [["is", "target_id", null]]);
   assert.throws(() => createShareLinkRepository({}), /Supabase client/);
 });
