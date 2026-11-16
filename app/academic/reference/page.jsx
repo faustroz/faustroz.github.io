@@ -1,4 +1,5 @@
 import ModuleWorkspace from "@/components/hub/ModuleWorkspace";
+import ReferenceShare from "@/components/hub/ReferenceShare";
 import { REFERENCE_CHANNELS } from "@/lib/hub/module-config.mjs";
 
 export const metadata = { title: "Referensi — Academic | 4allx", robots: "noindex, nofollow" };
@@ -11,6 +12,7 @@ export default function AcademicReferencePage() {
         <h1>Obat, nilai, dosis.</h1>
         <p>Rujukan pribadi yang kamu isi sendiri. Tidak ada data bawaan dari luar.</p>
       </header>
+      <ReferenceShare />
       <ModuleWorkspace channels={REFERENCE_CHANNELS} />
     </main>
   );

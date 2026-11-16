@@ -25,6 +25,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Share2,
   Star,
   Trash2,
   Upload,
@@ -32,6 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
+import ShareLinkPanel from "@/components/hub/ShareLinkPanel";
 import {
   clearPracticeRun,
   createPracticeRun,
@@ -96,6 +98,7 @@ export default function QuestionLibrary() {
   const [tagFilter, setTagFilter] = useState("");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [practiceExamType, setPracticeExamType] = useState("");
   const [practiceSubject, setPracticeSubject] = useState("");
   const [practiceFormat, setPracticeFormat] = useState("");
@@ -1293,6 +1296,7 @@ export default function QuestionLibrary() {
             <details className="hub-question-more" open={moreMenuOpen} onToggle={(event) => setMoreMenuOpen(event.currentTarget.open)}>
               <summary aria-label="Aksi lainnya" title="Aksi lainnya"><MoreHorizontal size={19} aria-hidden="true" /></summary>
               <div className="hub-question-more-menu" aria-label="Aksi Question Bank lainnya">
+                <button type="button" onClick={() => { setShareOpen((open) => !open); setMoreMenuOpen(false); }} aria-expanded={shareOpen}><Share2 size={14} /> Bagikan bank soal</button>
                 <button type="button" onClick={() => { handleExportCsv(); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export CSV</button>
                 <button type="button" onClick={() => { handleExportJson(); setMoreMenuOpen(false); }} disabled={!questions.length}><FileJson size={14} /> Backup JSON</button>
                 <button type="button" onClick={() => { handleAddCategory("exam_type"); setMoreMenuOpen(false); }}>Tambah Exam Type</button>
@@ -1304,6 +1308,8 @@ export default function QuestionLibrary() {
               </div>
             </details>
           </div>
+
+          {shareOpen && <ShareLinkPanel kind="question_bank" title="bank soal" hint="Semua soal MCQ dan Essay yang aktif ikut terbagi. Tamu bisa menjawab dan melihat pembahasan; jawaban mereka tidak disimpan. Link memuat domain situs ini." />}
 
           <div id="question-filter-panel" className="hub-question-filter-panel" hidden={!filterPanelOpen}>
             <div className="hub-question-filter-grid">

@@ -60,7 +60,8 @@ export default function HubShell({ children }) {
     return () => pageAnimation.current?.cancel();
   }, [pathname, immersiveStudyRoute]);
 
-  if (portfolioLanding) return children;
+  const sharedRoute = pathname === "/share" || pathname?.startsWith("/share/");
+  if (portfolioLanding || sharedRoute) return children;
 
   if (specialistRoute) {
     return (

@@ -41,6 +41,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 041 | `041-image-occlusion-mask-rotation.sql` | Persist a bounded rotation angle for each Image Occlusion mask | 038, 039, 040 |
 | 042 | `042-essay-spaced-repetition.sql` | Re-enable owner-scoped Again/Hard/Good/Easy scheduling for Essay only; preserve MCQ history and keep MCQ scheduling disabled | 035, 038 |
 | 044 | `044-academic-reference-library.sql` | Owner-private drug cards and reference values (normal ranges, doses, formulas) with Trash retention | 004, 012 |
+| 045 | `045-academic-share-links.sql` | Unlisted random-token share links for Image Occlusion sets, the whole Question Bank (MCQ and Essay), and the Reference library; anon read via one RPC and signed image URLs for shared content only | 038, 040, 031, 044 |
 
 ## Safety notes
 
