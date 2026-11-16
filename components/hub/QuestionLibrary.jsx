@@ -80,6 +80,15 @@ const DEFAULT_FORM = Object.freeze({
   is_bookmarked: false,
 });
 
+const STUDIO_TAB_ORDER = ["practice", "library", "mistakes", "image-occlusion", "import"];
+const STUDIO_TABS = {
+  practice: { label: "PRACTICE", eyebrow: "PRACTICE", title: "Latihan soal", description: "Pilih filter, lalu mulai sesi MCQ atau essay." },
+  library: { label: "LIBRARY", eyebrow: "LIBRARY", title: "Bank soal", description: "Kelola soal, jawaban, dan pembahasan. Filter menentukan sesi latihan berikutnya." },
+  mistakes: { label: "MISTAKES", eyebrow: "MISTAKES", title: "Catatan kesalahan", description: "Soal yang pernah salah, diurutkan dari yang paling perlu diulang." },
+  "image-occlusion": { label: "IMAGE OCCLUSION", eyebrow: "IMAGE OCCLUSION", title: "Study dari gambar", description: "Buat kartu dengan mask pada gambar, lalu review bagian per bagian." },
+  import: { label: "CSV IMPORT", eyebrow: "CSV IMPORT", title: "Impor CSV", description: "Tambahkan soal massal dari file CSV." },
+};
+
 export default function QuestionLibrary() {
   const router = useRouter();
   // Top-level bank sub-navigation: "practice" | "library" | "mistakes" | "import"
@@ -800,118 +809,26 @@ export default function QuestionLibrary() {
 
   return (
     <section className="hub-crud-panel hub-question-bank-workspace" aria-label="Question Bank Workspace">
-      {/* Top Heading & Responsive Tab Bar */}
-      <header className="hub-crud-heading" style={{ flexWrap: "wrap", gap: "0.75rem", padding: "1rem" }}>
-        <div style={{ flex: "1 1 18rem", minWidth: 0 }}>
-          <span style={{ fontSize: "0.62rem", color: "var(--hub-muted)", fontFamily: "var(--font-geist-mono), monospace" }}>
-            ACADEMIC / QUESTION BANK
-          </span>
-          <h2 style={{ fontSize: "clamp(1.35rem, 4vw, 1.75rem)", margin: "0.2rem 0", color: "var(--hub-text)", wordBreak: "break-word" }}>
-            Question Library & Practice
-          </h2>
-          <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--hub-muted)", lineHeight: 1.45 }}>
-            Latihan soal MCQ dan Essay, catatan kesalahan, serta impor CSV.
-          </p>
+      {/* Studio header: mode tabs, then eyebrow / title / description per mode */}
+      <header className="hub-crud-heading hub-studio-heading">
+        <div className="hub-question-tabs hub-studio-tabs" role="tablist" aria-label="Question bank modes">
+          {STUDIO_TAB_ORDER.map((tabId) => (
+            <button
+              key={tabId}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tabId}
+              className={activeTab === tabId ? "is-active" : undefined}
+              onClick={() => { setActiveTab(tabId); if (tabId !== "practice") setPracticeActive(false); }}
+            >
+              {STUDIO_TABS[tabId].label}
+            </button>
+          ))}
         </div>
-
-        {/* Workspace Mode Subtabs (Mobile scrollable without horizontal overflow) */}
-        <div
-          className="hub-question-tabs"
-          role="tablist"
-          aria-label="Question bank modes"
-          style={{
-            display: "flex",
-            gap: "0.35rem",
-            padding: "0.25rem",
-            border: "1px solid var(--hub-line)",
-            borderRadius: "7px",
-            maxWidth: "100%",
-            overflowX: "auto",
-            scrollbarWidth: "none",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "practice"}
-            className={activeTab === "practice" ? "is-active" : undefined}
-            onClick={() => { setActiveTab("practice"); setPracticeActive(false); }}
-            style={{
-              padding: "0.45rem 0.75rem",
-              border: 0,
-              borderRadius: "4px",
-              color: activeTab === "practice" ? "var(--hub-text)" : "var(--hub-muted)",
-              background: activeTab === "practice" ? "var(--hub-surface)" : "transparent",
-              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            PRACTICE
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "library"}
-            className={activeTab === "library" ? "is-active" : undefined}
-            onClick={() => setActiveTab("library")}
-            style={{
-              padding: "0.45rem 0.75rem",
-              border: 0,
-              borderRadius: "4px",
-              color: activeTab === "library" ? "var(--hub-text)" : "var(--hub-muted)",
-              background: activeTab === "library" ? "var(--hub-surface)" : "transparent",
-              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            LIBRARY
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "mistakes"}
-            className={activeTab === "mistakes" ? "is-active" : undefined}
-            onClick={() => setActiveTab("mistakes")}
-            style={{
-              padding: "0.45rem 0.75rem",
-              border: 0,
-              borderRadius: "4px",
-              color: activeTab === "mistakes" ? "var(--hub-text)" : "var(--hub-muted)",
-              background: activeTab === "mistakes" ? "var(--hub-surface)" : "transparent",
-              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            MISTAKES
-          </button>
-          <button type="button" role="tab" aria-selected={activeTab === "image-occlusion"} className={`hub-question-mode-tab${activeTab === "image-occlusion" ? " is-active" : ""}`} onClick={() => setActiveTab("image-occlusion")}>IMAGE OCCLUSION</button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "import"}
-            className={activeTab === "import" ? "is-active" : undefined}
-            onClick={() => setActiveTab("import")}
-            style={{
-              padding: "0.45rem 0.75rem",
-              border: 0,
-              borderRadius: "4px",
-              color: activeTab === "import" ? "var(--hub-text)" : "var(--hub-muted)",
-              background: activeTab === "import" ? "var(--hub-surface)" : "transparent",
-              font: "0.7rem 'IBM Plex Mono', var(--font-geist-mono), monospace",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            CSV IMPORT
-          </button>
+        <div className="hub-studio-title">
+          <span className="hub-studio-eyebrow">{STUDIO_TABS[activeTab]?.eyebrow}</span>
+          <h2>{STUDIO_TABS[activeTab]?.title}</h2>
+          <p>{STUDIO_TABS[activeTab]?.description}</p>
         </div>
       </header>
 

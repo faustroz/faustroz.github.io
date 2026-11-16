@@ -42,7 +42,7 @@ export default function QuickAdd() {
     await repository.create(values); setOpen(false); setForm(initial(config.fields)); setNotice(`${config.label} saved.`); window.clearTimeout(noticeTimer.current); noticeTimer.current = window.setTimeout(() => setNotice(""), 4000);
   } catch (error) { setStatus(error.message); return; } setStatus(""); };
   return <>
-    <button className="hub-quick-add-trigger" type="button" onClick={() => { setFormStarted(false); setOpen(true); }} aria-label="Quick add private record" disabled={!isSupabaseConfigured}><Plus /> <span>ADD</span></button>
+    <button className="hub-quick-add-trigger" type="button" onClick={() => { setFormStarted(false); setOpen(true); }} aria-label="Quick add private record" disabled={!isSupabaseConfigured}><Plus /> <span>Add</span></button>
     {notice && <span className="hub-quick-add-feedback" role="status"><Check aria-hidden="true" /> {notice}</span>}
     {open && <div className="hub-crud-modal-backdrop" onMouseDown={() => setOpen(false)}><div role="dialog" aria-modal="true" aria-label="Quick Add" className={`hub-crud-form hub-crud-modal hub-quick-add${formStarted ? " hub-quick-add--form" : ""}`} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }} onMouseDown={(event) => event.stopPropagation()}><div className="hub-crud-form-head"><span>{formStarted ? "QUICK ADD / PRIVATE" : "QUICK ADD"}</span><button type="button" onClick={() => setOpen(false)} aria-label="Close quick add"><X /></button></div>
       {!formStarted ? <>

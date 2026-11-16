@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChartNoAxesCombined, Home, Search, Settings, WalletCards, X } from "lucide-react";
+import { Activity, ChartNoAxesCombined, GraduationCap, Home, Search, Settings, SlidersHorizontal, Target, Trash2, WalletCards, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { HUB_MODULES, resolveActiveNav } from "@/lib/hub/navigation.mjs";
 import GlobalSearch from "@/components/hub/GlobalSearch";
@@ -29,6 +29,20 @@ const routeDisplayNumbers = Object.freeze(Object.fromEntries(
 
 const displayNumber = (item) => routeDisplayNumbers[item.id] || item.number;
 
+const desktopIcons = {
+  home: Home,
+  finance: WalletCards,
+  academic: GraduationCap,
+  osint: Target,
+  insights: ChartNoAxesCombined,
+  trash: Trash2,
+  settings: SlidersHorizontal,
+};
+
+const topbarDate = () => new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+  .format(new Date())
+  .toUpperCase();
+
 const secondaryIcons = {
   finance: WalletCards,
   settings: Settings,
@@ -46,6 +60,11 @@ export default function HubNavigation() {
   const triggerRefs = useRef({});
   const closeRef = useRef(null);
   const open = Boolean(mobileSheet);
+  const [today, setToday] = useState("");
+
+  useEffect(() => {
+    setToday(topbarDate());
+  }, []);
 
   const closeSheet = (restoreFocus = false) => {
     if (restoreFocus && mobileSheet) triggerRefs.current[mobileSheet]?.focus();
@@ -115,8 +134,10 @@ export default function HubNavigation() {
               {section.ids.map((id) => {
                 const item = HUB_MODULES.find((module) => module.id === id);
                 if (!item) return null;
+                const Icon = desktopIcons[item.id] || Activity;
                 return <Link key={item.id} href={item.href} aria-current={active === item.id || pathname === item.href ? "page" : undefined}>
                   <span>{displayNumber(item)}</span>
+                  <Icon className="hub-nav-icon" aria-hidden="true" />
                   {item.label}
                 </Link>;
               })}
@@ -124,14 +145,19 @@ export default function HubNavigation() {
           ))}
         </nav>
 
+        <div className="hub-topbar-meta">
+          <span className="hub-topbar-date">{today}</span>
+          <span className="hub-topbar-live"><i aria-hidden="true" /> PRIVATE WORKSPACE</span>
+        </div>
+
         <div className="hub-system-status" aria-label="System controls">
+          <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setMobileSheet(null); setSearchOpen(true); }}>
+            <Search aria-hidden="true" /><span className="hub-search-label">SEARCH</span><span className="hub-search-hint">Search finance, academic, system…</span><kbd>Ctrl K</kbd>
+          </button>
           <div className="hub-primary-actions" role="group" aria-label="Quick actions">
             <QuickAdd />
             <NotificationCenter />
           </div>
-          <button type="button" className="hub-search-trigger" aria-label="Search private records" onClick={() => { setMobileSheet(null); setSearchOpen(true); }}>
-            <Search aria-hidden="true" /><span>SEARCH</span>
-          </button>
           <i aria-hidden="true" />
           <span className="hub-status-long">All systems online</span>
           <span className="hub-status-short">Online</span>
