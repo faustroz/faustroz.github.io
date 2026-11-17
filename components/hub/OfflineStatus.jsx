@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CloudOff, RefreshCw } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createQuestionRepository } from "@/lib/hub/question-bank.mjs";
+import { createImageOcclusionRepository } from "@/lib/hub/image-occlusion.mjs";
 import { flushQueue, OFFLINE_QUEUE_EVENT, queueSize } from "@/lib/hub/offline-store.mjs";
 
 /** Shows offline state and syncs queued attempts as soon as the connection returns. */
@@ -19,7 +20,8 @@ export default function OfflineStatus({ snapshotAt = "" }) {
     if (syncing.current || !navigator.onLine || !queueSize(window.localStorage)) return;
     syncing.current = true;
     try {
-      const result = await flushQueue({ storage: window.localStorage, repository: createQuestionRepository(requireSupabase()) });
+      const client = requireSupabase();
+      const result = await flushQueue({ storage: window.localStorage, repository: createQuestionRepository(client), occlusionRepository: createImageOcclusionRepository(client) });
       setMessage(result.sent ? `${result.sent} jawaban tersinkron.` : result.error);
     } catch (error) {
       setMessage(error?.message || "Sinkronisasi gagal.");

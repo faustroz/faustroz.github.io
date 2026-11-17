@@ -5002,3 +5002,4 @@ html:has(.hub-shell.hub-theme-light) { background: #f3f5f2; color-scheme: light;
   .hub-shell .hub-question-bank-workspace .hub-question-tool-button,
   .hub-shell .hub-question-bank-workspace .hub-question-add-button { flex: 1 1 auto; }
 }
+.hub-occlusion-study > .hub-offline-status { position: fixed; z-index: 30; right: 1rem; bottom: 1rem; max-width: min(28rem, calc(100vw - 2rem)); margin: 0; }

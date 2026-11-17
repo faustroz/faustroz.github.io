@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
 import { applyImageOcclusionRating, createImageOcclusionRepository, createImageOcclusionRetryRun, getImageOcclusionRatingFromKey, readImageOcclusionRun, writeImageOcclusionRun } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound } from "@/lib/hub/image-occlusion-sounds.mjs";
+import { enqueueOffline, getCachedImageUrl, isNetworkError } from "@/lib/hub/offline-store.mjs";
+import OfflineStatus from "@/components/hub/OfflineStatus";
 
 const ratings = [["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]];
 
@@ -26,9 +28,15 @@ export default function ImageOcclusionStudyPage() {
   useEffect(() => {
     let active = true;
     setImageUrl("");
-    if (activeImagePath) requireSupabase().storage.from("academic-question-images").createSignedUrl(activeImagePath, 3600)
-      .then(({ data, error: signError }) => { if (active) setImageUrl(signError ? "" : data?.signedUrl || ""); })
-      .catch(() => { if (active) setImageUrl(""); });
+    if (activeImagePath) {
+      const fromCache = () => getCachedImageUrl(activeImagePath).then((url) => { if (active && url) setImageUrl(url); });
+      if (!navigator.onLine) fromCache();
+      else {
+        requireSupabase().storage.from("academic-question-images").createSignedUrl(activeImagePath, 3600)
+          .then(({ data, error: signError }) => { if (!active) return; if (signError || !data?.signedUrl) fromCache(); else setImageUrl(data.signedUrl); })
+          .catch(() => { if (active) fromCache(); });
+      }
+    }
     return () => { active = false; };
   }, [activeImagePath]);
 
@@ -80,6 +88,12 @@ export default function ImageOcclusionStudyPage() {
         }));
         playImageOcclusionSound(rating, window);
       } catch (saveError) {
+        if (isNetworkError(saveError) && enqueueOffline(window.localStorage, "rating", { cardId: targetCardId, rating })) {
+          setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex ? { ...item, saved: true } : item) }));
+          playImageOcclusionSound(rating, window);
+          setError("Offline: rating disimpan di perangkat dan disinkronkan saat online.");
+          return;
+        }
         setRun((current) => ({ ...current, responses: current.responses.map((item, index) => index === targetIndex && item.rating === rating ? { ...item, rating: null, saved: false } : item) }));
         playImageOcclusionSound("error", window);
         setError(`Rating kartu ${String(targetIndex + 1).padStart(2, "0")} belum tersimpan. Kembali ke kartu tersebut untuk mencoba lagi. ${saveError?.message || ""}`);
@@ -196,6 +210,7 @@ export default function ImageOcclusionStudyPage() {
   }
 
   return <main className="hub-occlusion-study">
+    <OfflineStatus />
     <header className="hub-occlusion-study-top"><button type="button" className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Image Occlusion"><ArrowLeft size={18} /></button><div><span>IMAGE OCCLUSION / {isRetry ? "RETRY" : "HIDE ALL"}</span><strong>{run.title}</strong></div><b>{String(run.index + 1).padStart(2, "0")} / {String(run.cards.length).padStart(2, "0")}</b></header>
     <div className="academic-practice__progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100"><span style={{ width: `${progress}%` }} /></div>
     <section className="hub-occlusion-study-body">

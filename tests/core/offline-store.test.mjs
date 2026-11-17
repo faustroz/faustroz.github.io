@@ -46,6 +46,17 @@ test("flushQueue sends in order and removes what was sent", async () => {
   assert.equal(queueSize(storage), 0);
 });
 
+test("flushQueue sends Image Occlusion ratings through the occlusion repository", async () => {
+  const storage = memoryStorage();
+  enqueueOffline(storage, "rating", { cardId: "c1", rating: "good" });
+  enqueueOffline(storage, "rating", { cardId: "c2", rating: "again" });
+  const rated = [];
+  const result = await flushQueue({ storage, repository: {}, occlusionRepository: { rateCard: async (cardId, rating) => { rated.push([cardId, rating]); } }, online: true });
+  assert.deepEqual(rated, [["c1", "good"], ["c2", "again"]]);
+  assert.equal(result.sent, 2);
+  assert.equal(queueSize(storage), 0);
+});
+
 test("flushQueue stops on a network error and keeps the rest", async () => {
   const storage = memoryStorage();
   enqueueOffline(storage, "mcq", { question_id: "q1" });

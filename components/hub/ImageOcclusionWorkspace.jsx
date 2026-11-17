@@ -9,6 +9,7 @@ import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcc
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 import ShareLinkPanel from "@/components/hub/ShareLinkPanel";
 import { exportOcclusionSetToAnki } from "@/lib/hub/anki-browser.mjs";
+import { cacheQuestionImages, getCachedImageUrl, isNetworkError, loadOcclusionSnapshot, saveOcclusionSnapshot } from "@/lib/hub/offline-store.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", groupName: IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: "answer", activeImageId: null, images: [] });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -52,6 +53,7 @@ export default function ImageOcclusionWorkspace() {
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
   const [sharingSetId, setSharingSetId] = useState(null);
   const [exportingSetId, setExportingSetId] = useState(null);
+  const [offlineAt, setOfflineAt] = useState("");
   const [exportError, setExportError] = useState("");
   const exportToAnki = async (set) => {
     setExportingSetId(set.id); setExportError("");
@@ -96,8 +98,10 @@ export default function ImageOcclusionWorkspace() {
     setLoading(true); setError("");
     try {
       const data = await repository.listSets();
+      let groupsForSnapshot = [];
       try {
-        setManagedGroups(await repository.listGroups());
+        groupsForSnapshot = await repository.listGroups();
+        setManagedGroups(groupsForSnapshot);
         setGroupManagementAvailable(true);
         setGroupManagementError("");
       } catch {
@@ -115,7 +119,26 @@ export default function ImageOcclusionWorkspace() {
         return { ...set, images, imageUrl: images[0]?.imageUrl || "" };
       }));
       setSets(nextSets);
-    } catch (nextError) { setError(nextError?.message || "Kumpulan Image Occlusion gagal dimuat."); }
+      setOfflineAt("");
+      // Full offline study: keep the sets, cards and review state locally, and every image in the Cache API.
+      saveOcclusionSnapshot({ sets: data, groups: groupsForSnapshot });
+      navigator.serviceWorker?.controller?.postMessage({ type: "CACHE_URLS", urls: ["/academic/occlusion"] });
+      if (!navigator.connection?.saveData) cacheQuestionImages(client, data.flatMap((set) => (set.images?.length ? set.images : [{ image_path: set.image_path }]).map((image) => image.image_path)), { limit: 200, concurrency: 2 });
+    } catch (nextError) {
+      const snapshot = isNetworkError(nextError) ? await loadOcclusionSnapshot() : null;
+      if (snapshot?.sets) {
+        const offlineSets = await Promise.all(snapshot.sets.map(async (set) => {
+          const sourceImages = set.images?.length ? set.images : [{ id: null, image_path: set.image_path, cards: set.cards }];
+          const images = await Promise.all(sourceImages.map(async (image) => ({ ...image, imageUrl: await getCachedImageUrl(image.image_path) })));
+          return { ...set, images, imageUrl: images[0]?.imageUrl || "" };
+        }));
+        setSets(offlineSets);
+        setManagedGroups(snapshot.groups || []);
+        setOfflineAt(snapshot.savedAt || new Date().toISOString());
+      } else {
+        setError(isNetworkError(nextError) ? "Offline dan belum ada salinan kumpulan gambar. Buka tab ini sekali saat online." : nextError?.message || "Kumpulan Image Occlusion gagal dimuat.");
+      }
+    }
     finally { setLoading(false); }
   }, [repository]);
 
@@ -372,7 +395,12 @@ export default function ImageOcclusionWorkspace() {
   const startStudy = async (set, dueOnly = false) => {
     setError("");
     try {
-      const allCards = await repository.listCards(set.id);
+      let allCards;
+      try { allCards = await repository.listCards(set.id); }
+      catch (cardsError) {
+        if (!isNetworkError(cardsError) || !set.cards?.length) throw cardsError;
+        allCards = [...set.cards].sort((left, right) => left.position - right.position);
+      }
       const savedRun = readImageOcclusionRun(window.sessionStorage);
       const resumableRun = getResumableImageOcclusionRun(savedRun, set.id, dueOnly);
       if (resumableRun) {
@@ -390,6 +418,7 @@ export default function ImageOcclusionWorkspace() {
   };
 
   return <section className="hub-occlusion-workspace" aria-label="Image Occlusion workspace">
+    {offlineAt && <p className="hub-data-state" role="status">OFFLINE · kumpulan gambar dari cache {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(offlineAt))}. Belajar tetap bisa; edit tersedia saat online.</p>}
     <header className="hub-occlusion-heading"><div><span>ACADEMIC / IMAGE OCCLUSION</span><h3>Study from the image.</h3><p>Buat kartu dengan mask pada gambar, lalu review setiap bagian secara terpisah.</p></div><button type="button" className="hub-question-add-button" onClick={startNew}><Plus size={16} /> Kumpulan baru</button></header>
     {status && <p className="hub-occlusion-status" role="status"><Check size={15} />{status}</p>}
     {error && <p className="hub-data-error" role="alert">{error}</p>}
