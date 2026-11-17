@@ -261,6 +261,46 @@ describe("ECG Lab interface", () => {
     expect(screen.getByRole("button", { name: /NEXT/ })).toBeInTheDocument();
   });
 
+  it("mechanism lab explains the knobs and names the pattern", () => {
+    render(<EcgLab />);
+    fireEvent.click(screen.getByRole("button", { name: "MECHANISM" }));
+    expect(screen.getByText("NORMAL SINUS RHYTHM")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "1° AV BLOCK" }));
+    expect(screen.getByText("FIRST-DEGREE AV BLOCK")).toBeInTheDocument();
+    expect(screen.getByText(/The AV node holds the impulse longer/)).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("group", { name: "BUNDLE" })).getByRole("button", { name: "LBBB" }));
+    expect(screen.getByText("LEFT BUNDLE BRANCH BLOCK")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^RATE/), { target: { value: "130" } });
+    expect(screen.getByText(/The SA node fires fast/)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Conduction diagram/ })).toBeInTheDocument();
+  });
+
+  it("step by step mode walks through the findings before the diagnosis", () => {
+    render(<EcgLab />);
+    fireEvent.click(screen.getByRole("button", { name: "STEP BY STEP" }));
+    expect(screen.getByText(/STEP 1 OF 8 · RATE/)).toBeInTheDocument();
+    for (let step = 1; step <= 8; step += 1) {
+      const group = screen.getByRole("group", { name: new RegExp(`^Step ${step}:`) });
+      fireEvent.click(within(group).getAllByRole("button")[0]);
+      expect(screen.getByText(/CORRECT|INCORRECT/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /CONTINUE|SEE SUMMARY/ }));
+    }
+    expect(screen.getByText(/Findings right:/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /NEXT CASE/ })).toBeInTheDocument();
+  });
+
+  it("axis lab explores the vector and runs a quiz round", () => {
+    render(<EcgLab />);
+    fireEvent.click(screen.getByRole("button", { name: "AXIS" }));
+    expect(screen.getByRole("img", { name: /Hexaxial reference system/ })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("QRS axis in degrees"), { target: { value: "-60" } });
+    expect(screen.getByText(/-60° · LEFT AXIS DEVIATION/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "AXIS QUIZ" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Axis options" })).getAllByRole("button")[0]);
+    expect(screen.getByText(/CORRECT|INCORRECT/)).toBeInTheDocument();
+    expect(screen.getByText(/Axis ≈/)).toBeInTheDocument();
+  });
+
   it("shows the mistake review tab", () => {
     window.localStorage.clear();
     render(<EcgLab />);

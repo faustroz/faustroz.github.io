@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateEcg, makeRng } from "@/lib/hub/ecg-rhythms.mjs";
 import { analyzeEcg, ECG_REFERENCE } from "@/lib/hub/ecg-analysis.mjs";
 import { ECG_CASES, ECG_CATEGORIES, DIFFICULTY_LABELS, getCaseById, casesByDifficulty } from "@/lib/hub/ecg-cases.mjs";
-import { computeSheetLayout, drawEcgSheet, drawRateStrip } from "@/lib/hub/ecg-paper.mjs";
+import { drawRateStrip } from "@/lib/hub/ecg-paper.mjs";
 import { buildRateQuestion, generateRateStrip, RATE_METHODS } from "@/lib/hub/ecg-rate.mjs";
 import { playQuizSound, readQuizSoundSettings, signalAnswer, unlockQuizAudio, writeQuizSoundSettings } from "@/lib/hub/quiz-feedback.mjs";
+import EcgCanvas from "@/components/hub/EcgCanvas";
+import EcgMechanismLab from "@/components/hub/EcgMechanismLab";
+import EcgSystematicQuiz from "@/components/hub/EcgSystematicQuiz";
+import EcgAxisLab from "@/components/hub/EcgAxisLab";
 
 const DURATION_SEC = 10;
 const MISTAKES_KEY = "hub-ecg-mistakes";
@@ -35,57 +39,6 @@ function shuffledOptions(caseDef, seed) {
     [list[i], list[j]] = [list[j], list[i]];
   }
   return list.map((id) => getCaseById(id)).filter(Boolean);
-}
-
-function EcgCanvas({ gen, settings, panSec, cursorSec, onPanDrag, onLayout }) {
-  const canvasRef = useRef(null);
-  const dragRef = useRef(null);
-  const stateRef = useRef({ gen, settings, panSec, cursorSec, onPanDrag });
-  stateRef.current = { gen, settings, panSec, cursorSec, onPanDrag };
-
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    const { width, height } = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-    }
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const layout = computeSheetLayout({ width, height, paperSpeed: settings.paperSpeed, gain: settings.gain, zoom: settings.zoom });
-    if (onLayout) onLayout(layout);
-    drawEcgSheet(context, { gen, layout, panSec, cursorSec });
-  }, [gen, settings, panSec, cursorSec, onLayout]);
-
-  useEffect(() => { render(); }, [render]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || typeof window.ResizeObserver !== "function") return undefined;
-    const observer = new ResizeObserver(() => render());
-    observer.observe(canvas);
-    return () => observer.disconnect();
-  }, [render]);
-
-  const onPointerDown = useCallback((event) => {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: event.clientX, pan: stateRef.current.panSec };
-  }, []);
-
-  const onPointerMove = useCallback((event) => {
-    if (!dragRef.current) return;
-    const canvas = event.currentTarget;
-    const layout = computeSheetLayout({ width: canvas.clientWidth, height: canvas.clientHeight, paperSpeed: stateRef.current.settings.paperSpeed, gain: stateRef.current.settings.gain, zoom: stateRef.current.settings.zoom });
-    const dx = event.clientX - dragRef.current.x;
-    stateRef.current.onPanDrag(dragRef.current.pan - dx / layout.pxPerSec);
-  }, []);
-
-  const stopDrag = useCallback(() => { dragRef.current = null; }, []);
-
-  return <canvas ref={canvasRef} className="hub-ecg-canvas" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={stopDrag} onPointerCancel={stopDrag} role="img" aria-label="Synthetic 12-lead ECG printout" />;
 }
 
 const RATE_PX_PER_MM = 8;
@@ -294,9 +247,12 @@ export default function EcgLab() {
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "learn"} onClick={() => setMode("learn")}>LEARN</button>
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "quiz"} onClick={() => startQuiz(difficulty)}>QUIZ</button>
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "rate"} onClick={() => startRate(rateMethod)}>HEART RATE</button>
+          <button type="button" className="hub-pocus-preset" aria-pressed={mode === "mechanism"} onClick={() => setMode("mechanism")}>MECHANISM</button>
+          <button type="button" className="hub-pocus-preset" aria-pressed={mode === "steps"} onClick={() => setMode("steps")}>STEP BY STEP</button>
+          <button type="button" className="hub-pocus-preset" aria-pressed={mode === "axis"} onClick={() => setMode("axis")}>AXIS</button>
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "review"} onClick={() => setMode("review")}>REVIEW {mistakeCases.length ? `(${mistakeCases.length})` : ""}</button>
         </div>
-        {mode !== "rate" && <div className="hub-pocus-presets" role="group" aria-label="Viewer controls">
+        {["learn", "quiz", "review"].includes(mode) && <div className="hub-pocus-presets" role="group" aria-label="Viewer controls">
           <button type="button" className="hub-pocus-preset" aria-pressed={playing} onClick={togglePlay}>{playing ? "PAUSE" : "PLAY"}</button>
           {[25, 50].map((speed) => (
             <button key={speed} type="button" className="hub-pocus-preset" aria-pressed={paperSpeed === speed} onClick={() => setPaperSpeed(speed)}>{speed} MM/S</button>
@@ -447,6 +403,10 @@ export default function EcgLab() {
           </section>
         </>
       )}
+
+      {mode === "mechanism" && <EcgMechanismLab />}
+      {mode === "steps" && <EcgSystematicQuiz />}
+      {mode === "axis" && <EcgAxisLab />}
 
       {mode === "review" && (
         <section className="hub-ecg-side hub-ecg-review" aria-label="Mistake review">
