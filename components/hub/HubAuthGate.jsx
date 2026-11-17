@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { KeyRound, LockKeyhole, Radio, ShieldCheck } from "lucide-react";
 import { createAuthService } from "@/lib/hub/auth.mjs";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { hasStoredAuthSession } from "@/lib/hub/offline-store.mjs";
+
+// Offline, Supabase cannot refresh an expired token. Keep the pages usable when a session is stored on this
+// device; data is still protected by RLS on the server and nothing syncs until the connection returns.
+const offlineSession = () => (typeof navigator !== "undefined" && !navigator.onLine && hasStoredAuthSession(window.localStorage) ? { offline: true } : null);
 
 export default function HubAuthGate({ children }) {
   const auth = useMemo(
@@ -27,10 +32,13 @@ export default function HubAuthGate({ children }) {
     auth
       .getSession()
       .then((nextSession) => {
-        if (active) setSession(nextSession);
+        if (active) setSession(nextSession || offlineSession());
       })
       .catch((nextError) => {
-        if (active) setError(nextError.message);
+        if (!active) return;
+        const fallback = offlineSession();
+        if (fallback) setSession(fallback);
+        else setError(nextError.message);
       })
       .finally(() => {
         if (active) setChecking(false);

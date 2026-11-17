@@ -1,6 +1,6 @@
 // Bump this whenever shell markup changes so a standalone install cannot pair
 // fresh HTML with a stale JavaScript bundle during hydration.
-const CACHE_NAME = "4allx-shell-v3";
+const CACHE_NAME = "4allx-shell-v4";
 const APP_SHELL = ["/", "/hub", "/offline.html", "/hub-manifest.webmanifest", "/icons/fd-os-icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -20,6 +20,14 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  // Pages ask for routes to be kept for offline practice. Same-origin paths only.
+  if (event.data?.type === "CACHE_URLS" && Array.isArray(event.data.urls)) {
+    event.waitUntil(caches.open(CACHE_NAME).then((cache) => Promise.all(
+      event.data.urls
+        .filter((path) => typeof path === "string" && path.startsWith("/") && !path.startsWith("//"))
+        .map((path) => fetch(path, { credentials: "same-origin" }).then((response) => (response.ok ? cache.put(path, response) : null)).catch(() => null))
+    )));
+  }
 });
 
 self.addEventListener("fetch", (event) => {

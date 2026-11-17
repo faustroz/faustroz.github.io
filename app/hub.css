@@ -4892,3 +4892,113 @@ html:has(.hub-shell.hub-theme-light) { background: #f3f5f2; color-scheme: light;
 .hub-shell .hub-share-panel { align-content: start; gap: 0.75rem; padding: 1rem; }
 .hub-shell .hub-share-panel small { display: block; }
 .hub-shell .hub-share-actions { gap: 0.55rem; }
+
+/* Image set library controls: GRUP filter, Kelola grup, Acak share one neutral control style */
+.hub-shell .hub-occlusion-library-controls { align-items: center; gap: 0.5rem; }
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-group-filter { display: inline-flex; align-items: center; gap: 0.5rem; }
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-group-filter select,
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-group-manage-trigger,
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-shuffle-button {
+  height: 2.25rem; min-height: 2.25rem; margin: 0; padding: 0 0.85rem; box-sizing: border-box;
+  border: 1px solid #2a2a2a; border-radius: 8px; background: #111; color: var(--hub-muted);
+  font: 0.7rem var(--font-geist-mono), monospace; letter-spacing: 0.05em; line-height: 1;
+}
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-group-filter select {
+  min-width: 9rem; padding-right: 2rem; color: var(--hub-text); color-scheme: dark;
+}
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-group-manage-trigger,
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-shuffle-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; cursor: pointer;
+}
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-group-manage-trigger:hover,
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-shuffle-button:hover { border-color: #3a3a3a; color: var(--hub-text); }
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-shuffle-button.is-active {
+  border-color: #ededed; background: rgba(255, 255, 255, 0.06); color: var(--hub-text);
+}
+.hub-shell .hub-occlusion-library-controls .hub-occlusion-shuffle-button.is-active b { color: var(--hub-text); }
+
+/* Academic: Question Bank entry card and exam schedule */
+.hub-academic-qb-link { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; padding: 1rem 1.1rem; border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-panel); color: var(--hub-text); text-decoration: none; }
+.hub-academic-qb-link:hover { border-color: var(--hub-line-bright); }
+.hub-academic-qb-link > svg { flex: 0 0 auto; width: 1.3rem; height: 1.3rem; color: var(--hub-muted); }
+.hub-academic-qb-link > span { display: grid; gap: .2rem; flex: 1; min-width: 0; }
+.hub-academic-qb-link small { color: var(--hub-muted); font-size: .78rem; line-height: 1.4; }
+.hub-exam-schedule { display: grid; gap: 1rem; margin-top: 1.25rem; padding: 1.1rem; border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-panel); min-width: 0; }
+.hub-exam-schedule > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.hub-exam-schedule > header span { color: var(--hub-muted); font: .62rem var(--font-geist-mono), monospace; letter-spacing: .08em; }
+.hub-exam-schedule > header h2 { margin: .25rem 0; font-size: 1.25rem; }
+.hub-exam-schedule > header p { margin: 0; color: var(--hub-muted); font-size: .82rem; }
+.hub-exam-schedule > header > svg { width: 1.3rem; height: 1.3rem; color: var(--hub-muted); flex: 0 0 auto; }
+.hub-exam-form { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .9fr) auto; gap: .75rem; align-items: end; }
+.hub-exam-form label { display: grid; gap: .35rem; color: var(--hub-muted); font-size: .72rem; min-width: 0; }
+.hub-exam-form input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 2.5rem; padding: 0 .7rem; border: 1px solid var(--hub-line); border-radius: 8px; background: var(--hub-surface); color: var(--hub-text); font: inherit; color-scheme: dark; }
+.hub-exam-submit { min-height: 2.5rem; padding: 0 1rem; border: 0; border-radius: 8px; background: var(--hub-text); color: var(--hub-ink); font: 600 .78rem var(--font-geist-mono), monospace; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+.hub-exam-submit:disabled { opacity: .5; cursor: default; }
+.hub-exam-list { display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
+.hub-exam-item { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: .9rem 1rem; border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-surface); }
+.hub-exam-item.is-today { border-color: var(--hub-text); }
+.hub-exam-item.is-past { opacity: .6; }
+.hub-exam-count { display: grid; gap: .2rem; }
+.hub-exam-count strong { font: 700 1.6rem/1 var(--font-geist-mono), monospace; font-variant-numeric: tabular-nums; }
+.hub-exam-item.is-soon .hub-exam-count strong { color: #f59e0b; }
+.hub-exam-count small { color: var(--hub-muted); font-size: .72rem; }
+.hub-exam-body { display: grid; gap: .45rem; min-width: 0; }
+.hub-exam-body h3 { margin: 0; font-size: 1rem; }
+.hub-exam-body h3 small { color: var(--hub-muted); font-weight: 400; }
+.hub-exam-body p { margin: 0; color: var(--hub-muted); font-size: .8rem; }
+.hub-exam-body .hub-exam-target { color: var(--hub-text); }
+.hub-exam-meter { height: .4rem; border-radius: 999px; background: var(--hub-line); overflow: hidden; }
+.hub-exam-meter span { display: block; height: 100%; background: var(--hub-text); }
+.hub-exam-actions { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 767px) {
+  .hub-exam-form { grid-template-columns: 1fr; }
+  .hub-exam-submit { width: 100%; }
+  .hub-exam-item { grid-template-columns: 1fr; }
+  .hub-exam-actions { justify-content: flex-start; }
+}
+
+/* Shared empty state with a call to action */
+.hub-empty-state { display: grid; justify-items: start; gap: .75rem; padding: 1.1rem 1.2rem; border: 1px dashed var(--hub-line-bright); border-radius: 10px; color: var(--hub-muted); }
+.hub-empty-state p { margin: 0; font-size: .9rem; }
+.hub-shell button.hub-empty-cta, .hub-shell a.hub-empty-cta { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.4rem; padding: 0 1rem; border: 0; border-radius: 8px; background: var(--hub-text); color: var(--hub-ink); font: 600 .75rem var(--font-geist-mono), monospace; letter-spacing: .05em; text-transform: uppercase; text-decoration: none; cursor: pointer; }
+
+/* Offline status badge for practice and the Question Bank */
+.hub-offline-status { display: flex; align-items: center; gap: .6rem; margin: .75rem 0; padding: .55rem .8rem; border: 1px solid var(--hub-line); border-radius: 8px; background: var(--hub-surface); color: var(--hub-muted); font: .68rem var(--font-geist-mono), monospace; letter-spacing: .05em; }
+.hub-offline-status svg { flex: 0 0 auto; width: .95rem; height: .95rem; }
+.hub-offline-status.is-offline { border-color: #f59e0b; color: #f59e0b; }
+.hub-offline-status button { margin-left: auto; padding: .3rem .65rem; border: 1px solid var(--hub-line-bright); border-radius: 6px; background: transparent; color: var(--hub-text); font: inherit; cursor: pointer; }
+.academic-practice > .hub-offline-status { position: fixed; z-index: 30; right: 1rem; bottom: 1rem; max-width: min(28rem, calc(100vw - 2rem)); margin: 0; }
+
+/* One control system for the Question Bank: same height, radius, border and type for inputs, selects and buttons */
+.hub-question-bank-workspace {
+  --ctl-h: 2.5rem;
+  --ctl-radius: 8px;
+  --ctl-border: var(--hub-line-bright);
+  --ctl-bg: var(--hub-surface);
+}
+.hub-shell .hub-question-bank-workspace select,
+.hub-shell .hub-question-bank-workspace input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]) {
+  min-height: var(--ctl-h); box-sizing: border-box; padding-block: 0; padding-inline: .75rem;
+  border: 1px solid var(--ctl-border); border-radius: var(--ctl-radius); background-color: var(--ctl-bg);
+  color: var(--hub-text); font-family: var(--font-geist-sans), sans-serif; font-size: .88rem; color-scheme: dark;
+}
+.hub-shell .hub-question-bank-workspace .hub-question-tool-button,
+.hub-shell .hub-question-bank-workspace .hub-question-add-button,
+.hub-shell .hub-question-bank-workspace .hub-primary-action,
+.hub-shell .hub-question-bank-workspace .hub-question-icon-button,
+.hub-shell .hub-question-bank-workspace .hub-question-more > summary {
+  display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: .45rem;
+  min-height: var(--ctl-h); box-sizing: border-box; padding-block: 0; padding-inline: .9rem;
+  border-radius: var(--ctl-radius); font-family: var(--font-geist-mono), monospace; font-size: .72rem; letter-spacing: .05em; line-height: 1;
+}
+.hub-shell .hub-question-bank-workspace .hub-question-tool-button,
+.hub-shell .hub-question-bank-workspace .hub-question-icon-button,
+.hub-shell .hub-question-bank-workspace .hub-question-more > summary { border: 1px solid var(--ctl-border); background: var(--ctl-bg); color: var(--hub-text); }
+.hub-shell .hub-question-bank-workspace .hub-question-tool-button:hover,
+.hub-shell .hub-question-bank-workspace .hub-question-icon-button:hover { border-color: var(--hub-text); }
+.hub-shell .hub-question-bank-workspace .hub-question-more > summary { width: var(--ctl-h); padding-inline: 0; cursor: pointer; list-style: none; }
+.hub-shell .hub-question-bank-workspace .hub-question-more > summary::-webkit-details-marker { display: none; }
+@media (max-width: 520px) {
+  .hub-shell .hub-question-bank-workspace .hub-question-tool-button,
+  .hub-shell .hub-question-bank-workspace .hub-question-add-button { flex: 1 1 auto; }
+}

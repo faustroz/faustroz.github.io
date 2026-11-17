@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Info } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Eye, EyeOff, Info, LibraryBig } from "lucide-react";
 import CrudPanel from "@/components/hub/CrudPanel";
-import QuestionLibrary from "@/components/hub/QuestionLibrary";
+import ExamSchedulePanel from "@/components/hub/ExamSchedulePanel";
 import { calculateAcademicTarget, calculateOspeScore, GRADE_POINTS } from "@/lib/hub/academic.mjs";
 import { ACADEMIC_CHANNELS } from "@/lib/hub/module-config.mjs";
 
@@ -70,7 +71,7 @@ export default function AcademicPanel() {
     return { semester, ip: total ? rows.reduce((sum, row) => sum + Number(row.credits || 0) * (GRADE_POINTS[row.grade] ?? 0), 0) / total : 0 };
   });
   const latestSemester = [...bySemester].sort((left, right) => String(right.semester).localeCompare(String(left.semester), undefined, { numeric: true }))[0] || null;
-  const pages = [["overview", "Overview"], ["grades", "Grades & Credits"], ["target", "Academic Target"], ["calculator", "Grade Calculator"], ["questions", "Question Bank"]];
+  const pages = [["overview", "Overview"], ["grades", "Grades & Credits"], ["target", "Academic Target"], ["calculator", "Grade Calculator"]];
 
   return <>
     <nav className="hub-academic-nav" role="tablist" aria-label="Academic pages">
@@ -90,6 +91,12 @@ export default function AcademicPanel() {
         </dl>
       </section>
       <p className="hub-academic-shared-note"><Info aria-hidden="true" />IPK dan IP per semester menghitung nilai blok serta MKU bersama-sama.</p>
+      <Link className="hub-academic-qb-link" href="/academic/question-bank">
+        <LibraryBig aria-hidden="true" />
+        <span><strong>Question Bank</strong><small>Latihan MCQ dan Essay, catatan kesalahan, Image Occlusion, dan impor CSV.</small></span>
+        <ArrowUpRight aria-hidden="true" />
+      </Link>
+      <ExamSchedulePanel />
     </section>
 
     <section id="academic-panel-grades" className="hub-academic-page-panel hub-academic-grades" role="tabpanel" aria-labelledby="academic-tab-grades" hidden={activePage !== "grades"}>
@@ -117,8 +124,5 @@ export default function AcademicPanel() {
       <OspeCalculator />
     </section>
 
-    <section id="academic-panel-questions" className="hub-academic-page-panel" role="tabpanel" aria-labelledby="academic-tab-questions" hidden={activePage !== "questions"}>
-      {activePage === "questions" && <QuestionLibrary />}
-    </section>
   </>;
 }

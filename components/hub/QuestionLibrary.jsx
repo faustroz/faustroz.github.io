@@ -33,6 +33,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
+import { exportQuestionsToAnki } from "@/lib/hub/anki-browser.mjs";
+import { cacheQuestionImages, isNetworkError, loadQuestionSnapshot, saveQuestionSnapshot } from "@/lib/hub/offline-store.mjs";
+import OfflineStatus from "@/components/hub/OfflineStatus";
 import ShareLinkPanel from "@/components/hub/ShareLinkPanel";
 import {
   clearPracticeRun,
@@ -84,6 +87,11 @@ export default function QuestionLibrary() {
   const router = useRouter();
   // Top-level bank sub-navigation: "practice" | "library" | "mistakes" | "import"
   const [activeTab, setActiveTab] = useState("practice");
+  const [snapshotAt, setSnapshotAt] = useState("");
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab && STUDIO_TAB_ORDER.includes(tab)) setActiveTab(tab);
+  }, []);
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -194,12 +202,27 @@ export default function QuestionLibrary() {
         return { ...question, image_url: signError ? "" : signed?.signedUrl || "" };
       }));
       setQuestions(withImages);
+      setSnapshotAt("");
       const [examRows, subjectRows, blockRows] = await Promise.all([repository.listCategories("exam_type"), repository.listCategories("subject"), repository.listCategories("block")]);
       setExamCategories(examRows.map((row) => row.name));
       setSubjectCategories(subjectRows.map((row) => row.name));
       setBlockCategories(blockRows.map((row) => row.name));
+      // Keep a local copy so practice still works without signal. Signed URLs are not stored.
+      saveQuestionSnapshot({ questions: data, categories: { exam: examRows.map((row) => row.name), subject: subjectRows.map((row) => row.name), block: blockRows.map((row) => row.name) } });
+      navigator.serviceWorker?.controller?.postMessage({ type: "CACHE_URLS", urls: ["/academic/question-bank", "/academic/practice", "/academic/occlusion"] });
+      if (!navigator.connection?.saveData) cacheQuestionImages(client, data.map((question) => question.image_path));
     } catch (err) {
-      setError(err.message || "Failed to load question bank.");
+      const snapshot = isNetworkError(err) ? await loadQuestionSnapshot() : null;
+      if (snapshot?.questions?.length) {
+        setQuestions(snapshot.questions.map((question) => ({ ...question, image_url: "" })));
+        setExamCategories(snapshot.categories?.exam || []);
+        setSubjectCategories(snapshot.categories?.subject || []);
+        setBlockCategories(snapshot.categories?.block || []);
+        setSnapshotAt(snapshot.savedAt || new Date().toISOString());
+        setError("");
+      } else {
+        setError(isNetworkError(err) ? "Offline dan belum ada salinan bank soal di perangkat ini. Buka halaman ini sekali saat online." : err.message || "Failed to load question bank.");
+      }
     } finally {
       setLoading(false);
     }
@@ -351,8 +374,12 @@ export default function QuestionLibrary() {
       });
       session.sessionId = savedSession.id;
     } catch (sessionError) {
-      setNotification(sessionError.message || "Sesi latihan tidak dapat disimpan ke riwayat.");
-      return;
+      if (isNetworkError(sessionError)) {
+        setNotification("Mode offline: sesi dimulai tanpa riwayat. Jawaban disinkronkan saat online.");
+      } else {
+        setNotification(sessionError.message || "Sesi latihan tidak dapat disimpan ke riwayat.");
+        return;
+      }
     }
     if (!session || !writePracticeRun(getPracticeRunStorage(window), session)) {
       if (session?.sessionId) repository.abandonSession(session.sessionId).catch(() => {});
@@ -915,6 +942,8 @@ export default function QuestionLibrary() {
         </div>
       </header>
 
+      <OfflineStatus snapshotAt={snapshotAt} />
+
       {/* Notifications and Alerts */}
       {notification && (
         <div style={{ margin: "0.5rem 1rem", padding: "0.65rem 0.9rem", background: "rgba(34, 197, 94, 0.12)", border: "1px solid rgba(34, 197, 94, 0.4)", borderRadius: "6px", color: "#4ade80", fontSize: "0.82rem" }} role="status">
@@ -1053,6 +1082,15 @@ export default function QuestionLibrary() {
                     <Play size={13} fill="currentColor" /> MULAI LATIHAN
                   </button>
                 </div>
+
+                {!matchingPracticeQuestions.length && !loading && (
+                  <div className="hub-empty-state" style={{ marginTop: "1rem" }}>
+                    <p>{questions.length === 0 ? "Bank soal masih kosong, jadi belum ada yang bisa dilatih." : "Tidak ada soal untuk pilihan ini."}</p>
+                    {questions.length === 0
+                      ? <button type="button" className="hub-empty-cta" onClick={() => { setActiveTab("library"); openCreateForm(); }}><Plus size={15} aria-hidden="true" /> Tambah soal pertama</button>
+                      : <button type="button" className="hub-empty-cta" onClick={() => { setPracticeExamType(""); setPracticeSubject(""); setPracticeFormat(""); setPracticeBlock(""); setPracticeTopic(""); }}>Reset pilihan</button>}
+                  </div>
+                )}
               </div>
             </div>
           ) : practiceFinished ? (
@@ -1298,6 +1336,7 @@ export default function QuestionLibrary() {
               <div className="hub-question-more-menu" aria-label="Aksi Question Bank lainnya">
                 <button type="button" className="hub-share-menu-item" onClick={() => { setShareOpen((open) => !open); setMoreMenuOpen(false); }} aria-expanded={shareOpen}><Share2 size={14} aria-hidden="true" /> Bagikan bank soal</button>
                 <button type="button" onClick={() => { handleExportCsv(); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export CSV</button>
+                <button type="button" onClick={() => { exportQuestionsToAnki(questions); setMoreMenuOpen(false); }} disabled={!questions.length}><Download size={14} /> Export Anki (.txt)</button>
                 <button type="button" onClick={() => { handleExportJson(); setMoreMenuOpen(false); }} disabled={!questions.length}><FileJson size={14} /> Backup JSON</button>
                 <button type="button" onClick={() => { handleAddCategory("exam_type"); setMoreMenuOpen(false); }}>Tambah Exam Type</button>
                 <button type="button" onClick={() => { handleAddCategory("subject"); setMoreMenuOpen(false); }}>Tambah Subject</button>

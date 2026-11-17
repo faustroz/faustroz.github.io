@@ -8,6 +8,8 @@ import { requireSupabase } from "@/lib/supabase/client";
 import { createPracticeRun, getPracticeRunStorage, migratePracticeRun, writePracticeRun } from "@/lib/hub/academic-practice.mjs";
 import { createQuestionRepository, VALID_OPTIONS } from "@/lib/hub/question-bank.mjs";
 import { buildSessionSnapshot } from "@/lib/hub/academic-performance.mjs";
+import { enqueueOffline, getCachedImageUrl, isNetworkError } from "@/lib/hub/offline-store.mjs";
+import OfflineStatus from "@/components/hub/OfflineStatus";
 
 const percent = (part, total) => total ? Math.round((part / total) * 100) : 0;
 const isEssay = (question) => question?.question_type === "essay";
@@ -40,9 +42,14 @@ export default function AcademicPracticePage() {
     let active = true;
     setImageUrl("");
     if (question?.image_path) {
-      requireSupabase().storage.from("academic-question-images").createSignedUrl(question.image_path, 3600)
-        .then(({ data, error }) => { if (active && !error) setImageUrl(data?.signedUrl || ""); })
-        .catch(() => { if (active) setImageUrl(""); });
+      const path = question.image_path;
+      const fromCache = () => getCachedImageUrl(path).then((url) => { if (active && url) setImageUrl(url); });
+      if (!navigator.onLine) fromCache();
+      else {
+        requireSupabase().storage.from("academic-question-images").createSignedUrl(path, 3600)
+          .then(({ data, error }) => { if (!active) return; if (error || !data?.signedUrl) fromCache(); else setImageUrl(data.signedUrl); })
+          .catch(() => { if (active) fromCache(); });
+      }
     }
     return () => { active = false; };
   }, [question?.id, question?.image_path]);
@@ -77,7 +84,12 @@ export default function AcademicPracticePage() {
       setAttemptMessage("Jawaban tersimpan");
     } catch (error) {
       console.error("Failed to record academic practice attempt:", error);
-      setAttemptMessage("Jawaban tampil, tetapi attempt belum tersimpan.");
+      if (isNetworkError(error)) {
+        const queued = essay
+          ? enqueueOffline(window.localStorage, "essay", { question_id: question.id, exam_session_id: run.sessionId || null, response_text: run.essayAnswer, reference_answer: question.reference_answer, time_spent_seconds: timeSpentSeconds })
+          : enqueueOffline(window.localStorage, "mcq", { question_id: question.id, exam_session_id: run.sessionId || null, selected_answer: run.selectedAnswer, correct_answer: question.shuffledCorrectAnswer, correct_answer_text: question.shuffledOptions?.[question.shuffledCorrectAnswer], is_correct: correct, time_spent_seconds: timeSpentSeconds });
+        setAttemptMessage(queued ? "Offline: jawaban disimpan di perangkat dan disinkronkan saat online." : "Jawaban tampil, tetapi attempt belum tersimpan.");
+      } else setAttemptMessage("Jawaban tampil, tetapi attempt belum tersimpan.");
     } finally { setSavingAttempt(false); }
   }, [essay, question, run]);
 
@@ -106,15 +118,19 @@ export default function AcademicPracticePage() {
     if (!finishedRun?.sessionId || finishLock.current) return finishedRun;
     finishLock.current = true;
     const graded = finishedRun.stats.correct + finishedRun.stats.wrong;
+    const summary = {
+      score: finishedRun.stats.correct,
+      accuracy_percent: graded ? percent(finishedRun.stats.correct, graded) : null,
+      time_taken_seconds: Math.max(0, Math.round((Date.now() - new Date(finishedRun.startedAt || Date.now()).getTime()) / 1000)),
+      answers: buildSessionSnapshot(finishedRun),
+    };
     try {
-      await createQuestionRepository(requireSupabase()).completeSession(finishedRun.sessionId, {
-        score: finishedRun.stats.correct,
-        accuracy_percent: graded ? percent(finishedRun.stats.correct, graded) : null,
-        time_taken_seconds: Math.max(0, Math.round((Date.now() - new Date(finishedRun.startedAt || Date.now()).getTime()) / 1000)),
-        answers: buildSessionSnapshot(finishedRun),
-      });
+      await createQuestionRepository(requireSupabase()).completeSession(finishedRun.sessionId, summary);
       return { ...finishedRun, historySaved: true, historyError: "" };
     } catch (error) {
+      if (isNetworkError(error) && enqueueOffline(window.localStorage, "complete", { sessionId: finishedRun.sessionId, summary })) {
+        return { ...finishedRun, historySaved: false, historyError: "Offline: riwayat sesi akan disinkronkan saat online." };
+      }
       return { ...finishedRun, historySaved: false, historyError: error?.message || "Riwayat sesi belum tersimpan." };
     } finally { finishLock.current = false; }
   }, []);
@@ -171,16 +187,17 @@ export default function AcademicPracticePage() {
   if (!run || !question) return <main className="academic-practice academic-practice--missing"><div className="academic-practice__missing-content">
     <p className="academic-practice__eyebrow">ACADEMIC / QUESTION BANK</p><h1>Sesi latihan tidak ditemukan.</h1>
     <p>Tidak ada sesi tersimpan di perangkat ini. Mulai latihan baru dari Question Bank.</p>
-    <Link className="academic-practice__button academic-practice__button--primary" href="/academic"><ArrowLeft size={16} /> Kembali ke Question Bank</Link>
+    <Link className="academic-practice__button academic-practice__button--primary" href="/academic/question-bank"><ArrowLeft size={16} /> Kembali ke Question Bank</Link>
   </div></main>;
 
-  const exitButton = <div className="academic-practice__topbar-start"><button className="academic-practice__icon-button" onClick={() => router.back()} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><span className="academic-practice__topbar-label" aria-hidden="true">Question Bank</span></div>;
+  const exitButton = <div className="academic-practice__topbar-start"><button className="academic-practice__icon-button" onClick={() => router.push("/academic/question-bank")} aria-label="Keluar ke Question Bank"><ArrowLeft size={18} /></button><span className="academic-practice__topbar-label" aria-hidden="true">Question Bank</span></div>;
 
   if (run.finished) {
     const answeredMcq = run.stats.correct + run.stats.wrong;
     const unanswered = run.responses.filter((item) => !item.submitted).length;
     const accuracy = answeredMcq ? percent(run.stats.correct, answeredMcq) : 0;
     return <main className="academic-practice academic-practice--result">
+      <OfflineStatus />
       <header className="academic-practice__topbar">{exitButton}<div className="academic-practice__topbar-center"><p className="academic-practice__eyebrow">PRACTICE MODE</p><span className="academic-practice__topbar-title">Hasil sesi</span></div><span className="academic-practice__topbar-spacer" /></header>
       <section className="academic-practice__result-content">
         <p className="academic-practice__eyebrow">SESI SELESAI</p>
@@ -223,6 +240,7 @@ export default function AcademicPracticePage() {
   const saveState = savingAttempt ? "Menyimpan jawaban…" : attemptMessage;
 
   return <main className="academic-practice">
+    <OfflineStatus />
     <header className="academic-practice__topbar">{exitButton}<div className="academic-practice__topbar-center"><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : run.reviewKind === "due" ? "ESSAY SPACED REVIEW" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><div className="academic-practice__score"><span className="is-correct">{run.stats.correct} benar</span><span className="is-wrong">{run.stats.wrong} salah</span></div></header>
     <div className="academic-practice__progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100"><span style={{ width: progress + "%" }} /></div>
     <section className="academic-practice__content" key={question.id}>

@@ -151,11 +151,16 @@ describe("AcademicPanel and QuestionBank redesign integration", () => {
     expect(screen.getByText(/target kkm 55/i)).toBeInTheDocument();
     expect(screen.getByText(/aturan pembobotan nilai blok/i)).toBeInTheDocument();
 
-    // Switch to QUESTION BANK
-    const questionBankTab = tab("Question Bank");
-    fireEvent.click(questionBankTab);
+    // Question Bank now lives on its own page; Overview links to it and shows the exam schedule.
+    expect(tab("Question Bank")).toBeUndefined();
+    expect(screen.getByRole("link", { name: /question bank/i, hidden: true })).toHaveAttribute("href", "/academic/question-bank");
+    expect(screen.getByRole("heading", { name: /hitung mundur per blok/i, hidden: true })).toBeInTheDocument();
+  });
 
-    expect(questionBankTab).toHaveAttribute("aria-selected", "true");
+  it("switches Question Bank modes on its own page", async () => {
+    mockDbQuestions = [];
+    render(<QuestionLibrary />);
+    const tab = (text) => [...document.querySelectorAll('[role="tab"]')].find((element) => element.textContent.trim().toLowerCase() === text.toLowerCase());
     expect(screen.getByText(/question library & practice/i)).toBeInTheDocument();
 
     // Practice mode is active by default

@@ -43,6 +43,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 | 044 | `044-academic-reference-library.sql` | Owner-private drug cards and reference values (normal ranges, doses, formulas) with Trash retention | 004, 012 |
 | 045 | `045-academic-share-links.sql` | Unlisted random-token share links for Image Occlusion sets and the whole Question Bank (MCQ and Essay); anon read via one RPC and signed image URLs for shared content only | 038, 040, 031, 044 |
 | 046 | `046-auscultation-share-link.sql` | Adds the `auscultation_lab` share kind (static lab content, token gates the shared page); replaces `get_shared_content` with the same behaviour plus that branch | 045 |
+| 047 | `047-academic-exam-schedule.sql` | Owner-private exam schedule per block; the daily question target is derived in the app from question attempts | 031, 012 |
 
 ## Safety notes
 

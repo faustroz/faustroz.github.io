@@ -2,12 +2,13 @@
 /* eslint-disable @next/next/no-img-element -- private signed images and local editor previews. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock3, ImagePlus, Pencil, Play, Plus, Redo2, Save, Share2, Shuffle, Trash2, Undo2, X } from "lucide-react";
+import { Check, Clock3, Download, ImagePlus, Pencil, Play, Plus, Redo2, Save, Share2, Shuffle, Trash2, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createImageOcclusionRun, createImageOcclusionRepository, filterImageOcclusionSetsByGroup, getImageOcclusionGroups, getResumableImageOcclusionRun, IMAGE_OCCLUSION_DEFAULT_GROUP, IMAGE_OCCLUSION_MAX_IMAGE_BYTES, IMAGE_OCCLUSION_MIME_TYPES, getClipboardImageFiles, normalizeImageOcclusionGroup, readImageOcclusionRun, readImageOcclusionShuffleSetting, writeImageOcclusionRun, writeImageOcclusionShuffleSetting } from "@/lib/hub/image-occlusion.mjs";
 import { playImageOcclusionSound, unlockImageOcclusionAudio } from "@/lib/hub/image-occlusion-sounds.mjs";
 import ShareLinkPanel from "@/components/hub/ShareLinkPanel";
+import { exportOcclusionSetToAnki } from "@/lib/hub/anki-browser.mjs";
 
 const emptyDraft = () => ({ id: null, title: "", groupName: IMAGE_OCCLUSION_DEFAULT_GROUP, answerMode: "answer", activeImageId: null, images: [] });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -50,6 +51,14 @@ export default function ImageOcclusionWorkspace() {
   const [groupManagementAvailable, setGroupManagementAvailable] = useState(true);
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
   const [sharingSetId, setSharingSetId] = useState(null);
+  const [exportingSetId, setExportingSetId] = useState(null);
+  const [exportError, setExportError] = useState("");
+  const exportToAnki = async (set) => {
+    setExportingSetId(set.id); setExportError("");
+    try { await exportOcclusionSetToAnki(set); }
+    catch (anError) { setExportError(anError?.message || "Ekspor Anki gagal."); }
+    finally { setExportingSetId(null); }
+  };
   const groupOptions = useMemo(() => getImageOcclusionGroups(sets, managedGroups), [sets, managedGroups]);
   const groupFilterOptions = useMemo(() => groupOptions.filter((group) => group !== IMAGE_OCCLUSION_DEFAULT_GROUP), [groupOptions]);
   const activeGroupFilter = groupFilterOptions.includes(groupFilter) ? groupFilter : "";
@@ -417,6 +426,7 @@ export default function ImageOcclusionWorkspace() {
       {previewOpen && <div className="hub-occlusion-card-preview-grid" aria-label="Preview semua kartu">{draft.images.flatMap((image, imageIndex) => image.masks.map((mask, index) => <article key={mask.id}><div className="hub-occlusion-card-preview-label">GAMBAR {String(imageIndex + 1).padStart(2, "0")} · KARTU {String(index + 1).padStart(2, "0")} / {image.masks.length}</div><MaskPreview imageUrl={image.imageUrl} masks={image.masks} /><strong>{draft.answerMode === "answer" ? mask.answer || "Jawaban belum diisi" : "Mask saja · tanpa jawaban teks"}</strong><small>HIDE ALL</small></article>))}</div>}
     </section>}
 
+    {exportError && <p className="hub-data-error" role="alert">{exportError}</p>}
     <div className="hub-occlusion-library-heading">
       <div className="hub-occlusion-library-meta">
         <span>IMAGE SETS</span>
@@ -453,7 +463,7 @@ export default function ImageOcclusionWorkspace() {
       const masteredCount = set.cards.filter((card) => card.reviewState?.mastered).length;
       const totalCount = set.cards.length;
       const masteredPercent = totalCount ? Math.round((masteredCount / totalCount) * 100) : 0;
-      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.group_name || IMAGE_OCCLUSION_DEFAULT_GROUP} · HIDE ALL · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.images.length} GAMBAR</span><h4>{set.title}</h4><div className="hub-occlusion-set-progress-label"><span>Dikuasai <b>{masteredCount}</b> / {totalCount}</span><b>{masteredPercent}%</b></div><div className="hub-occlusion-set-progress" role="progressbar" aria-label={`Progres penguasaan ${set.title}`} aria-valuemin={0} aria-valuemax={Math.max(totalCount, 1)} aria-valuenow={masteredCount} aria-valuetext={`${masteredCount} dari ${totalCount} kartu dikuasai`}><span style={{ width: `${masteredPercent}%` }} /></div><small className="hub-occlusion-set-due">{dueCount ? `${dueCount} kartu perlu diulang` : "Tidak ada kartu jatuh tempo"}</small></div><div className="hub-occlusion-set-actions"><div className="hub-occlusion-set-primary-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!totalCount} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" className={dueCount ? "has-due" : ""} aria-label={`Review ${dueCount} kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review <b>{dueCount}</b></button></div><div className="hub-occlusion-set-secondary-actions"><button type="button" aria-label={`Bagikan ${set.title}`} aria-expanded={sharingSetId === set.id} onClick={() => setSharingSetId(sharingSetId === set.id ? null : set.id)}><Share2 size={14} /></button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></div>{sharingSetId === set.id && <ShareLinkPanel kind="image_occlusion_set" targetId={set.id} title={set.title} />}</article>;
+      return <article key={set.id} className="hub-occlusion-set-row"><div className="hub-occlusion-set-cover">{set.imageUrl ? <img src={set.imageUrl} alt="" /> : <ImagePlus size={18} />}</div><div className="hub-occlusion-set-info"><span>{set.group_name || IMAGE_OCCLUSION_DEFAULT_GROUP} · HIDE ALL · {set.answer_mode === "mask_only" ? "MASK ONLY" : "ANSWER"} · {set.images.length} GAMBAR</span><h4>{set.title}</h4><div className="hub-occlusion-set-progress-label"><span>Dikuasai <b>{masteredCount}</b> / {totalCount}</span><b>{masteredPercent}%</b></div><div className="hub-occlusion-set-progress" role="progressbar" aria-label={`Progres penguasaan ${set.title}`} aria-valuemin={0} aria-valuemax={Math.max(totalCount, 1)} aria-valuenow={masteredCount} aria-valuetext={`${masteredCount} dari ${totalCount} kartu dikuasai`}><span style={{ width: `${masteredPercent}%` }} /></div><small className="hub-occlusion-set-due">{dueCount ? `${dueCount} kartu perlu diulang` : "Tidak ada kartu jatuh tempo"}</small></div><div className="hub-occlusion-set-actions"><div className="hub-occlusion-set-primary-actions"><button type="button" aria-label={`Belajar ${set.title}`} disabled={!totalCount} onClick={() => startStudy(set)}><Play size={14} /> Belajar</button><button type="button" className={dueCount ? "has-due" : ""} aria-label={`Review ${dueCount} kartu jatuh tempo ${set.title}`} disabled={!dueCount} onClick={() => startStudy(set, true)}><Clock3 size={14} /> Review <b>{dueCount}</b></button></div><div className="hub-occlusion-set-secondary-actions"><button type="button" aria-label={`Bagikan ${set.title}`} aria-expanded={sharingSetId === set.id} onClick={() => setSharingSetId(sharingSetId === set.id ? null : set.id)}><Share2 size={14} /></button><button type="button" aria-label={`Ekspor Anki ${set.title}`} title="Ekspor ke Anki (ZIP)" disabled={exportingSetId === set.id || !set.cards?.length} onClick={() => exportToAnki(set)}><Download size={14} /></button><button type="button" aria-label={`Edit ${set.title}`} onClick={() => editSet(set)}><Pencil size={14} /></button><button type="button" aria-label={`Hapus ${set.title}`} onClick={() => deleteSet(set)}><Trash2 size={14} /></button></div></div>{sharingSetId === set.id && <ShareLinkPanel kind="image_occlusion_set" targetId={set.id} title={set.title} />}</article>;
     })}</div>)}
   </section>;
 }
