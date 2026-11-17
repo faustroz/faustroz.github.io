@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateEcg, makeRng } from "@/lib/hub/ecg-rhythms.mjs";
 import { analyzeEcg, ECG_REFERENCE } from "@/lib/hub/ecg-analysis.mjs";
 import { ECG_CASES, ECG_CATEGORIES, DIFFICULTY_LABELS, getCaseById, casesByDifficulty } from "@/lib/hub/ecg-cases.mjs";
-import { computeSheetLayout, drawEcgSheet } from "@/lib/hub/ecg-paper.mjs";
+import { computeSheetLayout, drawEcgSheet, drawRateStrip } from "@/lib/hub/ecg-paper.mjs";
+import { buildRateQuestion, generateRateStrip, RATE_METHODS } from "@/lib/hub/ecg-rate.mjs";
 import { playQuizSound, readQuizSoundSettings, signalAnswer, unlockQuizAudio, writeQuizSoundSettings } from "@/lib/hub/quiz-feedback.mjs";
 
 const DURATION_SEC = 10;
@@ -87,6 +88,34 @@ function EcgCanvas({ gen, settings, panSec, cursorSec, onPanDrag, onLayout }) {
   return <canvas ref={canvasRef} className="hub-ecg-canvas" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={stopDrag} onPointerCancel={stopDrag} role="img" aria-label="Synthetic 12-lead ECG printout" />;
 }
 
+const RATE_PX_PER_MM = 8;
+const RATE_WINDOW_MM = 100; // 4 s at 25 mm/s
+const RATE_STRIP_MM = 22;
+const RATE_METHOD_LABELS = { all: "MIXED", big: "BIG BOXES", small: "SMALL BOXES" };
+
+function RateCanvas({ strip, question, revealed }) {
+  const canvasRef = useRef(null);
+  const width = RATE_WINDOW_MM * RATE_PX_PER_MM;
+  const height = RATE_STRIP_MM * RATE_PX_PER_MM;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!context) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawRateStrip(context, { gen: strip.gen, width, height, pxPerMm: RATE_PX_PER_MM, startSec: strip.startSec, r1Sec: strip.r1Sec, r2Sec: strip.r2Sec, reveal: revealed ? question : null });
+  }, [strip, question, revealed, width, height]);
+
+  return (
+    <div className="hub-ecg-rate-scroll">
+      <canvas ref={canvasRef} className="hub-ecg-rate-canvas" style={{ width, height }} role="img" aria-label="Rhythm strip on ECG paper, R1 and R2 marked" />
+    </div>
+  );
+}
+
 function AnalysisPanel({ analysis }) {
   return (
     <div className="hub-ecg-analysis">
@@ -136,6 +165,10 @@ export default function EcgLab() {
   const [visibleSeconds, setVisibleSeconds] = useState(10);
   const [feedback, setFeedback] = useState("");
   const [soundOn, setSoundOn] = useState(true);
+  const [rateSeed, setRateSeed] = useState(1);
+  const [rateMethod, setRateMethod] = useState("all");
+  const [ratePick, setRatePick] = useState(null);
+  const [rateScore, setRateScore] = useState({ right: 0, total: 0 });
 
   useEffect(() => { setMistakes(loadMistakes()); }, []);
   useEffect(() => { setSoundOn(readQuizSoundSettings(window.localStorage).enabled); }, []);
@@ -159,6 +192,33 @@ export default function EcgLab() {
   const quizCase = useMemo(() => casesByDifficulty(difficulty)[quizSeed % Math.max(1, casesByDifficulty(difficulty).length)] || ECG_CASES[0], [difficulty, quizSeed]);
   const quizGen = useMemo(() => generateEcg(quizCase.params, DURATION_SEC, 11), [quizCase]);
   const quizOptions = useMemo(() => shuffledOptions(quizCase, quizSeed * 31 + 7), [quizCase, quizSeed]);
+
+  const rateQuestion = useMemo(() => buildRateQuestion(rateSeed, rateMethod), [rateSeed, rateMethod]);
+  const rateStrip = useMemo(() => generateRateStrip(rateQuestion), [rateQuestion]);
+  const rateAnswered = ratePick !== null;
+
+  const startRate = useCallback((method) => {
+    setRateMethod(method);
+    setRateSeed((value) => value + 1);
+    setRatePick(null);
+    setFeedback("");
+    setMode("rate");
+  }, []);
+
+  const answerRate = useCallback((value) => {
+    if (ratePick !== null) return;
+    const isCorrect = value === rateQuestion.rate;
+    setRatePick(value);
+    setFeedback(signalAnswer(isCorrect));
+    setRateScore((current) => ({ right: current.right + (isCorrect ? 1 : 0), total: current.total + 1 }));
+  }, [rateQuestion, ratePick]);
+
+  const nextRate = useCallback(() => {
+    playQuizSound("next");
+    setRateSeed((value) => value + 1);
+    setRatePick(null);
+    setFeedback("");
+  }, []);
 
   const maxPan = Math.max(0, DURATION_SEC - visibleSeconds);
 
@@ -233,9 +293,10 @@ export default function EcgLab() {
         <div className="hub-pocus-presets" role="group" aria-label="Lab modes">
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "learn"} onClick={() => setMode("learn")}>LEARN</button>
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "quiz"} onClick={() => startQuiz(difficulty)}>QUIZ</button>
+          <button type="button" className="hub-pocus-preset" aria-pressed={mode === "rate"} onClick={() => startRate(rateMethod)}>HEART RATE</button>
           <button type="button" className="hub-pocus-preset" aria-pressed={mode === "review"} onClick={() => setMode("review")}>REVIEW {mistakeCases.length ? `(${mistakeCases.length})` : ""}</button>
         </div>
-        <div className="hub-pocus-presets" role="group" aria-label="Viewer controls">
+        {mode !== "rate" && <div className="hub-pocus-presets" role="group" aria-label="Viewer controls">
           <button type="button" className="hub-pocus-preset" aria-pressed={playing} onClick={togglePlay}>{playing ? "PAUSE" : "PLAY"}</button>
           {[25, 50].map((speed) => (
             <button key={speed} type="button" className="hub-pocus-preset" aria-pressed={paperSpeed === speed} onClick={() => setPaperSpeed(speed)}>{speed} MM/S</button>
@@ -246,7 +307,7 @@ export default function EcgLab() {
           <button type="button" className="hub-pocus-preset" onClick={() => setZoom((value) => Math.max(1, Math.round((value - 0.5) * 2) / 2))}>−</button>
           <span className="hub-ecg-zoom">{zoom.toFixed(1)}×</span>
           <button type="button" className="hub-pocus-preset" onClick={() => setZoom((value) => Math.min(3, value + 0.5))}>+</button>
-        </div>
+        </div>}
       </div>
 
       {mode === "learn" && (
@@ -325,6 +386,64 @@ export default function EcgLab() {
             </div>
             <button type="button" className="hub-pocus-preset" aria-pressed={soundOn} onClick={toggleSound}>{soundOn ? "SOUND ON" : "SOUND OFF"}</button>
             {quizAnswered && <button type="button" className="hub-pocus-preset" onClick={nextQuiz}>NEXT →</button>}
+          </section>
+        </>
+      )}
+
+      {mode === "rate" && (
+        <>
+          <div className="hub-ecg-dash">
+            <section className="hub-ecg-sheet" aria-label="Heart rate strip">
+              <div className="hub-ecg-sheet-head">
+                <span className="hub-ecg-tag">COUNT THE BOXES · R1 → R2 · 25 MM/S · 10 MM/MV</span>
+                <span className="hub-ecg-tag">SYNTHETIC EDUCATIONAL ECG</span>
+              </div>
+              <RateCanvas strip={rateStrip} question={rateQuestion} revealed={rateAnswered} />
+            </section>
+            <section className="hub-ecg-side" aria-label="Heart rate method">
+              <span
+                key={`rate-${rateSeed}-${ratePick ?? "none"}`}
+                className={"hub-ecg-tag hub-ecg-verdict" + (rateAnswered ? ` ${feedback}` : "")}
+                role={rateAnswered ? "status" : undefined}
+              >
+                {rateAnswered ? (ratePick === rateQuestion.rate ? "CORRECT" : "INCORRECT") : "HEART RATE"}
+              </span>
+              <p className="hub-ecg-teaching">
+                {rateAnswered ? rateQuestion.explanation : "Count the boxes between R1 and R2, then pick the heart rate (bpm)."}
+              </p>
+              <div className="hub-ecg-rate-key">
+                <span><b>1 big box</b> = 5 mm = 0.2 s</span>
+                <span><b>1 small box</b> = 1 mm = 0.04 s</span>
+                <span>Big boxes: <b>300 ÷ boxes</b></span>
+                <span>Small boxes: <b>1500 ÷ boxes</b></span>
+              </div>
+              <p className="hub-ecg-analysis-note">SCORE {rateScore.right}/{rateScore.total}</p>
+            </section>
+          </div>
+          <section className="hub-ecg-quizbar" aria-label="Heart rate controls">
+            <div className="hub-pocus-presets" role="group" aria-label="Counting method">
+              {RATE_METHODS.map((method) => (
+                <button key={method} type="button" className="hub-pocus-preset" aria-pressed={rateMethod === method} onClick={() => startRate(method)}>{RATE_METHOD_LABELS[method]}</button>
+              ))}
+            </div>
+            <div className="hub-ecg-quiz-options" role="group" aria-label="Heart rate options">
+              {rateQuestion.options.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={"hub-pocus-preset"
+                    + (rateAnswered && value === rateQuestion.rate ? " is-active" : "")
+                    + (rateAnswered && value === ratePick && value !== rateQuestion.rate ? " is-wrong" : "")
+                    + (rateAnswered && value === ratePick ? ` ${feedback}` : "")}
+                  disabled={rateAnswered}
+                  onClick={() => answerRate(value)}
+                >
+                  {value} bpm
+                </button>
+              ))}
+            </div>
+            <button type="button" className="hub-pocus-preset" aria-pressed={soundOn} onClick={toggleSound}>{soundOn ? "SOUND ON" : "SOUND OFF"}</button>
+            {rateAnswered && <button type="button" className="hub-pocus-preset" onClick={nextRate}>NEXT →</button>}
           </section>
         </>
       )}

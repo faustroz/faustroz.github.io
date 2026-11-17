@@ -248,6 +248,19 @@ describe("ECG Lab interface", () => {
     expect(screen.getByRole("button", { name: /NEXT/ })).toBeInTheDocument();
   });
 
+  it("runs a heart rate round with the box counting method", () => {
+    render(<EcgLab />);
+    fireEvent.click(screen.getByRole("button", { name: "HEART RATE" }));
+    expect(screen.getByRole("img", { name: /Rhythm strip on ECG paper/ })).toBeInTheDocument();
+    expect(screen.getByText(/1500 ÷ boxes/)).toBeInTheDocument();
+    const options = within(screen.getByRole("group", { name: "Heart rate options" })).getAllByRole("button");
+    expect(options).toHaveLength(4);
+    fireEvent.click(options[0]);
+    expect(screen.getByText(/CORRECT|INCORRECT/)).toBeInTheDocument();
+    expect(screen.getByText(/R–R = \d+ (big|small) boxes/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /NEXT/ })).toBeInTheDocument();
+  });
+
   it("shows the mistake review tab", () => {
     window.localStorage.clear();
     render(<EcgLab />);
