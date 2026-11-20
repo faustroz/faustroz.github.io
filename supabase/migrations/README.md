@@ -6,8 +6,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 
 | Order | File | Purpose | Prerequisite |
 | --- | --- | --- | --- |
-| 000 | `000-portfolio-tracker.sql` | Portfolio Tracker storage, update trigger, and authenticated RLS | Supabase Auth enabled |
-| 004 | `004-private-modules.sql` | Core Finance/settings plus owner-scoped legacy compatibility tables | 000 |
+| 004 | `004-private-modules.sql` | Core Finance/settings plus owner-scoped legacy compatibility tables | 
 | 008 | `008-private-operations.sql` | Document Vault, integration metadata, notifications, and private Storage bucket | 004 |
 | 009 | `009-finance-accounts.sql` | Bank accounts and expense account attribution | 004 |
 | 010 | `010-finance-income-categories.sql` | Income ledger and custom finance categories | 009 |
@@ -49,7 +48,7 @@ These SQL files define the Supabase database for 4allx. Run them in ascending nu
 
 - Enable Supabase Email Auth and create the account before using the private Hub modules.
 - RLS is intentional: access is scoped to `auth.uid()` for Hub-owned data and Vault Storage objects.
-- Migration 023 preserves Portfolio values while assigning existing rows to the sole Auth user. If the project has zero or multiple Auth users, it aborts instead of guessing ownership; assign `user_id` explicitly, then rerun it.
+- Migration 023 assigns Vault content search projection to existing owner rows and scopes the global-search projection table by `(user_id IS NOT NULL)`. It removes `pt_password` if it exists; all other keys remain value stores for authenticated access. If no Auth user is configured, the migration aborts.
 - Legacy Study, Projects, and AI Memory tables remain owner-scoped only for backup/database compatibility. Active UI, Search, Insights, and notifications do not use them.
 - Text and Markdown uploaded after migration 023 receive a private, 32 KiB search projection. Existing/binary Vault files remain metadata-searchable until safely re-uploaded or indexed separately.
 - Edge Function provider secrets belong in Supabase project secrets, never in these SQL files or the frontend.

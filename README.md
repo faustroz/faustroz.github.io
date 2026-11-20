@@ -16,7 +16,6 @@ https://faustroz.github.io/
 | --- | --- |
 | `/` | Public portfolio landing page |
 | `/hub` | Privacy-first Personal Hub dashboard |
-| `/finance/portfolio` | Existing Supabase-backed Portfolio Tracker |
 | `/finance` | Private expenses, budgets, and subscriptions workspace |
 | `/academic` | Private grades, credits, semester, and IP/IPK records |
 | `/vault` | Private document drive with owner-scoped Storage |
@@ -35,8 +34,8 @@ app/
 ├── page.jsx                       # Public portfolio landing page
 ├── hub/                           # Personal Hub dashboard and metadata
 ├── hub.css                        # Night Operations design system
-├── finance/portfolio/             # Isolated Portfolio Tracker module
-├── academic/                      # Active Academic records
+├── finance/                      # Private expenses, budgets, subscriptions workspace
+├── academic/                     # Active Academic records
 ├── vault/                         # Active Document Vault
 ├── osint/                         # Non-persistent private lookups
 └── portfolio-tracker/             # Legacy compatibility route
@@ -44,14 +43,12 @@ app/
 components/
 ├── hero.jsx                       # Public portfolio hero
 ├── about.jsx                      # Public portfolio About Me section
-├── portfolio.jsx                  # Public portfolio project grid
 ├── hub/                           # Shell, navigation, cards, redirects
-├── portfolio/                     # Existing finance UI components
 └── ui/                            # Shared UI primitives
 
 lib/
 ├── hub/                           # Route and content contracts
-└── portfolio/                     # Finance calculations, prices, storage
+└── academic/                     # Academic grading logic, exam sessions
 ```
 
 ## Stack
@@ -88,7 +85,7 @@ Before authentication, the Hub performs no private table search or summary query
 1. Enable Email authentication in Supabase and create the private owner account.
 2. Run the SQL files in [`supabase/migrations`](supabase/migrations) in numerical order. See its README for the exact sequence and prerequisites.
 
-Every active Hub table defaults `user_id` to `auth.uid()` and applies owner-only policies. Portfolio storage is keyed by `(user_id, key)`. Vault objects are private and their path prefix must match the authenticated owner ID. Provider secrets remain server-side in Supabase/Vercel environments.
+Every active Hub table defaults `user_id` to `auth.uid()` and applies owner-only policies. Vault objects are private and their path prefix must match the authenticated owner ID. Provider secrets remain server-side in Supabase/Vercel environments.
 
 ## Verification
 
