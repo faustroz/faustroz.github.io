@@ -11,6 +11,7 @@ import {
   parseCsv,
   shuffleQuestionOptions,
   validateCsvRows,
+  applyUploadedImagePaths,
   validateQuestionPayload,
   generateCsvTemplate,
   generateQuestionCsv,
@@ -696,4 +697,31 @@ test("mistake repository uses the latest attempt, deduplicates questions, and pr
   assert.equal(mistakes[0].lastAttempt.id, "a-3");
   assert.equal(typeof repository.listDueReviews, "undefined");
   assert.equal(typeof repository.rateAttempt, "undefined");
+});
+
+test("CSV image_path: bare file names must be picked; storage paths pass through", () => {
+  const header = "question_text,block,question_type,option_a,option_b,option_c,option_d,option_e,correct_answer,image_path";
+  const row = (img) => `"Gambar apa?",Histologi,mcq,a,b,c,d,e,A,${img}`;
+  const csv = [header, row("jantung-01.png"), row("hati-02.png"), row("user/abc.png"), row("")].join("\n");
+
+  const none = validateCsvRows(csv, { imageNames: [] });
+  assert.equal(none.errors.length, 2);
+  assert.match(none.errors[0].reason, /jantung-01.png/);
+  assert.equal(none.valid.length, 2);
+  assert.equal(none.valid[0].image_path, "user/abc.png");
+  assert.equal(none.valid[1].image_path, null);
+
+  const picked = validateCsvRows(csv, { imageNames: ["jantung-01.png", "hati-02.png"] });
+  assert.equal(picked.errors.length, 0);
+  assert.deepEqual(picked.valid.map((item) => item.image_path), ["jantung-01.png", "hati-02.png", "user/abc.png", null]);
+
+  const legacy = validateCsvRows(csv);
+  assert.equal(legacy.errors.length, 0, "no imageNames given keeps the old behaviour");
+});
+
+test("applyUploadedImagePaths swaps only the picked names for uploaded paths", () => {
+  const rows = [{ image_path: "a.png" }, { image_path: "user/x.png" }, { image_path: null }];
+  const out = applyUploadedImagePaths(rows, new Map([["a.png", "uid/123.png"]]));
+  assert.deepEqual(out.map((row) => row.image_path), ["uid/123.png", "user/x.png", null]);
+  assert.equal(rows[0].image_path, "a.png", "input rows are not mutated");
 });

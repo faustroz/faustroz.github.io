@@ -60,6 +60,7 @@ import {
   validateQuestionBackup,
   VALID_OPTIONS,
   validateCsvRows,
+  applyUploadedImagePaths,
 } from "@/lib/hub/question-bank.mjs";
 import { buildAcademicPerformance } from "@/lib/hub/academic-performance.mjs";
 import ImageOcclusionWorkspace from "@/components/hub/ImageOcclusionWorkspace";
@@ -172,6 +173,8 @@ export default function QuestionLibrary() {
   // CSV IMPORT STATE
   // ---------------------------------------------------------------------------
   const [importFile, setImportFile] = useState(null);
+  const [importText, setImportText] = useState("");
+  const [importImages, setImportImages] = useState([]);
   const [importPreview, setImportPreview] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState("");
@@ -676,6 +679,10 @@ export default function QuestionLibrary() {
   // ---------------------------------------------------------------------------
   // CSV IMPORT HANDLERS
   // ---------------------------------------------------------------------------
+  const validateImport = (text, images) => validateCsvRows(text, {
+    examTypes: examCategories, subjects: subjectCategories, existingQuestions: questions, imageNames: images.map((image) => image.name),
+  });
+
   const handleCsvFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -684,14 +691,20 @@ export default function QuestionLibrary() {
 
     try {
       const text = await file.text();
-      const validation = validateCsvRows(text, { examTypes: examCategories, subjects: subjectCategories, existingQuestions: questions });
-      setImportPreview(validation);
+      setImportText(text);
+      setImportPreview(validateImport(text, importImages));
     } catch (parseErr) {
       setImportPreview({
         valid: [],
         errors: [{ rowNumber: 1, reason: parseErr.message || "Failed to read CSV file." }],
       });
     }
+  };
+
+  const handleImageFilesChange = (event) => {
+    const images = [...(event.target.files || [])];
+    setImportImages(images);
+    if (importText) setImportPreview(validateImport(importText, images));
   };
 
   const handleAddCategory = async (kind) => {
@@ -750,10 +763,27 @@ export default function QuestionLibrary() {
     }
 
     try {
-      const inserted = await repository.createBatch(importPreview.valid);
+      const names = new Set(importPreview.valid.map((row) => row.image_path).filter((path) => path && !path.includes("/")));
+      const uploadedByName = new Map();
+      if (names.size) {
+        const client = requireSupabase();
+        const { data: authData, error: authError } = await client.auth.getUser();
+        if (authError || !authData.user) throw new Error("Sesi login tidak valid. Silakan masuk kembali.");
+        for (const image of importImages.filter((item) => names.has(item.name))) {
+          const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[image.type];
+          const path = `${authData.user.id}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await client.storage.from("academic-question-images").upload(path, image, { contentType: image.type, upsert: false });
+          if (uploadError) throw new Error(`Upload gambar ${image.name} gagal: ${uploadError.message}`);
+          uploadedByName.set(image.name, path);
+        }
+      }
+      const rows = applyUploadedImagePaths(importPreview.valid, uploadedByName);
+      const inserted = await repository.createBatch(rows);
       setQuestions((prev) => [...inserted, ...prev]);
       setImportMessage(`Berhasil mengimpor ${inserted.length} soal ke Question Bank. ${importPreview.valid.length - inserted.length} duplikat dilewati.`);
       setImportFile(null);
+      setImportText("");
+      setImportImages([]);
       setImportPreview(null);
     } catch (importErr) {
       setImportMessage(`Gagal mengimpor: ${importErr.message}`);
@@ -1690,6 +1720,30 @@ export default function QuestionLibrary() {
               {importFile && (
                 <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", color: "var(--hub-text)", wordBreak: "break-word" }}>
                   File terpilih: <b>{importFile.name}</b> ({(importFile.size / 1024).toFixed(1)} KB)
+                </p>
+              )}
+            </div>
+
+            <div className="hub-csv-upload-area">
+              <Upload size={19} aria-hidden="true" />
+              <div className="hub-csv-upload-copy">
+                <strong>Gambar soal (opsional)</strong>
+                <span>Isi kolom image_path dengan nama file, mis. jantung-01.png, lalu pilih semua gambarnya di sini.</span>
+              </div>
+              <label className="hub-csv-file-label">
+                <span>Pilih gambar</span>
+                <input
+                  type="file"
+                  multiple
+                  aria-label="Pilih gambar soal"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handleImageFilesChange}
+                  className="hub-csv-file-input"
+                />
+              </label>
+              {importImages.length > 0 && (
+                <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", color: "var(--hub-text)", wordBreak: "break-word" }}>
+                  {importImages.length} gambar dipilih: <b>{importImages.map((image) => image.name).join(", ")}</b>
                 </p>
               )}
             </div>
