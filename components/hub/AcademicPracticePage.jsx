@@ -161,7 +161,7 @@ export default function AcademicPracticePage() {
   const finishSession = () => {
     if (!run) return;
     const unanswered = run.responses.filter((item) => !item.submitted).length;
-    if (unanswered && !window.confirm(`${unanswered} soal belum dijawab. Selesai sekarang?`)) return;
+    if (unanswered && !window.confirm(`${unanswered} soal belum dijawab. Tetap submit sekarang?`)) return;
     void finishRun(run);
   };
 
@@ -255,6 +255,7 @@ export default function AcademicPracticePage() {
     </main>;
   }
 
+  const lastQuestion = run.index + 1 >= run.questions.length;
   const progress = Math.round(((run.index + (run.submitted ? 1 : 0)) / run.questions.length) * 100);
   const metadata = [question.exam_type, question.block || run.block, question.subject, question.topic || run.topic, question.subtopic].filter(Boolean);
   const saveState = savingAttempt ? "Menyimpan jawaban…" : attemptMessage;
@@ -269,7 +270,7 @@ export default function AcademicPracticePage() {
         const classes = ["academic-practice__nav-item", index === run.index && "is-current", done && "is-done"].filter(Boolean).join(" ");
         return <button key={item.id} type="button" className={classes} aria-current={index === run.index ? "step" : undefined} aria-label={`Soal ${index + 1}${done ? ", sudah dijawab" : ""}`} disabled={savingAttempt} onClick={() => goTo(index)}>{index + 1}</button>;
       })}</div>
-      <button type="button" className="academic-practice__text-button" disabled={savingAttempt} onClick={finishSession}>Selesai</button>
+      <button type="button" className="academic-practice__text-button" disabled={savingAttempt} onClick={finishSession}>Submit</button>
     </nav>
     <section className="academic-practice__content" key={question.id}>
       <div className="academic-practice__metadata">{metadata.map((item) => <span key={item}>{item}</span>)}<span>{essay ? "ESSAY" : "MCQ"}</span></div>
@@ -291,7 +292,7 @@ export default function AcademicPracticePage() {
         })}
       </div>}
     </section>
-    <footer className="academic-practice__actionbar">{!run.submitted && attemptMessage && <p className="academic-practice__save-state" role="status">{attemptMessage}</p>}<div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Simpan jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button></>}</div></footer>
+    <footer className="academic-practice__actionbar">{!run.submitted && attemptMessage && <p className="academic-practice__save-state" role="status">{attemptMessage}</p>}<div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Simpan jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={lastQuestion ? finishSession : nextQuestion}>{lastQuestion ? "SUBMIT & LIHAT HASIL" : "NEXT QUESTION"} <ArrowRight size={16} /></button></>}</div></footer>
     {zoomImage && imageUrl && <div className="academic-practice__image-overlay" role="dialog" aria-modal="true" aria-label="Gambar soal" onClick={() => setZoomImage(false)}>
       <button type="button" onClick={() => setZoomImage(false)} aria-label="Tutup gambar">×</button>
       {/* eslint-disable-next-line @next/next/no-img-element -- private question image is served from a user-scoped signed URL. */}

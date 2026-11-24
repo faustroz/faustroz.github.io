@@ -96,7 +96,7 @@ describe("standalone Academic Practice page", () => {
     expect(screen.getByRole("radio", { name: new RegExp(`^${incorrect}`) })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: new RegExp(`^${incorrect}`) })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Selesai" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
     expect(await screen.findByText("SESI SELESAI")).toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent.replace(/\s+/g, " ").includes("1 MCQ benar") && element.textContent.includes("1 salah"))).toBeInTheDocument();
     expect(screen.getByText(firstQuestion.explanation)).toBeInTheDocument();
@@ -106,8 +106,8 @@ describe("standalone Academic Practice page", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<AcademicPracticePage />);
     expect(await screen.findByText(/Question one\?|Question two\?/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Selesai" }));
-    expect(confirm).toHaveBeenCalledWith("2 soal belum dijawab. Selesai sekarang?");
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    expect(confirm).toHaveBeenCalledWith("2 soal belum dijawab. Tetap submit sekarang?");
     expect(await screen.findByText("SESI SELESAI")).toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "2 belum dijawab")).toBeInTheDocument();
     confirm.mockRestore();
