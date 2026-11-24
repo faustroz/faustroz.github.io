@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, RotateCcw, ZoomIn } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, RotateCcw, ZoomIn } from "lucide-react";
 import { requireSupabase } from "@/lib/supabase/client";
 import { createPracticeRun, getPracticeRunStorage, migratePracticeRun, writePracticeRun } from "@/lib/hub/academic-practice.mjs";
 import { createQuestionRepository, VALID_OPTIONS } from "@/lib/hub/question-bank.mjs";
@@ -35,7 +35,6 @@ export default function AcademicPracticePage() {
   useEffect(() => { if (ready && run) writePracticeRun(getPracticeRunStorage(window), run); }, [ready, run]);
   const question = useMemo(() => run?.questions?.[run.index] || null, [run]);
   const essay = isEssay(question);
-  const isCorrect = Boolean(run?.submitted && question && !essay && run.selectedAnswer === question.shuffledCorrectAnswer);
   const response = run?.responses?.[run.index];
 
   useEffect(() => {
@@ -141,23 +140,32 @@ export default function AcademicPracticePage() {
     if (completed.historyError) setAttemptMessage("Hasil tersedia, tetapi riwayat sesi belum tersimpan.");
   }, [persistCompletion]);
 
-  const nextQuestion = () => {
-    if (!run?.submitted) return;
+  // Jumps to any question; answers live in run.responses, so each one comes back as it was left.
+  const goTo = (nextIndex) => {
+    if (!run || nextIndex === run.index) return;
     submitLock.current = false; setAttemptMessage("");
-    if (run.index + 1 >= run.questions.length) { void finishRun(run); return; }
-    const nextIndex = run.index + 1;
     const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
     setRun({ ...run, index: nextIndex, selectedAnswer: nextResponse.selectedAnswer || "", essayAnswer: nextResponse.essayAnswer || "", submitted: nextResponse.submitted || false, lastAnswerCorrect: nextResponse.isCorrect });
   };
 
+  // Answers are only revealed on the result screen, so warn when leaving some questions blank.
+  const finishSession = () => {
+    if (!run) return;
+    const unanswered = run.responses.filter((item) => !item.submitted).length;
+    if (unanswered && !window.confirm(`${unanswered} soal belum dijawab. Selesai sekarang?`)) return;
+    void finishRun(run);
+  };
+
+  const nextQuestion = () => {
+    if (!run?.submitted) return;
+    if (run.index + 1 >= run.questions.length) { finishSession(); return; }
+    goTo(run.index + 1);
+  };
+
   const skipQuestion = () => {
     if (!run || run.submitted) return;
-    submitLock.current = false;
-    setAttemptMessage("");
-    if (run.index + 1 >= run.questions.length) { void finishRun(run); return; }
-    const nextIndex = run.index + 1;
-    const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
-    setRun({ ...run, index: nextIndex, selectedAnswer: nextResponse.selectedAnswer || "", essayAnswer: nextResponse.essayAnswer || "", submitted: nextResponse.submitted || false, lastAnswerCorrect: nextResponse.isCorrect });
+    if (run.index + 1 >= run.questions.length) { finishSession(); return; }
+    goTo(run.index + 1);
   };
 
   const startNewRun = async (questions) => {
@@ -227,7 +235,10 @@ export default function AcademicPracticePage() {
             return <article key={item.id} className={state}>
               <p><strong>{String(index + 1).padStart(2, "0")} · {item.exam_type || "MCQ"} · {itemIsEssay ? "ESSAY" : "MCQ"}</strong></p>
               <p>{item.question_text}</p>
-              {itemIsEssay ? <><p><small>Jawaban Anda:</small><br />{itemResponse?.essayAnswer || "Belum dijawab"}</p><p><small>Reference answer:</small><br />{item.reference_answer}</p></> : <p className="academic-practice__review-verdict">{itemResponse?.submitted ? (itemResponse.isCorrect ? "Benar" : "Salah") + " · Jawaban Anda: " + (itemResponse.selectedAnswer || "—") + " · Kunci: " + item.shuffledCorrectAnswer : "Belum dijawab"}</p>}
+              {itemIsEssay ? <><p><small>Jawaban Anda:</small><br />{itemResponse?.essayAnswer || "Belum dijawab"}</p><p><small>Reference answer:</small><br />{item.reference_answer}</p></> : <>
+              <p className="academic-practice__review-verdict">{itemResponse?.submitted ? (itemResponse.isCorrect ? "Benar" : "Salah") + " · Jawaban Anda: " + (itemResponse.selectedAnswer || "—") + " · Kunci: " + item.shuffledCorrectAnswer : "Belum dijawab"}</p>
+              {item.explanation && <p><small>Pembahasan:</small><br />{item.explanation}</p>}
+            </>}
             </article>;
           })}</div>
         </details>
@@ -241,8 +252,16 @@ export default function AcademicPracticePage() {
 
   return <main className="academic-practice">
     <OfflineStatus />
-    <header className="academic-practice__topbar">{exitButton}<div className="academic-practice__topbar-center"><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : run.reviewKind === "due" ? "ESSAY SPACED REVIEW" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><div className="academic-practice__score"><span className="is-correct">{run.stats.correct} benar</span><span className="is-wrong">{run.stats.wrong} salah</span></div></header>
+    <header className="academic-practice__topbar">{exitButton}<div className="academic-practice__topbar-center"><p className="academic-practice__eyebrow">{run.reviewKind === "mistakes" ? "REVIEW MISTAKES" : run.reviewKind === "due" ? "ESSAY SPACED REVIEW" : "PRACTICE MODE"}</p><span className="academic-practice__topbar-title">{String(run.index + 1).padStart(2, "0")} <i>/</i> {String(run.questions.length).padStart(2, "0")}</span></div><span className="academic-practice__topbar-spacer" /></header>
     <div className="academic-practice__progress" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100"><span style={{ width: progress + "%" }} /></div>
+    <nav className="academic-practice__nav" aria-label="Daftar soal">
+      <div className="academic-practice__nav-list">{run.questions.map((item, index) => {
+        const done = Boolean(run.responses[index]?.submitted);
+        const classes = ["academic-practice__nav-item", index === run.index && "is-current", done && "is-done"].filter(Boolean).join(" ");
+        return <button key={item.id} type="button" className={classes} aria-current={index === run.index ? "step" : undefined} aria-label={`Soal ${index + 1}${done ? ", sudah dijawab" : ""}`} disabled={savingAttempt} onClick={() => goTo(index)}>{index + 1}</button>;
+      })}</div>
+      <button type="button" className="academic-practice__text-button" disabled={savingAttempt} onClick={finishSession}>Selesai</button>
+    </nav>
     <section className="academic-practice__content" key={question.id}>
       <div className="academic-practice__metadata">{metadata.map((item) => <span key={item}>{item}</span>)}<span>{essay ? "ESSAY" : "MCQ"}</span></div>
       <h1 className="academic-practice__question">{question.question_text}</h1>
@@ -259,18 +278,11 @@ export default function AcademicPracticePage() {
       </div> : <div className={"academic-practice__options" + (run.submitted ? " is-submitted" : "")} role="radiogroup" aria-label="Pilihan jawaban">
         {VALID_OPTIONS.map((option) => {
           const selected = run.selectedAnswer === option;
-          const correctOption = option === question.shuffledCorrectAnswer;
-          const wrongSelected = run.submitted && selected && !correctOption;
-          const classes = ["academic-practice__option"];
-          if (selected && !run.submitted) classes.push("is-selected");
-          if (run.submitted && correctOption) classes.push("is-correct");
-          if (wrongSelected) classes.push("is-wrong");
-          return <button key={option} type="button" role="radio" aria-checked={selected} disabled={run.submitted} className={classes.join(" ")} onClick={() => updateAnswer("selectedAnswer", option)}><span className="academic-practice__option-letter">{option}</span><span className="academic-practice__option-text">{question.shuffledOptions[option]}</span>{run.submitted && correctOption && <span className="academic-practice__option-tag"><Check size={17} aria-label="Jawaban benar" /><span aria-hidden="true">Kunci</span></span>}{wrongSelected && <span className="academic-practice__option-tag"><CircleAlert size={17} aria-label="Jawaban Anda salah" /><span aria-hidden="true">Jawaban Anda</span></span>}</button>;
+          return <button key={option} type="button" role="radio" aria-checked={selected} disabled={run.submitted} className={"academic-practice__option" + (selected ? " is-selected" : "")} onClick={() => updateAnswer("selectedAnswer", option)}><span className="academic-practice__option-letter">{option}</span><span className="academic-practice__option-text">{question.shuffledOptions[option]}</span></button>;
         })}
-        {run.submitted && <div className={"academic-practice__feedback " + (isCorrect ? "is-correct" : "is-wrong")}><p className="academic-practice__feedback-title">{isCorrect ? "Jawaban benar" : "Belum tepat"}</p>{!isCorrect && <p className="academic-practice__feedback-answer"><span>Jawaban yang benar:</span> <strong>{question.shuffledCorrectAnswer}. {question.shuffledOptions[question.shuffledCorrectAnswer]}</strong></p>}{question.explanation && <div className="academic-practice__explanation-block"><span>Pembahasan</span><p className="academic-practice__explanation">{question.explanation}</p></div>}</div>}
       </div>}
     </section>
-    <footer className="academic-practice__actionbar"><div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Periksa jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button></>}</div></footer>
+    <footer className="academic-practice__actionbar"><div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Simpan jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button></>}</div></footer>
     {zoomImage && imageUrl && <div className="academic-practice__image-overlay" role="dialog" aria-modal="true" aria-label="Gambar soal" onClick={() => setZoomImage(false)}>
       <button type="button" onClick={() => setZoomImage(false)} aria-label="Tutup gambar">×</button>
       {/* eslint-disable-next-line @next/next/no-img-element -- private question image is served from a user-scoped signed URL. */}

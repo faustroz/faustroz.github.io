@@ -5056,3 +5056,15 @@ html:has(.hub-shell.hub-theme-light) { background: #f3f5f2; color-scheme: light;
 .hub-ecg-dial-deg { font-size:9px; opacity:.7; }
 .hub-ecg-dial-vector { stroke:#f59e0b; stroke-width:3; stroke-linecap:round; }
 .hub-ecg-dial-tip { fill:#f59e0b; stroke:#fff; stroke-width:1.5; }
+
+/* Practice: question navigator. Answers stay hidden until the result screen. */
+main.academic-practice .academic-practice__nav { width: min(100%, 54rem); margin: .75rem auto 0; display: flex; align-items: center; gap: .75rem; padding: 0 1rem; }
+main.academic-practice .academic-practice__nav-list { flex: 1; min-width: 0; display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none; padding: .15rem 0; }
+main.academic-practice .academic-practice__nav-list::-webkit-scrollbar { display: none; }
+main.academic-practice .academic-practice__nav-item { flex: 0 0 auto; width: 2.1rem; height: 2.1rem; display: grid; place-items: center; border: 1px solid var(--pr-line-strong); border-radius: 8px; background: transparent; color: var(--pr-muted); font: 600 .8rem/1 var(--pr-mono); cursor: pointer; }
+main.academic-practice .academic-practice__nav-item:hover:not(:disabled) { color: var(--pr-text); border-color: var(--pr-accent); }
+main.academic-practice .academic-practice__nav-item.is-done { color: var(--pr-text); background: var(--pr-raised); }
+main.academic-practice .academic-practice__nav-item.is-current { color: var(--pr-text); border-color: var(--pr-accent); box-shadow: inset 0 0 0 1px var(--pr-accent); }
+main.academic-practice .academic-practice__nav-item:disabled { opacity: .5; cursor: default; }
+main.academic-practice .academic-practice__nav > .academic-practice__text-button { flex: 0 0 auto; }
+main.academic-practice .academic-practice__options.is-submitted .academic-practice__option.is-selected { opacity: 1; }
