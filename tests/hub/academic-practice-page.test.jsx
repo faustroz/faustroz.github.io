@@ -82,12 +82,10 @@ describe("standalone Academic Practice page", () => {
     fireEvent.click(screen.getByRole("radio", { name: new RegExp(`^${incorrect}`) }));
     fireEvent.click(screen.getByRole("button", { name: /Simpan jawaban/i }));
     await waitFor(() => expect(attemptInsert).toHaveBeenCalledTimes(1));
+    // Saving moves straight to the next question, without a separate Next click.
+    expect(await screen.findByText(secondQuestion.question_text)).toBeInTheDocument();
     expect(screen.queryByText(/Belum tepat|Jawaban yang benar|Pembahasan|benar|salah/i)).not.toBeInTheDocument();
     expect(screen.queryByText(firstQuestion.explanation)).not.toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: new RegExp(`^${incorrect}`) })).toHaveAttribute("aria-checked", "true");
-
-    fireEvent.click(screen.getByRole("button", { name: "Soal 2" }));
-    expect(await screen.findByText(secondQuestion.question_text)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Soal 1, sudah dijawab" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: new RegExp(`^${secondQuestion.shuffledCorrectAnswer}`) }));
     fireEvent.click(screen.getByRole("button", { name: /Simpan jawaban/i }));

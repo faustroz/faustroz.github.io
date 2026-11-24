@@ -15,6 +15,12 @@ const percent = (part, total) => total ? Math.round((part / total) * 100) : 0;
 const isEssay = (question) => question?.question_type === "essay";
 const essayReviewRatings = [["again", "Again"], ["hard", "Hard"], ["good", "Good"], ["easy", "Easy"]];
 
+/** The run switched to question `nextIndex`, with that question's saved answer restored. */
+function runAt(base, nextIndex) {
+  const next = base.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
+  return { ...base, index: nextIndex, selectedAnswer: next.selectedAnswer || "", essayAnswer: next.essayAnswer || "", submitted: next.submitted || false, lastAnswerCorrect: next.isCorrect };
+}
+
 export default function AcademicPracticePage() {
   const router = useRouter();
   const [run, setRun] = useState(null);
@@ -67,18 +73,22 @@ export default function AcademicPracticePage() {
       ...run, submitted: true, lastAnswerCorrect: essay ? null : correct, responses: nextResponses,
       stats: { ...run.stats, correct: run.stats.correct + (correct ? 1 : 0), wrong: run.stats.wrong + (!essay && !correct ? 1 : 0), essaysToReview: run.stats.essaysToReview + (essay ? 1 : 0), incorrectQuestions: correct || essay ? run.stats.incorrectQuestions : [...run.stats.incorrectQuestions, question] },
     };
-    setRun(nextRun); setAttemptMessage(""); setSavingAttempt(true);
+    // MCQ moves straight on once saved; the last question stays put so the user can finish from there.
+    const answeredIndex = run.index;
+    const landsOnNext = !essay && answeredIndex + 1 < run.questions.length;
+    setRun(landsOnNext ? runAt(nextRun, answeredIndex + 1) : nextRun); setAttemptMessage(""); setSavingAttempt(true);
+    if (landsOnNext) submitLock.current = false; // the new question has its own submit
+    // Only stores the attempt id: the user may already be on another question by now.
+    const attachAttempt = (attemptId) => setRun((current) => current ? { ...current, responses: current.responses.map((item, i) => (i === answeredIndex ? { ...item, attemptId } : item)) } : current);
     try {
       const repository = createQuestionRepository(requireSupabase());
       if (essay) {
         const attempt = await repository.recordEssayAttempt({ question_id: question.id, exam_session_id: run.sessionId || null, response_text: run.essayAnswer, reference_answer: question.reference_answer, time_spent_seconds: timeSpentSeconds });
-        nextResponses[run.index] = { ...nextResponses[run.index], attemptId: attempt.id };
-        setRun({ ...nextRun, responses: nextResponses });
+        attachAttempt(attempt.id);
       }
       else {
         const attempt = await repository.recordAttempt({ question_id: question.id, exam_session_id: run.sessionId || null, selected_answer: run.selectedAnswer, correct_answer: question.shuffledCorrectAnswer, correct_answer_text: question.shuffledOptions?.[question.shuffledCorrectAnswer], is_correct: correct, time_spent_seconds: timeSpentSeconds });
-        nextResponses[run.index] = { ...nextResponses[run.index], attemptId: attempt.id };
-        setRun({ ...nextRun, responses: nextResponses });
+        attachAttempt(attempt.id);
       }
       setAttemptMessage("Jawaban tersimpan");
     } catch (error) {
@@ -144,8 +154,7 @@ export default function AcademicPracticePage() {
   const goTo = (nextIndex) => {
     if (!run || nextIndex === run.index) return;
     submitLock.current = false; setAttemptMessage("");
-    const nextResponse = run.responses[nextIndex] || { selectedAnswer: "", essayAnswer: "", submitted: false, isCorrect: null, selfAssessed: null };
-    setRun({ ...run, index: nextIndex, selectedAnswer: nextResponse.selectedAnswer || "", essayAnswer: nextResponse.essayAnswer || "", submitted: nextResponse.submitted || false, lastAnswerCorrect: nextResponse.isCorrect });
+    setRun(runAt(run, nextIndex));
   };
 
   // Answers are only revealed on the result screen, so warn when leaving some questions blank.
@@ -282,7 +291,7 @@ export default function AcademicPracticePage() {
         })}
       </div>}
     </section>
-    <footer className="academic-practice__actionbar"><div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Simpan jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button></>}</div></footer>
+    <footer className="academic-practice__actionbar">{!run.submitted && attemptMessage && <p className="academic-practice__save-state" role="status">{attemptMessage}</p>}<div className="academic-practice__actions">{!run.submitted ? <><button className="academic-practice__text-button" onClick={skipQuestion}>Lewati soal</button><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || (essay ? !run.essayAnswer.trim() : !run.selectedAnswer)} onClick={submitAnswer}>{essay ? "Kirim jawaban" : "Simpan jawaban"} <ArrowRight size={16} /></button></> : <><small className="academic-practice__save-state" aria-live="polite">{saveState}</small><button className="academic-practice__button academic-practice__button--primary" disabled={savingAttempt || savingEssayRating} onClick={nextQuestion}>NEXT QUESTION <ArrowRight size={16} /></button></>}</div></footer>
     {zoomImage && imageUrl && <div className="academic-practice__image-overlay" role="dialog" aria-modal="true" aria-label="Gambar soal" onClick={() => setZoomImage(false)}>
       <button type="button" onClick={() => setZoomImage(false)} aria-label="Tutup gambar">×</button>
       {/* eslint-disable-next-line @next/next/no-img-element -- private question image is served from a user-scoped signed URL. */}
