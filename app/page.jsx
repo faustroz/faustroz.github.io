@@ -2,6 +2,7 @@ import "./landing.css";
 import SiteHeader from "@/components/site-header";
 import Hero from "@/components/hero";
 import About from "@/components/about";
+import Projects from "@/components/projects";
 import SiteFooter from "@/components/site-footer";
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
       <main>
         <Hero />
         <About />
+        <Projects />
       </main>
       <SiteFooter />
     </div>

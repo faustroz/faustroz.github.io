@@ -438,6 +438,36 @@ html:has(.lp-page) {
 
 /* ---------- Work -------------------------------------------------------- */
 
+.lp-workgroups {
+  display: grid;
+}
+
+.lp-workgroup + .lp-workgroup {
+  padding-top: clamp(2.5rem, 6vw, 4.5rem);
+  border-top: 1px solid var(--lp-line);
+}
+
+.lp-workgroup__head {
+  margin-bottom: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.lp-workgroup__title {
+  margin: 0.55rem 0 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.625rem);
+  line-height: 1.1;
+  font-weight: 540;
+  letter-spacing: -0.024em;
+  color: var(--lp-ink);
+}
+
+.lp-workgroup__desc {
+  margin: 0.5rem 0 0;
+  max-width: 52ch;
+  font-size: 0.9065rem;
+  line-height: 1.62;
+  color: var(--lp-muted);
+}
+
 .lp-works {
   display: grid;
   gap: clamp(1.25rem, 2.5vw, 1.75rem);
